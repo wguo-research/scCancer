@@ -1,0 +1,31 @@
+
+
+### `r h.i`.`r h.ii` Gene set signature scores calculation 
+In order to analyze cells' expression in gene sets (signatures) level, we calculate the signature scores for each cell.
+
+```{r echo=FALSE, results='asis'}
+if(is.null(results$geneSets)){
+    cat("* Gene sets: the default 50 hallmark gene sets from [MSigDB](http://software.broadinstitute.org/gsea/msigdb/).\n")
+}else{
+    cat("* Gene sets: the input gene sets list.\n")
+}
+if(results$geneSet.method == "average"){
+    cat("* Method: relative average expression levels.")
+}else if(results$geneSet.method == "GSVA"){
+    cat("* Method: [GSVA](https://www.bioconductor.org/packages/release/bioc/html/GSVA.html).")
+}
+```
+
+The calculated gene set signature scores can be found in the column `GS__*` of the table file 
+[cellAnnotation.txt](./cellAnnotation.txt). 
+
+Following is the heatmap for these signatures scores.
+
+```{r geneSetplot, echo=F, message=F, warning=F, dpi=800, fig.width=8, fig.height=6}
+results$geneSet.plot
+```
+<p align="right">(Hi-res image: <a href="./figures/geneSet-heatmap.png">view</a>)</p>
+
+```{r echo=F}
+h.ii <- h.ii + 1
+```

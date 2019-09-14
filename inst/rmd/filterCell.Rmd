@@ -1,0 +1,12 @@
+
+
+* **Cell QC.** According to the thresholds in [cellThresholds.txt](./cellThresholds.txt) (as shown below), 
+we get ` `r dim(results$cell.manifest)[1]` ` cells.
+
+<center>
+```{r thresTable, echo=F, warning=F}
+# results$filter.thres %>% knitr::kable("html")
+kable(results$filter.thres)
+```
+</center>
+

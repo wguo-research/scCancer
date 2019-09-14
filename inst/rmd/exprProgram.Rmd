@@ -1,0 +1,21 @@
+
+
+### `r h.i`.`r h.ii` Expression programs identification
+Here, we use non-negative matrix factorization (NMF) to identify cells' expression programs.
+The input for number of identified programs (the rank in NMF) is ` `r results$nmf.rank` `.
+
+Following is the heatmap for identified cells' expression programs.
+
+```{r exprProgramplot, echo=F, message=F, warning=F, dpi=800, fig.width=10, fig.height=5.5}
+results$exprProgram.plot
+```
+<p align="right">(Hi-res image: <a href="./figures/exprProgram-heatmap.png">view</a>)</p>
+
+```{r echo=F}
+h.ii <- h.ii + 1
+```
+
+After this step, `scCancer` saved following results files to the folder '[expr.programs](./expr.programs/)':
+ * The left matrix `W` (genes * programs): [W-gene-program.txt](./expr.programs/W-gene-program.txt).
+ * The right matrix `H` (programs * cells): [H-program-cell.txt](./expr.programs/H-program-cell.txt).
+ * The relative genes of each programs: [program.gene.value.txt](./expr.programs/program.gene.value.txt).

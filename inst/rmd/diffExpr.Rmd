@@ -1,0 +1,13 @@
+
+
+### `r h.i`.`r h.ii` Differential expression analysis
+Here is a heatmap plot which show the top `r results$n.markers` differentially expressed genes for every cluster compared to all remaining cells. All information of differentially expressed genes can be found [here](./diff.expr.genes/).
+
+```{r DEplot, echo=F, message=F, warning=F, dpi=800, fig.width=8, fig.height=results$DEplot.height}
+results$seurat.plots$p.de.heatmap
+```
+<p align="right">(Hi-res image: <a href="./figures/DE-heatmap.png">view</a>)</p>
+
+```{r echo=F}
+h.ii <- h.ii + 1
+```

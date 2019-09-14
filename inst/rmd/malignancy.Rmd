@@ -1,0 +1,47 @@
+
+### `r h.i`.`r h.ii` Cell malignancy estimation
+
+* In order to distinguish malignant and non-malignant cells, we infer copy number alterations (CNV) from tumor single cell RNA-Seq data referring to the method of R package [`infercnv`](https://github.com/broadinstitute/inferCNV/wiki). Then we calculate a malignancy score based on the CNV profile. Following is the malignancy scores distribution plot for observation cells in the sample (blue) and reference cells (grey).
+
+
+* For the distribution of malignancy score, we use [`Hartigans' Dip Test`](https://www.rdocumentation.org/packages/diptest/versions/0.75-7/topics/dip.test) to quantify the intensity of bimodality and get the `p-value`
+```{r echo=FALSE, results='asis'}
+if(results$bimodal.pvalue == 0){
+    cat("< 2.2e-16, ", sep = "")
+}else{
+    cat("= ", results$bimodal.pvalue, ", ", sep = "")
+}
+if(results$bimodal.pvalue < results$p.value.cutoff){
+    cat("which means we can think the distribution is bimodality and the boundary is nearly `", format(results$malign.thres, digits = 3, scientific = T), "` (red dash line).", sep = "")
+}else{
+    cat("which means we cannot think the distribution is bimodality. So we temporarily presume the cells are all malignant.", sep = "")
+}
+```
+
+```{r malignScorePlot, echo=F, message=F, warning=F, dpi=300, fig.width=6, fig.height=3, fig.align="center", out.width='80%'}
+results$malign.plot$p.malignScore
+```
+<p align="right">(Hi-res image: <a href="./figures/malignScore.png">view</a>)</p>
+
+
+* Following is the t-SNE plot colored by malignancy score (left) and type (right).
+
+```{r malignPointPlot, echo=F, message=F, warning=F, dpi=300, fig.width=10, fig.height=5.5, fig.align="center"}
+plot_grid(results$malign.plot$p.malignScore.Point, 
+          results$malign.plot$p.malignType.Point, ncol = 2)
+```
+<p align='right' style='margin-top:3px'>(Hi-res image: <a href='./figures/malignType-point.png'>left</a>, <a href='./figures/malignScore-point.png'>right</a>)</p>
+
+The estimated cell malignancy scores and types can be found in the column `Malign.score` and `Malign.type` of the table file 
+[cellAnnotation.txt](./cellAnnotation.txt). 
+
+
+After this step, `scCancer` saved following results files to the folder '[malignancy/](./malignancy/)':
+ * Estimated CNV profile of reference cells: [inferCNV-reference.txt](./malignancy/inferCNV-reference.txt).
+ * Estimated CNV profile of sample cells: [inferCNV-observation.txt](./malignancy/inferCNV-observation.txt).
+ * Malignancy scores of reference cells: [refer-malignScore.txt](./malignancy/refer-malignScore.txt).
+
+
+```{r echo=F}
+h.ii <- h.ii + 1
+```

@@ -1,0 +1,2 @@
+
+* **Gene QC.** After filtering the mitochondrial, ribosome, dissociation genes and genes expressed in too less (`nCell < `r results$nCell.min` `) or too much (`background percent >= `r results$bgPercent.max` `) cells, we get ` `r dim(results$gene.manifest)[1]` ` genes ([the filtered genes list file](./gene.manifest.filter.txt)).

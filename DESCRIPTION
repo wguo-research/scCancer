@@ -1,0 +1,41 @@
+Package: scCancer
+Type: Package
+Title: A package for automated processing of single cell RNA-seq data in cancer
+Version: 1.0.0
+Author: G-Lab
+Maintainer: Wenbo Guo <gwb17@mails.tsinghua.edu.cn>
+Description: The package 'scCancer' is focuses on processing and analyzing 
+    scRNA-seq data for cancer research. Except routine data processing steps, 
+    it also integrates several cancer-specific analyses. For example, 
+    more comprehensive quality control, cancer microenvironment cell types 
+    prediction, cell malignancy estimation, gene set signature scores calculation,
+    and expression programs identification. After all steps, the package can
+    generate a user-friendly graphic report. 
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.1.1
+Suggests: 
+    BiocStyle,
+    rmarkdown,
+    DropletUtils
+VignetteBuilder: knitr
+Imports: 
+    cowplot,
+    diptest,
+    dplyr,
+    ggExtra,
+    ggplot2,
+    grid,
+    gridExtra,
+    GSVA,
+    knitr,
+    markdown,
+    Matrix,
+    methods,
+    NNLM,
+    pheatmap,
+    reshape2,
+    Seurat (>= 3.0)
+Depends: R (>= 3.4.0)
+biocViews:
