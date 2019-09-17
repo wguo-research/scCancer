@@ -1023,6 +1023,7 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
             cell.annotation <- t.results$cell.annotation
             results[["cnvList"]] <- t.results$cnvList
             results[["referScore"]] <- t.results$referScore
+            results[["ju.exist.malign"]] <- t.results$ju.exist.malign
             results[["malign.thres"]] <- t.results$malign.thres
             results[["bimodal.pvalue"]] <- t.results$bimodal.pvalue
             results[["malign.plot"]] <- t.results$p.results

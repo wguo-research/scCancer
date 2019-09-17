@@ -346,9 +346,23 @@ getMalignThres <- function(malignScore){
     score.density <- density(malignScore)
     d.score.density <- diff(score.density$y)
     d.sign <- (d.score.density > 0) + 0
-    threshold <- score.density$x[which(d.sign[2:length(d.sign)] - d.sign[1:(length(d.sign)-1)] == 1)[1]+1]
+    # threshold <- score.density$x[which(d.sign[2:length(d.sign)] - d.sign[1:(length(d.sign)-1)] == 1)[1]+1]
 
-    return(list(threshold = threshold,
+    ext.pos <- which(d.sign[2:length(d.sign)] - d.sign[1:(length(d.sign)-1)] != 0)
+    ext.density <- score.density$y[ext.pos]
+
+    if(length(ext.pos) >= 3){
+        left.gap <- ext.density[1:(length(ext.density)-2)] - ext.density[2:(length(ext.density)-1)]
+        right.gap <- ext.density[3:length(ext.density)] - ext.density[2:(length(ext.density)-1)]
+        thres.pos <- ext.pos[which.max(apply(data.frame(left.gap, right.gap), 1, min)) + 1] + 1
+    }else{
+        if(which(d.sign[2:length(d.sign)] - d.sign[1:(length(d.sign)-1)] == 1) > 0){
+            thres.pos <- ext.pos[1]
+        }else{
+            thres.pos <- 1
+        }
+    }
+    return(list(threshold = score.density$x[thres.pos],
                 p.value = p.value))
 }
 
@@ -394,19 +408,30 @@ runMalignancy <- function(dataPath, statPath, savePath,
     obserScore.smooth <- getMalignScore(cnvList, "Observation", method = "smooth",
                                         adjMat = expr@graphs$RNA_snn)
 
-    ## get malignant threshold
+    ## malignant type
+    ju.exist.malign <- dip.test(referScore.smooth, obserScore.smooth)$p.value < 0.95
     tmp <- getMalignThres(obserScore.smooth)
     malign.thres <- tmp$threshold
     bimodal.pvalue <- tmp$p.value
 
     ## score hist plot
-    malign.type <- rep("malignant", length(obserScore.smooth))
-    names(malign.type) <- names(obserScore.smooth)
-    if(bimodal.pvalue < p.value.cutoff){
-        p.malignScore <- malignPlot(obserScore.smooth, referScore.smooth, malign.thres = malign.thres)
-        malign.type[names(obserScore.smooth)[obserScore.smooth < malign.thres]] <- "nonMalignant"
+    if(ju.exist.malign){
+        malign.type <- rep("malignant", length(obserScore.smooth))
+        names(malign.type) <- names(obserScore.smooth)
+
+        if(bimodal.pvalue < p.value.cutoff){
+            p.malignScore <- malignPlot(obserScore.smooth, referScore.smooth,
+                                        malign.thres = malign.thres)
+            malign.type[names(obserScore.smooth)[obserScore.smooth < malign.thres]] <- "nonMalignant"
+        }else{
+            p.malignScore <- malignPlot(obserScore.smooth, referScore.smooth,
+                                        malign.thres = min(obserScore.smooth))
+        }
     }else{
-        p.malignScore <- malignPlot(obserScore.smooth, referScore.smooth)
+        p.malignScore <- malignPlot(obserScore.smooth, referScore.smooth,
+                                    malign.thres = max(obserScore.smooth))
+        malign.type <- rep("nonMalignant", length(obserScore.smooth))
+        names(malign.type) <- names(obserScore.smooth)
     }
 
     ## add score and type to cell.annotation
@@ -451,6 +476,7 @@ runMalignancy <- function(dataPath, statPath, savePath,
         referScore = referScore.smooth,
         expr = expr,
         cell.annotation = cell.annotation,
+        ju.exist.malign = ju.exist.malign,
         bimodal.pvalue = bimodal.pvalue,
         malign.thres = malign.thres,
         p.results = list(p.malignScore = p.malignScore,
