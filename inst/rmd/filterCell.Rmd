@@ -1,6 +1,6 @@
 
 
-* **Cell QC.** According to the thresholds in [cellThresholds.txt](./cellThresholds.txt) (as shown below), 
+* **Cell QC.** According to the thresholds in [cell.QC.thres.txt](./cell.QC.thres.txt) (as shown below), 
 we get ` `r dim(results$cell.manifest)[1]` ` cells.
 
 <center>

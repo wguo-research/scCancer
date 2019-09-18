@@ -151,7 +151,7 @@ The number of genes expressed in at least one cell : ` `r sum(results$gene.manif
 
 
 ### `r h.i`.`r h.ii` Mitochondrial genes
-Summary of mitochondrial genes percentage in cells:
+Summary of mitochondrial genes percentage (`mito.percent`) in cells:
 ```{r mito.summary, echo=F}
 format(summary(results$cell.manifest$mito.percent), digits = 3)
 ```
@@ -171,7 +171,7 @@ h.ii <- h.ii + 1
 
 
 ### `r h.i`.`r h.ii` Ribosome genes
-Summary of ribosome genes percentage in cells:
+Summary of ribosome genes percentage (`ribo.percent`) in cells:
 ```{r ribo.summary, echo=F}
 format(summary(results$cell.manifest$ribo.percent), digits = 3)
 ```
@@ -190,7 +190,7 @@ h.ii <- h.ii + 1
 
 
 ### `r h.i`.`r h.ii` Dissociation associated genes
-Summary of dissociation associated genes percentage in cells:
+Summary of dissociation associated genes percentage (`diss.percent`) in cells:
 ```{r diss.summary, echo=F}
 format(summary(results$cell.manifest$diss.percent), digits = 3)
 ```
@@ -293,7 +293,7 @@ Running this script generates following files:
 5. **Text file with cell manifest** :
 [cellManifest-all.txt](./cellManifest-all.txt).
 6. **Text file with suggested thresholds as above** :
-[cellThresholds.txt](./cellThresholds.txt).
+[cell.QC.thres.txt](./cell.QC.thres.txt).
 7. **Text file with gene manifest** :
 [geneManifest.txt](./geneManifest.txt).
 ```{r echo=F, results='asis'}

@@ -54,7 +54,7 @@ getFilterData <- function(dataPath, statPath, savePath = NULL,
     expr.data <- Read10Xdata(data.dir = get10Xpath(dataPath, raw.data = T))
     gene.manifest <- read.table(file.path(statPath, 'geneManifest.txt'), header = T, sep = "\t")
     cell.manifest <- read.table(file.path(statPath, 'cellManifest-all.txt'), header = T)
-    filter.thres <- read.table(file.path(statPath, 'cellThresholds.txt'), header = T)
+    filter.thres <- read.table(file.path(statPath, 'cell.QC.thres.txt'), header = T)
 
     if(hg.mm.mix){
         rownames(expr.data) <- substr(rownames(expr.data), 6, 60)
@@ -856,7 +856,7 @@ plotExprProgram <- function(H, cell.annotation, bool.limit = F, savePath = NULL)
 #' Must be some of c("mitochondrial", "ribosome", "dissociation")(default).
 #' @param nCell.min An integer number used to filter gene. The default is 3.
 #' Genes with the number of expressed cells less than this threshold will be filtered.
-#' @param bgPercent.max A float number used to filter gene. The default is 0.1.
+#' @param bgPercent.max A float number used to filter gene. The default is 0.001.
 #' Genes with the background percentage larger than this threshold will be filtered.
 #' @param vars.to.regress A vector indicating the variables to regress out in R package Seurat.
 #' The default is c("nUMI", "mito.percent", "ribo.percent").
@@ -899,7 +899,7 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
                             sampleName = "sc",
                             bool.filter.cell = T, bool.filter.gene = T,
                             anno.filter = c("mitochondrial", "ribosome", "dissociation"),
-                            nCell.min = 3, bgPercent.max = 0.1,
+                            nCell.min = 3, bgPercent.max = 0.001,
                             vars.to.regress = c("nUMI", "mito.percent", "ribo.percent"),
                             pc.use = 30,
                             resolution = 0.8,

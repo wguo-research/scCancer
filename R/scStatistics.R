@@ -678,7 +678,7 @@ runScStatistics <- function(dataPath, savePath,
                 quote = F, sep = "\t", row.names = F)
     write.table(cell.manifest.all, file = file.path(savePath, "cellManifest-all.txt"),
                 quote = F, sep = "\t", row.names = F)
-    write.table(filter.thres, file = file.path(savePath, "cellThresholds.txt"),
+    write.table(filter.thres, file = file.path(savePath, "cell.QC.thres.txt"),
                 quote = F, sep = "\t", row.names = F)
 
 
