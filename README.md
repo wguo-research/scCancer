@@ -1,6 +1,3 @@
-# scCancer
-
-```R
 # scCancer – A package for automated processing of single cell RNA-seq data in cancer
 
 The cowplot package provides various features that help with creating publication-quality figures, such as a set of themes, functions to align plots and arrange them into complex compound figures, and functions that make it easy to annotate plots and or mix plots with images. The package was originally written for internal use in the Wilke lab, hence the name (Claus O. Wilke's plot package). It has also been used extensively in the book  [Fundamentals of Data Visualization.](https://www.amazon.com/gp/product/1492031089)
@@ -26,5 +23,7 @@ The scCancer package can be installed via
 
 The vignette of scCancer can be found here.
 
-```
+
+# Citation
+Please use the following citation:
 
