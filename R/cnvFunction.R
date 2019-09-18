@@ -409,7 +409,7 @@ runMalignancy <- function(dataPath, statPath, savePath,
                                         adjMat = expr@graphs$RNA_snn)
 
     ## malignant type
-    ju.exist.malign <- dip.test(referScore.smooth, obserScore.smooth)$p.value < 0.95
+    ju.exist.malign <- dip.test(c(referScore.smooth, obserScore.smooth))$p.value < 0.95
     tmp <- getMalignThres(obserScore.smooth)
     malign.thres <- tmp$threshold
     bimodal.pvalue <- tmp$p.value
