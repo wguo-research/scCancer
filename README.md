@@ -19,7 +19,7 @@ The `scCancer` package can be installed via
 
 ## Usage
 
-The vignette of `scCancer` can be found here.
+The vignette of `scCancer` can be found in the project [wiki](https://github.com/wguo-research/scCancer/wiki/scCancer-vignettes).
 
 
 ## Citation
