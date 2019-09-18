@@ -54,7 +54,7 @@ output: html_document
 ```{r setting, include=FALSE}
 options(knitr.table.format = "html") 
 options(scipen=10)
-knitr::opts_chunk$set(echo = TRUE, fig.path = file.path(results$savePath, 'report-figures/'))
+knitr::opts_chunk$set(echo = TRUE, fig.path = file.path(results$savePath, 'report-figures//'))
 
 title <- "scCancer"
 if(!is.null(results$sampleName)){

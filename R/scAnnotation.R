@@ -288,6 +288,7 @@ markerPlot <- function(expr.data, coor.df, coor.names = c("tSNE_1", "tSNE_2"),
 
 
 pointDRPlot <- function(cell.annotation, value,
+                        coor.names = c("tSNE_1", "tSNE_2"),
                         colors, discrete = T,
                         limit.quantile = 0,
                         legend.position = "right",
@@ -296,7 +297,7 @@ pointDRPlot <- function(cell.annotation, value,
         legend.title <- value
     }
 
-    ratio <- with(cell.annotation, diff(range(tSNE_1))/diff(range(tSNE_2)))
+    ratio <- diff(range(cell.annotation[, coor.names[1]])) / diff(range(cell.annotation[, coor.names[2]]))
 
     fill.value <- cell.annotation[[value]]
     if(!discrete){
@@ -306,11 +307,19 @@ pointDRPlot <- function(cell.annotation, value,
                              ifelse(fill.value > up.thres, up.thres, fill.value))
     }
 
-    p <- ggplot(cell.annotation, aes(x = tSNE_1, y = tSNE_2, fill = fill.value)) +
+    coor.label <- coor.names
+    if(all.equal(coor.label, c("tSNE_1", "tSNE_2"))){
+        coor.label[1] <- "t-SNE 1"
+        coor.label[2] <- "t-SNE 2"
+    }
+
+    p <- ggplot(cell.annotation, aes(x = cell.annotation[, coor.names[1]],
+                                     y = cell.annotation[, coor.names[2]],
+                                     fill = fill.value)) +
         geom_point(shape = 21, size = 1, stroke = 0.25, color = "lightgrey") +
         coord_fixed(ratio = ratio) +
         ggplot_config(base.size = 6) +
-        labs(x = "t-SNE 1", y = "t-SNE 2") +
+        labs(x = coor.label[1], y = coor.label[2]) +
         guides(fill = guide_legend(override.aes = list(size = 3),
                                    keywidth = 0.1,
                                    keyheight = 0.15,
@@ -451,6 +460,7 @@ plotSeurat <- function(expr,
     }
 
     p.results[["p.cluster"]] <- pointDRPlot(cell.annotation, value = "Cluster",
+                                            coor.names = coor.names,
                                             colors = cluster.colors,
                                             legend.title = "Cluster")
 
@@ -481,6 +491,7 @@ plotSeurat <- function(expr,
 
     # message(sprintf('------p.cellCycle------'))
     p.results[["p.cellCycle"]] <- pointDRPlot(cell.annotation, value = "CellCycle.score",
+                                              coor.names = coor.names,
                                               colors = c("white", "#009b45"),
                                               discrete = F,
                                               legend.position = "bottom",
@@ -580,7 +591,8 @@ predCellType <- function(X.test, ct.templates = NULL){
 #' @export
 #'
 #' @examples
-runCellClassify <- function(expr, cell.annotation, savePath, ct.templates = NULL){
+runCellClassify <- function(expr, cell.annotation, coor.names = c("tSNE_1", "tSNE_2"),
+                            savePath, ct.templates = NULL){
     t.results <- predCellType(X.test = GetAssayData(expr), ct.templates = ct.templates)
 
     expr[["Cell.Type"]] <- t.results$type.pred
@@ -606,6 +618,7 @@ runCellClassify <- function(expr, cell.annotation, savePath, ct.templates = NULL
 
     # message(sprintf('------p.type------'))
     p.type <- pointDRPlot(cell.annotation, value = "Cell.Type",
+                          coor.names = coor.names,
                           colors = cell.colors,
                           legend.title = "Cell type")
 
@@ -995,6 +1008,7 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
     if(bool.runCellClassify){
         message("[", Sys.time(), "] -----: TME cell types annotation")
         t.results <- runCellClassify(expr, cell.annotation,
+                                     coor.names = coor.names,
                                      savePath = savePath,
                                      ct.templates = ct.templates)
 
@@ -1018,6 +1032,7 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
                                        expr = expr,
                                        cutoff = cutoff, minCell = 3,
                                        p.value.cutoff = p.value.cutoff,
+                                       coor.names = coor.names,
                                        hg.mm.mix = hg.mm.mix)
             expr <- t.results$expr
             cell.annotation <- t.results$cell.annotation

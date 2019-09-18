@@ -391,6 +391,7 @@ runMalignancy <- function(dataPath, statPath, savePath,
                           expr,
                           cutoff = 0.1, minCell = 3,
                           p.value.cutoff = 0.5,
+                          coor.names = c("tSNE_1", "tSNE_2"),
                           hg.mm.mix = F){
     if(!dir.exists(file.path(savePath, 'malignancy/'))){
         dir.create(file.path(savePath, 'malignancy/'), recursive = T)
@@ -442,11 +443,13 @@ runMalignancy <- function(dataPath, statPath, savePath,
 
     ## scatter plot of malignancy
     p.malignType.Point <- pointDRPlot(cell.annotation, value = "Malign.type",
+                                      coor.names = coor.names,
                                       colors = c("malignant" = "#f57e87", "nonMalignant" = "#66d5a5"),
                                       legend.position = "bottom",
                                       legend.title = "Malignancy type")
 
     p.malignScore.Point <- pointDRPlot(cell.annotation, value = "Malign.score",
+                                       coor.names = coor.names,
                                        colors = c("white", "#f57e87"),
                                        discrete = F,
                                        limit.quantile = 0.1,
