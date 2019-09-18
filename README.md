@@ -1,4 +1,4 @@
-# scCancer – A package for automated processing of single cell RNA-seq data in cancer
+# scCancer
 
 The `scCancer` package focuses on processing and analyzing droplet-based scRNA-seq data for cancer research. Except routine data processing steps, this package takes several special considerations for cancer-specific features. 
 
