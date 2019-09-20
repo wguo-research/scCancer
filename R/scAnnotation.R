@@ -770,7 +770,7 @@ runExprProgram <- function(expr, rank = 50, savePath = NULL){
     rownames(H) <- paste0("p", 1:dim(H)[1])
 
     all.genes <- rownames(W)
-    sel.W <- (W > (1 - 50/dim(W)[1]))
+    sel.W <- (W > quantile(W, 1 - 50/dim(W)[1]))
     for(pi in 1:dim(W)[2]){
         tmp <- data.frame(program = colnames(W)[pi], gene = all.genes[sel.W[, pi]], value = W[sel.W[, pi], pi])
         tmp <- tmp[order(tmp$value, decreasing = T), ]
