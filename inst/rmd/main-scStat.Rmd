@@ -158,7 +158,7 @@ format(summary(results$cell.manifest$mito.percent), digits = 3)
 * Suggested threshold to filter cells with high mitochondrial genes percentage : <span style="color:red">` `r round(results$cell.threshold$mito.percent, 3)` `</span>.
     + Using this threshold, ` `r sum(results$cell.manifest$mito.percent >= results$cell.threshold$mito.percent)` ` cells will be filtered.
 
-```{r mito, echo=FALSE, message=F, dpi=300, fig.height=4, fig.width=8, fig.align="center", out.width='80%'}
+```{r mito, echo=FALSE, message=F, dpi=300, fig.height=4, fig.width=4, fig.align="center", out.width='40%'}
 results$p.mito
 ```
 <p align="right">(Hi-res image: <a href="./figures/mito-distr.png">view</a>)</p>
@@ -178,7 +178,7 @@ format(summary(results$cell.manifest$ribo.percent), digits = 3)
 * Suggested threshold to filter cells with high ribosome genes percentage : <span style="color:red">` `r round(results$cell.threshold$ribo.percent, 3)` `</span>.
     + Using this threshold, ` `r sum(results$cell.manifest$ribo.percent >= results$cell.threshold$ribo.percent)` ` cells will be filtered.
 
-```{r ribo, echo=FALSE, message=F, dpi=300, fig.height=4, fig.width=8, fig.align="center", out.width='80%'}
+```{r ribo, echo=FALSE, message=F, dpi=300, fig.height=4, fig.width=4, fig.align="center", out.width='40%'}
 results$p.ribo
 ```
 <p align="right">(Hi-res image: <a href="./figures/ribo-distr.png">view</a>)</p>
@@ -197,7 +197,7 @@ format(summary(results$cell.manifest$diss.percent), digits = 3)
 * Suggested threshold to filter cells with high dissociation genes percentage : <span style="color:red">` `r round(results$cell.threshold$diss.percent, 3)` `</span>.
     + Using this threshold, ` `r sum(results$cell.manifest$diss.percent >= results$cell.threshold$diss.percent)` ` cells will be filtered.
 
-```{r diss, echo=FALSE, message=F, dpi=300, fig.height=4, fig.width=8, fig.align="center", out.width='80%'}
+```{r diss, echo=FALSE, message=F, dpi=300, fig.height=4, fig.width=4, fig.align="center", out.width='40%'}
 results$p.diss
 ```
 <p align="right">(Hi-res image: <a href="./figures/diss-distr.png">view</a>)</p>

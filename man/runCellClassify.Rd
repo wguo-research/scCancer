@@ -4,12 +4,15 @@
 \alias{runCellClassify}
 \title{runCellClassify}
 \usage{
-runCellClassify(expr, cell.annotation, savePath, ct.templates = NULL)
+runCellClassify(expr, cell.annotation, coor.names = c("tSNE_1",
+  "tSNE_2"), savePath, ct.templates = NULL)
 }
 \arguments{
 \item{expr}{A Seurat object return by function 'runSeurat'.}
 
 \item{cell.annotation}{A data.frame of cells' annotation return by function 'runSeurat'.}
+
+\item{coor.names}{A vector indicating the names of two-dimension coordinate used in visualization.}
 
 \item{savePath}{A path to save the results files. If NULL, the 'statPath' will be used instead.}
 

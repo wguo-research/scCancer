@@ -8,7 +8,7 @@ And the correlation coefficients with cell type templates are in columns `*.corr
 
 Here is the t-SNE plot colored by predicted cell types.
 
-```{r cellTypePlot, echo=F, message=F, warning=F, dpi=500, fig.width=5, fig.height=4, fig.align="center", out.width='80%'}
+```{r cellTypePlot, echo=F, message=F, warning=F, dpi=500, fig.width=5.2, fig.height=4, fig.align="center", out.width='80%'}
 results$cellType.plot$p.type
 ```
 <p align="right">(Hi-res image: <a href="./figures/cellType-point.png">view</a>)</p>

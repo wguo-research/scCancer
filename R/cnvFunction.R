@@ -456,13 +456,20 @@ runMalignancy <- function(dataPath, statPath, savePath,
                                        legend.position = "bottom",
                                        legend.title = "Malignancy score")
 
+    p.malignType.bar <- clusterBarPlot(cell.annotation = cell.annotation,
+                                       cell.colors = c("malignant" = "#f57e87", "nonMalignant" = "#66d5a5"),
+                                       sel.col = "Malign.type",
+                                       legend.title = "Malignancy type")
+
     ## save
     ggsave(filename = file.path(savePath, "figures/malignScore.png"),
            p.malignScore, width = 8, height = 4, dpi = 800)
     ggsave(filename = file.path(savePath, "figures/malignType-point.png"),
-           p.malignType.Point, width = 6, height = 6.2, dpi = 800)
+           p.malignType.Point, width = 4, height = 4.1, dpi = 800)
     ggsave(filename = file.path(savePath, "figures/malignScore-point.png"),
-           p.malignScore.Point, width = 6, height = 6.2, dpi = 800)
+           p.malignScore.Point, width = 4, height = 4.1, dpi = 800)
+    ggsave(filename = file.path(savePath, "figures/malignType-bar.png"),
+           p.malignType.bar, width = 6, height = 3, dpi = 800)
 
     write.table(cnvList$expr.data[, names(obserScore.smooth)],
                 file = file.path(savePath, "malignancy/inferCNV-observation.txt"),
@@ -484,7 +491,8 @@ runMalignancy <- function(dataPath, statPath, savePath,
         malign.thres = malign.thres,
         p.results = list(p.malignScore = p.malignScore,
                          p.malignType.Point = p.malignType.Point,
-                         p.malignScore.Point = p.malignScore.Point)
+                         p.malignScore.Point = p.malignScore.Point,
+                         p.malignType.bar = p.malignType.bar)
     )
     return(results)
 }

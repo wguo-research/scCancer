@@ -99,12 +99,14 @@ h.i <- h.i + 1
 
 
 
-## `r h.i` Data processing
+## `r h.i` Data preprocessing
 
-In order to perform dimensional reduction, cluster and visualization, we did as following based on some functions of the R package [`Seurat V3`](https://satijalab.org/seurat/).
+In order to perform dimensional reduction, cluster and visualization, we do as following based on some functions of the R package [`Seurat V3`](https://satijalab.org/seurat/).
+
+After the quality control, we perform following preprocessing steps based on some functions of the R package [`Seurat V3`](https://satijalab.org/seurat/).
 
 * **Normalization.** Normalize the raw counts data to TPMs (tyranscripts-per-million) and log-transforms them.
-* **Scale data.** Regress unwanted sources of variation (` `r results$vars.to.regress` `) and center the resulting residuals.
+* **Scale data.** Remove unwanted sources of variations (` `r results$vars.to.regress` `) by regression and center the resulting residuals.
 * **Highly variable genes.** Calcuate the average expression and dispersion of each gene across all cells to select highly variable genes(HVGs).
 
 ```{r hvgPlot, echo=F, message=F, warning=F, dpi=500, fig.width=8, fig.height=4, fig.align="center", out.width='70%'}
@@ -112,11 +114,8 @@ results$seurat.plots$p.hvg
 ```
 <p align="right">(Hi-res image: <a href="./figures/hvg.png">view</a>)</p>
 * **PCA.** Perform principal component analysis (PCA) and select PCs to cluster and visualization.
-* **Cluster.** Identify clusters of all single cells by a graph-based clustering algorithm.
 * **Visualiztion.** Using t-SNE to persent each single cell in two-dimensional space.
-```{r echo=FALSE, results='asis', eval=results$bool.runDiffExpr}
-cat("* **Differential expression analysis.** Find differentially expressed genes for each cluster compared to all remaining cells.\n", sep = "")
-```
+
 
 
 ```{r echo=F}
@@ -196,6 +195,7 @@ h.ii <- h.ii + 1
 
 
 ### `r h.i`.`r h.ii` Clustering
+In order to identify clusters of all single cells, we perform a graph-based clustering by running [`Seurat`](https://satijalab.org/seurat/) functions. 
 The cluster information can be found in the column `Cluster` of the table file 
 [cellAnnotation.txt](./cellAnnotation.txt). 
 
@@ -214,37 +214,54 @@ h.ii <- h.ii + 1
 
 
 
-```{r cellType, child=system.file("rmd", "cellTypePred.Rmd", package = "scCancer"), eval = results$bool.runCellClassify}
-```
-
-
-
-
-### `r h.i`.`r h.ii` Cell cycle estimation
-The estimated cell cycles can be found in the column `CellCycle.score` of the table file 
-[cellAnnotation.txt](./cellAnnotation.txt). 
-
-Here is the t-SNE plot colored by estimated cell cycle score. 
-
-```{r cellCyclePlot, echo=F, message=F, warning=F, dpi=500, fig.width=5, fig.height=4, fig.align="center", out.width='80%'}
-results$seurat.plots$p.cellCycle
-```
-<p align="right">(Hi-res image: <a href="./figures/cellCycle-point.png">view</a>)</p>
-
-```{r echo=F}
-h.ii <- h.ii + 1
-```
-
-
-
-
 ```{r diffExpr, child=system.file("rmd", "diffExpr.Rmd", package = "scCancer"), eval = results$bool.runDiffExpr}
 ```
 
 
 
 
+```{r cellType, child=system.file("rmd", "cellTypePred.Rmd", package = "scCancer"), eval = results$bool.runCellClassify}
+```
+
+
+
+
 ```{r malignancy, child=system.file("rmd", "malignancy.Rmd", package = "scCancer"), eval = results$bool.runMalignancy}
+```
+
+
+--------------------------------
+```{r echo=FALSE, results='asis'}
+# if(is.null(results$tumor.clusters)){
+#     cat("#### According to the results of cell type prediction and cell malignancy estimation, ",
+#     "we couldn't identify tumor clusters, ", 
+#     "so we use all clusters to perform following heterogeneity analyses.\n", sep = "")
+# }else{
+#     # cat("#### According to the results of cell type prediction and cell malignancy estimation, we identify the clusters `",
+#     #     str_c(results$tumor.clusters, collapse = ", "),
+#     #     "` as tumor clusters, and following intra-tumor heterogeneity analyses mainly focus on them.\n", sep = "")
+#     cat("#### According to the results of cell type prediction and cell malignancy estimation, we identify the tumor clusters, ",
+#         "and following intra-tumor heterogeneity analyses mainly focus on them.\n", sep = "")
+# }
+cat("#### In order to analyze <span style='color:red'>intra-tumor heterogeneity</span>, we select tumor clusters firstly based on the results of cell type prediction and cell malignancy estimation.\n")
+if(is.null(results$tumor.clusters)){
+    cat("#### <span style='color:red;font-size:19px'>Warning:</span> Here, we couldn't identify the tumor clusters, so we use <span style='color:red'>all clusters</span> to perform following analyses.\n")
+}else{
+    cat("#### Here, we identify <span style='color:red'>cluster `", str_c(results$tumor.clusters, collapse = ", "),
+        "`</span> as tumor cells. And following analyses mainly focus on them.\n", sep = "")
+}
+```
+
+
+
+
+```{r cellCycle, child=system.file("rmd", "cellCycle.Rmd", package = "scCancer"), eval = results$bool.runCellCycle}
+```
+
+
+
+
+```{r stemness, child=system.file("rmd", "stemness.Rmd", package = "scCancer"), eval = results$bool.runStemness}
 ```
 
 

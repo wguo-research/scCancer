@@ -7,14 +7,15 @@
 runScAnnotation(dataPath, statPath, savePath = NULL, authorName = NULL,
   sampleName = "sc", bool.filter.cell = T, bool.filter.gene = T,
   anno.filter = c("mitochondrial", "ribosome", "dissociation"),
-  nCell.min = 3, bgPercent.max = 0.1, vars.to.regress = c("nUMI",
+  nCell.min = 3, bgPercent.max = 0.001, vars.to.regress = c("nUMI",
   "mito.percent", "ribo.percent"), pc.use = 30, resolution = 0.8,
   clusterStashName = "default", show.features = NULL,
   bool.add.features = T, bool.runDiffExpr = T, n.markers = 5,
   species = "human", hg.mm.mix = F, bool.runCellClassify = T,
   ct.templates = NULL, coor.names = c("tSNE_1", "tSNE_2"),
   bool.runMalignancy = T, cutoff = 0.1, p.value.cutoff = 0.5,
-  bool.runGeneSets = T, geneSets = NULL, geneSet.method = "average",
+  bool.runCellCycle = T, bool.runStemness = T, bool.runGeneSets = T,
+  geneSets = NULL, geneSet.method = "average",
   bool.runExprProgram = T, nmf.rank = 50, genReport = T)
 }
 \arguments{
@@ -41,7 +42,7 @@ Must be some of c("mitochondrial", "ribosome", "dissociation")(default).}
 \item{nCell.min}{An integer number used to filter gene. The default is 3.
 Genes with the number of expressed cells less than this threshold will be filtered.}
 
-\item{bgPercent.max}{A float number used to filter gene. The default is 0.1.
+\item{bgPercent.max}{A float number used to filter gene. The default is 0.001.
 Genes with the background percentage larger than this threshold will be filtered.}
 
 \item{vars.to.regress}{A vector indicating the variables to regress out in R package Seurat.
@@ -80,6 +81,10 @@ The default is NULL and the templates prepared in this package will be used.}
 \item{cutoff}{A threshold used in the CNV inference.}
 
 \item{p.value.cutoff}{A threshold to decide weather the bimodality distribution of malignancy score is significant.}
+
+\item{bool.runCellCycle}{A logical value indicating whether to estimate cell cycle scores.}
+
+\item{bool.runStemness}{A logical value indicating whether to estimate stemness scores.}
 
 \item{bool.runGeneSets}{A logical value indicating whether to estimate gene sets signature scores.}
 

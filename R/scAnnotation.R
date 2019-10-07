@@ -195,13 +195,6 @@ runSeurat <- function(exprList, savePath, sampleName = "sc",
     cell.annotation$Cluster <- factor(expr@meta.data[[clusterStashName]])
 
 
-    message("[", Sys.time(), "] -----: cell cycle score estimation")
-    cellCycle.genes <- read.table(system.file("txt", "cellCycle-genes.txt", package = "scCancer"),
-                                  header = F, stringsAsFactors = F)$V1
-    expr <- AddModuleScore(expr, features = list(cellCycle.genes), name = "cellCycle")
-    cell.annotation$CellCycle.score <- expr[["cellCycle1"]]$cellCycle1
-
-
     return(list(expr = expr,
                 diff.expr.genes = diff.expr.genes,
                 cell.annotation = cell.annotation))
@@ -287,14 +280,34 @@ markerPlot <- function(expr.data, coor.df, coor.names = c("tSNE_1", "tSNE_2"),
 
 
 
+#' pointDRPlot
+#'
+#' Plot scatter for cells.
+#'
+#' @param cell.annotation A data.frame of cells' annotation containing the cells' coordinates and index to be colored.
+#' @param value The column name of cell.annotation, which is mapped to the colors of points.
+#' @param colors An array of colors used to show the gredients or type of points. If NULL, the default colors will be used.
+#' @param discrete A logical value indicating whether the value column is discrete or not.
+#' @param limit.quantile A quantile threshold to limit the data and reduce the influence of outliers.
+#' @param legend.position The position of legends ("none", "left", "right", "bottom", "top", or two-element numeric vector).
+#' @param legend.title The title of legends.
+#' @inheritParams runScAnnotation
+#'
+#' @return A ggplot object for the scatter plot.
+#' @export
+#'
+#' @examples
 pointDRPlot <- function(cell.annotation, value,
                         coor.names = c("tSNE_1", "tSNE_2"),
-                        colors, discrete = T,
+                        colors = NULL, discrete = T,
                         limit.quantile = 0,
                         legend.position = "right",
                         legend.title = NULL){
     if(is.null(legend.title)){
         legend.title <- value
+    }
+    if(is.null(colors)){
+        colors <- getDefaultColors(length(unique(cell.annotation[[value]])))
     }
 
     ratio <- diff(range(cell.annotation[, coor.names[1]])) / diff(range(cell.annotation[, coor.names[2]]))
@@ -489,21 +502,13 @@ plotSeurat <- function(expr,
                      silent = T)
     }
 
-    # message(sprintf('------p.cellCycle------'))
-    p.results[["p.cellCycle"]] <- pointDRPlot(cell.annotation, value = "CellCycle.score",
-                                              coor.names = coor.names,
-                                              colors = c("white", "#009b45"),
-                                              discrete = F,
-                                              legend.position = "bottom",
-                                              legend.title = "Cell cycle score")
-
     # message(sprintf('------save images------'))
     ggsave(filename = file.path(savePath, "figures/hvg.png"), p.results[["p.hvg"]],
            width = 8, height = 4, dpi = 800)
 
     for(gene in names(p.results[["ps.markers"]])){
         ggsave(filename = paste0(savePath, "/figures/singleMarkerPlot/", gene, ".png"),
-               p.results[["ps.markers"]][[gene]], width = 5, height = 5, dpi = 800)
+               p.results[["ps.markers"]][[gene]], width = 3, height = 3, dpi = 800)
     }
 
     if(length(p.results[["ps.markers"]]) > 0){
@@ -521,9 +526,6 @@ plotSeurat <- function(expr,
         ggsave(filename = file.path(savePath, "figures/DE-heatmap.png"),
                p.results[["p.de.heatmap"]], width = 8, height = DEplot.height, dpi = 800)
     }
-
-    ggsave(filename = file.path(savePath, "figures/cellCycle-point.png"),
-           p.results[["p.cellCycle"]], width = 6, height = 5, dpi = 800)
 
     # saveRDS(cell.annotation, file = file.path(savePath, "cell.annotation.RDS"))
 
@@ -629,15 +631,113 @@ runCellClassify <- function(expr, cell.annotation, coor.names = c("tSNE_1", "tSN
                             legend.title = "Cell type")
 
     ggsave(filename = file.path(savePath, "figures/cellType-point.png"),
-           p.type, width = 7, height = 4, dpi = 800)
+           p.type, width = 5.2, height = 4, dpi = 800)
     ggsave(filename = file.path(savePath, "figures/cellType-bar.png"),
-           p.bar, width = 6, height = 4, dpi = 800)
+           p.bar, width = 6, height = 3, dpi = 800)
 
     return(list(expr = expr,
                 cell.annotation = cell.annotation,
                 p.results = list(p.type = p.type,
                                  p.bar = p.bar)))
 }
+
+
+
+#' getTumorCluster
+#'
+#' Identify tumor clusters according to the results of cell type prediction and cell malignancy estimatation.
+#'
+#' @param cell.annotation A data.frame of cells' annotation containing predicted cell typea and estimated cell malignant type.
+#' @param epi.thres A threshold for epithelial cell percent to decide putative tumor clusters.
+#' @param malign.thres A threshold for malignant cell percent to decide putative tumor clusters.
+#'
+#' @return A list of identified tumor clusters. If no clusters are found, return NULL.
+#' @export
+#'
+#' @examples
+getTumorCluster <- function(cell.annotation, epi.thres = 0.6, malign.thres = 0.9){
+    epithe.clusters <- c()
+    if("Cell.Type" %in% names(cell.annotation)){
+        for(cluster in unique(cell.annotation$Cluster)){
+            tmp <- subset(cell.annotation, Cluster == cluster)
+            percent.epithe <- sum(tmp$Cell.Type == "Epithelial") / dim(tmp)[1]
+            if(percent.epithe > epi.thres){
+                epithe.clusters <- c(epithe.clusters, cluster)
+            }
+        }
+    }
+    malign.clusters <- c()
+    if("Malign.type" %in% names(cell.annotation)){
+        for(cluster in unique(cell.annotation$Cluster)){
+            tmp <- subset(cell.annotation, Cluster == cluster)
+            percent.malign <- sum(tmp$Malign.type == "malignant") / dim(tmp)[1]
+            if(percent.malign > malign.thres){
+                malign.clusters <- c(malign.clusters, cluster)
+            }
+        }
+    }
+    tumor.clusters <- intersect(epithe.clusters, malign.clusters)
+    if(length(tumor.clusters) == 0){
+        warning("Could not identify tumor clusters.\n")
+        return(NULL)
+    }
+    tumor.clusters <- as.numeric(tumor.clusters)
+    tumor.clusters <- tumor.clusters[order(tumor.clusters)]
+    return(tumor.clusters)
+}
+
+
+
+#' runCellCycle
+#'
+#' Estimate cell cycle scores.
+#'
+#' @param expr A Seurat object.
+#'
+#' @return A array of cell cycle scores.
+#' @export
+#'
+#' @examples
+runCellCycle <- function(expr){
+    message("[", Sys.time(), "] -----: cell cycle score estimation")
+    cellCycle.genes <- read.table(system.file("txt", "cellCycle-genes.txt", package = "scCancer"),
+                                  header = F, stringsAsFactors = F)$V1
+    expr <- AddModuleScore(expr, features = list(cellCycle.genes), name = "cellCycle")
+    return(expr[["cellCycle1"]]$cellCycle1)
+}
+
+
+
+#' runStemness
+#'
+#' Estimate cell stemness according to the Spearman correlation with stemness signature.
+#'
+#' @param X An expression matrix of gene by cell to estimate stemness.
+#' @param stem.sig An array of stemness signature. The default is NULL, and a prepared signature will be used.
+#'
+#' @return A array of cell stemness scores.
+#' @export
+#'
+#' @examples
+runStemness <- function(X, stem.sig = NULL){
+    if(is.null(stem.sig)){
+        stem.sig.file <- system.file("txt", "pcbc-stemsig.tsv", package = "scCancer")
+        stem.sig <- read.delim(stem.sig.file, header = FALSE, row.names = 1)
+    }
+
+    common.genes <- intersect(rownames(stem.sig), rownames(X))
+    X <- X[common.genes, ]
+    stem.sig <- stem.sig[common.genes, ]
+
+    s <- apply(X, 2, function(z) {cor(z, stem.sig, method = "sp", use = "complete.obs")})
+    names(s) <- colnames(X)
+
+    s <- s - min(s)
+    s <- s / max(s)
+
+    return(s)
+}
+
 
 
 
@@ -729,8 +829,9 @@ plotGeneSet <- function(cell.annotation, prefix = "GS__", bool.limit = T, savePa
                   silent = T)
 
     if(!is.null(savePath)){
+        geneSetPlot.height <- 0.5 + 0.11 * length(gs.name)
         ggsave(filename = file.path(savePath, "figures/geneSet-heatmap.png"),
-               p, width = 10, height = 6, dpi = 1000)
+               p, width = 10, height = geneSetPlot.height, dpi = 1000)
     }
 
     return(p)
@@ -745,6 +846,7 @@ plotGeneSet <- function(cell.annotation, prefix = "GS__", bool.limit = T, savePa
 #'
 #' @param expr A Seurat object.
 #' @param rank An integer of decomposition rank used in NMF.
+#' @param sel.clusters A vector of selected clusters to analyze. The default is NULL and all clusters will be used.
 #' @inheritParams runScAnnotation
 #'
 #' @return A list of decomposed matrixes (W and H), and the relative genes of each programs.
@@ -753,10 +855,13 @@ plotGeneSet <- function(cell.annotation, prefix = "GS__", bool.limit = T, savePa
 #' @importFrom methods as
 #'
 #' @examples
-runExprProgram <- function(expr, rank = 50, savePath = NULL){
+runExprProgram <- function(expr, rank = 50, sel.clusters = NULL, clusterStashName = "default", savePath = NULL){
     message("[", Sys.time(), "] -----: identify expression programs")
 
     data <- as(object = expr[["RNA"]]@data, Class = "dgTMatrix")
+    if(!is.null(sel.clusters)){
+        data <- data[, expr@meta.data[[clusterStashName]] %in% sel.clusters]
+    }
     ave.data <-  Matrix::rowSums(data) / Matrix::rowSums(data > 0)
 
     data@x <- data@x - ave.data[data@i + 1]
@@ -772,8 +877,14 @@ runExprProgram <- function(expr, rank = 50, savePath = NULL){
     all.genes <- rownames(W)
     sel.W <- (W > quantile(W, 1 - 50/dim(W)[1]))
     for(pi in 1:dim(W)[2]){
-        tmp <- data.frame(program = colnames(W)[pi], gene = all.genes[sel.W[, pi]], value = W[sel.W[, pi], pi])
-        tmp <- tmp[order(tmp$value, decreasing = T), ]
+        if(sum(sel.W[, pi]) > 10){
+            tmp <- data.frame(program = colnames(W)[pi], gene = all.genes[sel.W[, pi]], value = W[sel.W[, pi], pi])
+            tmp <- tmp[order(tmp$value, decreasing = T), ]
+        }else{
+            tmp <- data.frame(program = colnames(W)[pi], gene = all.genes, value = W[, pi])
+            tmp <- tmp[order(tmp$value, decreasing = T), ]
+            tmp <- tmp[1:10, ]
+        }
         if(pi == 1){
             program.gene.value <- tmp
         }else{
@@ -813,6 +924,7 @@ runExprProgram <- function(expr, rank = 50, savePath = NULL){
 #' @param H The decomposed right matrix H.
 #' @param cell.annotation A data.frame of cells' annotation containing cluster information.
 #' @param bool.limit A logical value indicating whether to set upper and lower limit when plot heatmap.
+#' @param sel.clusters A vector of selected clusters to analyze. The default is NULL and all clusters will be used.
 #' @inheritParams runScAnnotation
 #'
 #' @return A heatmap for cells' expression programs.
@@ -820,10 +932,13 @@ runExprProgram <- function(expr, rank = 50, savePath = NULL){
 #' @importFrom NNLM nnmf
 #'
 #' @examples
-plotExprProgram <- function(H, cell.annotation, bool.limit = F, savePath = NULL){
+plotExprProgram <- function(H, cell.annotation, bool.limit = T, sel.clusters = NULL, savePath = NULL){
     if(bool.limit){
         up.bound <- quantile(as.matrix(H), 0.995)
-        H <- limitData(H, low.bound, up.bound)
+        H <- limitData(H, max = up.bound)
+    }
+    if(!is.null(sel.clusters)){
+        cell.annotation <- subset(cell.annotation, Cluster %in% sel.clusters)
     }
 
     tmp.results <- getClusterInfo(cell.annotation)
@@ -841,9 +956,37 @@ plotExprProgram <- function(H, cell.annotation, bool.limit = F, savePath = NULL)
                   silent = T)
 
     if(!is.null(savePath)){
+        exprProgPlot.height <- 0.5 + 0.11 * dim(H)[1]
         ggsave(filename = file.path(savePath, "figures/exprProgram-heatmap.png"),
-               p, width = 10, height = 5.5, dpi = 1000)
+               p, width = 10, height = exprProgPlot.height, dpi = 1000)
     }
+
+    # clusters <- unique(cell.annotation$Cluster)
+    # clusters <- sort(clusters)
+    #
+    # def.colors <- getDefaultColors(n = length(clusters))
+    # cluster.colors <- c()
+    # for(i in 1:length(clusters)){
+    #     # cluster.colors[as.character(clusters[i])] = def.colors[clusters[i]]
+    #     cluster.colors[i] = def.colors[clusters[i]]
+    # }
+    # cluster.colors = list(Cluster = cluster.colors)
+    # ha <- HeatmapAnnotation(df = data.frame(Cluster = cell.annotation$Cluster),
+    #                         name ="Cluster", col = cluster.colors)
+    #
+    # p <- Heatmap(H, name = "H",
+    #              col = c("#f9fcfb","#009b45"),
+    #              top_annotation = ha,
+    #              column_split = cell.annotation$Cluster,
+    #              cluster_column_slices = F,
+    #              show_column_names = F,
+    #              show_heatmap_legend = F)
+    # if(!is.null(savePath)){
+    #     png(filename = file.path(savePath, "figures/exprProgram-heatmap.png"), width = 1300, height = 800)
+    #     p
+    #     dev.off()
+    # }
+
     return(p)
 }
 
@@ -892,6 +1035,8 @@ plotExprProgram <- function(H, cell.annotation, bool.limit = F, savePath = NULL)
 #' @param bool.runMalignancy A logical value indicating whether to estimate malignancy.
 #' @param cutoff A threshold used in the CNV inference.
 #' @param p.value.cutoff A threshold to decide weather the bimodality distribution of malignancy score is significant.
+#' @param bool.runCellCycle A logical value indicating whether to estimate cell cycle scores.
+#' @param bool.runStemness A logical value indicating whether to estimate stemness scores.
 #' @param bool.runGeneSets A logical value indicating whether to estimate gene sets signature scores.
 #' @param geneSets A list of gene sets to be analyzed. The default is NULL and 50 hallmark gene sets from MSigDB will be used.
 #' @param geneSet.method The method to be used in calculate gene set scores. Currently, only "average" and "GSVA" are allowed.
@@ -905,6 +1050,7 @@ plotExprProgram <- function(H, cell.annotation, bool.limit = F, savePath = NULL)
 #' @import Matrix knitr ggplot2 Seurat
 #' @importFrom markdown markdownToHTML
 #' @importFrom pheatmap pheatmap
+#' @importFrom stringr str_c
 #'
 #' @examples
 runScAnnotation <- function(dataPath, statPath, savePath = NULL,
@@ -928,6 +1074,8 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
                             bool.runMalignancy = T,
                             cutoff = 0.1,
                             p.value.cutoff = 0.5,
+                            bool.runCellCycle = T,
+                            bool.runStemness = T,
                             bool.runGeneSets = T,
                             geneSets = NULL,
                             geneSet.method = "average",
@@ -1019,7 +1167,6 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
     }
 
 
-
     ## --------- malignancy ---------
     if(bool.runMalignancy){
         message("[", Sys.time(), "] -----: cells malignancy annotation")
@@ -1047,20 +1194,74 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
     }
 
 
+    ## --------- select tumor clusters ---------
+    tumor.clusters <- getTumorCluster(cell.annotation = cell.annotation)
+    results[["tumor.clusters"]] <- tumor.clusters
+
+    print(results[["tumor.clusters"]])
+    print(class(results[["tumor.clusters"]]))
+
+    if(is.null(tumor.clusters)){
+        sel.clusters <- unique(cell.annotation$Cluster)
+        sel.clusters <- sel.clusters[order(sel.clusters)]
+    }else{
+        sel.clusters <- tumor.clusters
+    }
+
+
+    ## --------- cell cycle ---------
+    if(bool.runCellCycle){
+        CellCycle.score <- runCellCycle(expr)
+        cell.annotation$CellCycle.score <- CellCycle.score
+        results[["cellCycle.plot"]] <-
+            pointDRPlot(subset(cell.annotation, Cluster %in% sel.clusters),
+                        value = "CellCycle.score",
+                        coor.names = coor.names,
+                        colors = c("white", "#009b45"),
+                        discrete = F,
+                        legend.position = "bottom",
+                        legend.title = "Cell cycle score")
+        ggsave(filename = file.path(savePath, "figures/cellCycle-point.png"),
+               results[["cellCycle.plot"]], width = 4, height = 4.1, dpi = 800)
+    }
+
+
+    ## --------- stemness ---------
+    if(bool.runStemness){
+        message("[", Sys.time(), "] -----: stemness score calculation")
+        stem.scores <- runStemness(X = GetAssayData(object = expr, slot = "scale.data"))
+        cell.annotation[["Stemness.score"]] <- stem.scores
+
+        results[["stemness.plot"]] <-
+            pointDRPlot(subset(cell.annotation, Cluster %in% sel.clusters),
+                        value = "Stemness.score",
+                        coor.names = coor.names,
+                        colors = c("white", "#ff9000"),
+                        discrete = F,
+                        legend.position = "bottom",
+                        legend.title = "Stemness")
+        ggsave(filename = file.path(savePath, "figures/stemness-point.png"),
+               results[["stemness.plot"]], width = 4, height = 4.1, dpi = 800)
+    }
+
+
     ## --------- gene sets ----------
     if(bool.runGeneSets){
         t.scores <- runGeneSets(expr = expr, geneSets = geneSets, method = geneSet.method)
         if(!is.null(t.scores)){
             cell.annotation <- cbind(cell.annotation, t.scores)
-            rm(t.scores)
 
             bool.limit <- T
             if(geneSet.method == "GSVA"){
                 bool.limit <- F
             }
             results[["geneSet.plot"]] <-
-                plotGeneSet(cell.annotation, prefix = "GS__",
-                            bool.limit = bool.limit, savePath = savePath)
+                plotGeneSet(subset(cell.annotation, Cluster %in% sel.clusters),
+                            prefix = "GS__",
+                            bool.limit = bool.limit,
+                            savePath = savePath)
+            results[["geneSetPlot.height"]] <- 0.5 + 0.11 * dim(t.scores)[2]
+            rm(t.scores)
         }else{
             bool.runGeneSets = FALSE
         }
@@ -1069,15 +1270,18 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
 
     ## ---------- expression programs ----------
     if(bool.runExprProgram){
-        results[["exprProgram.results"]] <- runExprProgram(expr, rank = nmf.rank, savePath = savePath)
+        results[["exprProgram.results"]] <- runExprProgram(expr, rank = nmf.rank,
+                                                           sel.clusters = sel.clusters,
+                                                           savePath = savePath)
         results[["exprProgram.plot"]] <- plotExprProgram(H = results[["exprProgram.results"]]$H,
-                                                         cell.annotation, savePath = savePath)
+                                                         cell.annotation,
+                                                         sel.clusters = sel.clusters,
+                                                         savePath = savePath)
+        results[["exprProgPlot.height"]] <- 0.5 + 0.11 * dim(results[["exprProgram.results"]]$H)[1]
     }
-
 
     results[["expr"]] <- expr
     results[["cell.annotation"]] <- cell.annotation
-
 
     ## -------- save ---------
     saveRDS(expr, file = file.path(savePath, "expr.RDS"))

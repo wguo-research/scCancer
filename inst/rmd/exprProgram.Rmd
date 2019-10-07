@@ -6,7 +6,7 @@ The input for number of identified programs (the rank in NMF) is ` `r results$nm
 
 Following is the heatmap for identified cells' expression programs.
 
-```{r exprProgramplot, echo=F, message=F, warning=F, dpi=800, fig.width=10, fig.height=5.5}
+```{r exprProgramplot, echo=F, message=F, warning=F, dpi=800, fig.width=10, fig.height=results$exprProgPlot.height}
 results$exprProgram.plot
 ```
 <p align="right">(Hi-res image: <a href="./figures/exprProgram-heatmap.png">view</a>)</p>

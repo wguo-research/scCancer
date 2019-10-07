@@ -5,7 +5,8 @@
 \title{runMalignancy}
 \usage{
 runMalignancy(dataPath, statPath, savePath, cell.annotation, expr,
-  cutoff = 0.1, minCell = 3, p.value.cutoff = 0.5, hg.mm.mix = F)
+  cutoff = 0.1, minCell = 3, p.value.cutoff = 0.5,
+  coor.names = c("tSNE_1", "tSNE_2"), hg.mm.mix = F)
 }
 \arguments{
 \item{dataPath}{A path containing the cell ranger processed data.
@@ -26,6 +27,8 @@ reference cells. The default is 0.1)}
 
 \item{p.value.cutoff}{The p-value to decide whether the distribution of
 malignancy score is bimodality.}
+
+\item{coor.names}{A vector indicating the names of two-dimension coordinate used in visualization.}
 
 \item{hg.mm.mix}{A logical value indicating whether the sample is a mix of
 human cells and mouse cells(such as PDX sample).

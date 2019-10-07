@@ -619,11 +619,11 @@ runScStatistics <- function(dataPath, savePath,
     p.diss <- marginPlot(cell.manifest, value = "diss.percent", color = "#94c08e",
                          xlines = c(cell.threshold$nUMI), ylines = c(cell.threshold$diss.percent))
     ggsave(filename = file.path(savePath, "figures/mito-distr.png"),
-           p.mito, dpi = 800, height = 4, width = 7)
+           p.mito, dpi = 800, height = 4, width = 4)
     ggsave(filename = file.path(savePath, "figures/ribo-distr.png"),
-           p.ribo, dpi = 800, height = 4, width = 7)
+           p.ribo, dpi = 800, height = 4, width = 4)
     ggsave(filename = file.path(savePath, "figures/diss-distr.png"),
-           p.diss, dpi = 800, height = 4, width = 7)
+           p.diss, dpi = 800, height = 4, width = 4)
 
 
     message("[", Sys.time(), "] -----: gene statistics")

@@ -36,6 +36,7 @@ Imports:
     NNLM,
     pheatmap,
     reshape2,
-    Seurat (>= 3.0)
+    Seurat (>= 3.0),
+    stringr
 Depends: R (>= 3.4.0)
 biocViews:

@@ -4,7 +4,8 @@
 \alias{plotExprProgram}
 \title{plotExprProgram}
 \usage{
-plotExprProgram(H, cell.annotation, bool.limit = F, savePath = NULL)
+plotExprProgram(H, cell.annotation, bool.limit = T,
+  sel.clusters = NULL, savePath = NULL)
 }
 \arguments{
 \item{H}{The decomposed right matrix H.}
@@ -12,6 +13,8 @@ plotExprProgram(H, cell.annotation, bool.limit = F, savePath = NULL)
 \item{cell.annotation}{A data.frame of cells' annotation containing cluster information.}
 
 \item{bool.limit}{A logical value indicating whether to set upper and lower limit when plot heatmap.}
+
+\item{sel.clusters}{A vector of selected clusters to analyze. The default is NULL and all clusters will be used.}
 
 \item{savePath}{A path to save the results files. If NULL, the 'statPath' will be used instead.}
 }

@@ -1,0 +1,15 @@
+
+### `r h.i`.`r h.ii` Cell cycle estimation
+The estimated cell cycles can be found in the column `CellCycle.score` of the table file 
+[cellAnnotation.txt](./cellAnnotation.txt). 
+
+Here is the t-SNE plot colored by estimated cell cycle score. 
+
+```{r cellCyclePlot, echo=F, message=F, warning=F, dpi=500, fig.width=5, fig.height=5.2, fig.align="center", out.width='60%'}
+results$cellCycle.plot
+```
+<p align="right">(Hi-res image: <a href="./figures/cellCycle-point.png">view</a>)</p>
+
+```{r echo=F}
+h.ii <- h.ii + 1
+```

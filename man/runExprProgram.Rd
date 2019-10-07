@@ -4,12 +4,17 @@
 \alias{runExprProgram}
 \title{runExprProgram}
 \usage{
-runExprProgram(expr, rank = 50, savePath = NULL)
+runExprProgram(expr, rank = 50, sel.clusters = NULL,
+  clusterStashName = "default", savePath = NULL)
 }
 \arguments{
 \item{expr}{A Seurat object.}
 
 \item{rank}{An integer of decomposition rank used in NMF.}
+
+\item{sel.clusters}{A vector of selected clusters to analyze. The default is NULL and all clusters will be used.}
+
+\item{clusterStashName}{A character string used as the name of cluster identies. The default is "default".}
 
 \item{savePath}{A path to save the results files. If NULL, the 'statPath' will be used instead.}
 }

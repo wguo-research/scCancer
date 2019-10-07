@@ -29,7 +29,7 @@ Must be some of c("mitochondrial", "ribosome", "dissociation")(default).}
 \item{nCell.min}{An integer number used to filter gene. The default is 3.
 Genes with the number of expressed cells less than this threshold will be filtered.}
 
-\item{bgPercent.max}{A float number used to filter gene. The default is 0.1.
+\item{bgPercent.max}{A float number used to filter gene. The default is 0.001.
 Genes with the background percentage larger than this threshold will be filtered.}
 
 \item{hg.mm.mix}{A logical value indicating whether the sample is a mix of

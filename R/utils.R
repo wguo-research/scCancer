@@ -270,21 +270,33 @@ getDefaultMarkers <- function(species = "human"){
 
 
 
-getDefaultColors <- function(){
-    colors25 <- c("#cb7c77", "#68d359", "#6a7dc9", "#c9d73d", "#c555cb",
-                  "#d7652d", "#7cd5c8", "#c49a3f", "#507d41", "#5d8d9c",
-                  "#90353b", "#674c2a", "#1B9E77", "#c5383c", "#0081d1",
-                  "#ffd900", "#502e71", "#c8b693", "#aed688", "#f6a97a",
-                  "#c6a5cc", "#798234", "#6b42c8", "#cf4c8b", "#666666")
-    return(colors25)
+getDefaultColors <- function(n = NULL){
+    colors <- c("#cb7c77", "#68d359", "#6a7dc9", "#c9d73d", "#c555cb",
+                "#d7652d", "#7cd5c8", "#c49a3f", "#507d41", "#5d8d9c",
+                "#90353b", "#674c2a", "#1B9E77", "#c5383c", "#0081d1",
+                "#ffd900", "#502e71", "#c8b693", "#aed688", "#f6a97a",
+                "#c6a5cc", "#798234", "#6b42c8", "#cf4c8b", "#666666")
+    if(!is.null(n)){
+        if(n <= 25){
+            colors <- colors[1:n]
+        }else{
+            step <- 16777200 %/% n - 2
+            colors <- paste0("#", as.hexmode(seq(from = sample(1:step, 1), by = step, length.out = n)))
+        }
+    }
+    return(colors)
 }
 
 
 
-limitData <- function(data, min, max){
+limitData <- function(data, min = NULL, max = NULL){
     data2 <- data
-    data2[data2 > max] <- max
-    data2[data2 < min] <- min
+    if(!is.null(min)){
+        data2[data2 < min] <- min
+    }
+    if(!is.null(max)){
+        data2[data2 > max] <- max
+    }
     return(data2)
 }
 
@@ -295,7 +307,8 @@ getClusterInfo <- function(cell.annotation){
     cluster.info$Cluster <- as.factor(cluster.info$Cluster)
 
     num.cluster <- table(cluster.info$Cluster)
-    num.cluster <- num.cluster[as.character(1 : length(num.cluster))]
+    # num.cluster <- num.cluster[as.character(1 : length(num.cluster))]
+    num.cluster <- num.cluster[as.character(unique(cluster.info$Cluster))]
     cluster.pos <- cumsum(num.cluster)
 
     def.colors <- getDefaultColors()
@@ -303,7 +316,7 @@ getClusterInfo <- function(cell.annotation){
     clusters <- sort(clusters)
     cluster.colors <- c()
     for(i in 1:length(clusters)){
-        cluster.colors[as.character(clusters[i])] = def.colors[i]
+        cluster.colors[as.character(clusters[i])] = def.colors[clusters[i]]
     }
     cluster.colors = list(Cluster = cluster.colors)
 
