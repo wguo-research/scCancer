@@ -145,7 +145,7 @@ runSeurat <- function(exprList, savePath, sampleName = "sc",
     message("[", Sys.time(), "] -----: PCA")
     expr <- RunPCA(expr, features = VariableFeatures(expr), verbose = F)
 
-    message("[", Sys.time(), "] -----: Clustering")
+    message("[", Sys.time(), "] -----: clustering")
     expr <- FindNeighbors(expr, dims = 1:pc.use, verbose = F)
     expr <- FindClusters(expr, resolution = resolution, verbose = F)
     expr[[clusterStashName]] <- as.numeric(Idents(object = expr))
@@ -508,7 +508,7 @@ plotSeurat <- function(expr,
 
     for(gene in names(p.results[["ps.markers"]])){
         ggsave(filename = paste0(savePath, "/figures/singleMarkerPlot/", gene, ".png"),
-               p.results[["ps.markers"]][[gene]], width = 3, height = 3, dpi = 800)
+               p.results[["ps.markers"]][[gene]], width = 2, height = 2, dpi = 800)
     }
 
     if(length(p.results[["ps.markers"]]) > 0){
@@ -720,6 +720,7 @@ runCellCycle <- function(expr){
 #'
 #' @examples
 runStemness <- function(X, stem.sig = NULL){
+    message("[", Sys.time(), "] -----: stemness score calculation")
     if(is.null(stem.sig)){
         stem.sig.file <- system.file("txt", "pcbc-stemsig.tsv", package = "scCancer")
         stem.sig <- read.delim(stem.sig.file, header = FALSE, row.names = 1)
@@ -756,7 +757,7 @@ runStemness <- function(X, stem.sig = NULL){
 #'
 #' @examples
 runGeneSets <- function(expr, geneSets = NULL, method = "average"){
-    message("[", Sys.time(), "] -----: calculate gene sets scores")
+    message("[", Sys.time(), "] -----: gene set signatures analyses")
     if(is.null(geneSets)){
         geneSets <- readLines(system.file("txt", "hallmark-pathways.txt", package = "scCancer"))
         geneSets <- strsplit(geneSets, "\t")
@@ -771,7 +772,9 @@ runGeneSets <- function(expr, geneSets = NULL, method = "average"){
         }
     }
     if(method == "average"){
-        expr <- AddModuleScore(expr, features = geneSets, name = "geneSets")
+        suppressWarnings(
+            expr <- AddModuleScore(expr, features = geneSets, name = "geneSets")
+        )
         t.scores <- expr[[paste0("geneSets", 1:length(geneSets))]]
         t.scores <- scale(t.scores)
     }else if(method == "GSVA"){
@@ -856,7 +859,7 @@ plotGeneSet <- function(cell.annotation, prefix = "GS__", bool.limit = T, savePa
 #'
 #' @examples
 runExprProgram <- function(expr, rank = 50, sel.clusters = NULL, clusterStashName = "default", savePath = NULL){
-    message("[", Sys.time(), "] -----: identify expression programs")
+    message("[", Sys.time(), "] -----: expression programs analysis")
 
     data <- as(object = expr[["RNA"]]@data, Class = "dgTMatrix")
     if(!is.null(sel.clusters)){
@@ -1198,9 +1201,6 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
     tumor.clusters <- getTumorCluster(cell.annotation = cell.annotation)
     results[["tumor.clusters"]] <- tumor.clusters
 
-    print(results[["tumor.clusters"]])
-    print(class(results[["tumor.clusters"]]))
-
     if(is.null(tumor.clusters)){
         sel.clusters <- unique(cell.annotation$Cluster)
         sel.clusters <- sel.clusters[order(sel.clusters)]
@@ -1228,7 +1228,6 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
 
     ## --------- stemness ---------
     if(bool.runStemness){
-        message("[", Sys.time(), "] -----: stemness score calculation")
         stem.scores <- runStemness(X = GetAssayData(object = expr, slot = "scale.data"))
         cell.annotation[["Stemness.score"]] <- stem.scores
 

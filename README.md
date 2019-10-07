@@ -3,19 +3,25 @@
 The `scCancer` package focuses on processing and analyzing droplet-based scRNA-seq data for cancer research. Except routine data processing steps, this package takes several special considerations for cancer-specific features. 
 
 The `scCancer` pipeline consists of two parts: `scStatistics` and `scAnnotation`.
-* The `scStatistics` implements quality control for cells and genes.
-* The `scAnnotation` implements normal analysis and annotate the cells' low-dimension coordinates, cluster, cell type, cell cycle, malignancy, gene set signatures, expression program, and so on. 
+* The `scStatistics` performs basic statistical analysis of raw data and quality control.
+* The `scAnnotation` performs functional data analyses and visualizations, such as low dimensional representation, clustering, cell type classification, malignancy estimation, cellular phenotype scoring, gene signature analysis, etc.
 
 After these analyses, user-friendly graphic reports will be generated.
+
+## Systems Requirement
+
 
 
 ## Installation
 
 The `scCancer` package can be installed via
 
-    library(devtools)
-    devtools::install_github("wguo-research/scCancer")
+```R
+library(devtools)
+devtools::install_github("wguo-research/scCancer")
+```
 
+**Hint:**  If you haven't installed the package `devtools`, please run `install.packages("devtools")` firstly.
 
 ## Usage
 

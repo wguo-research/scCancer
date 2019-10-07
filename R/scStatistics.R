@@ -654,11 +654,11 @@ runScStatistics <- function(dataPath, savePath,
     p.bg.detect <- bgDetScatter(gene.manifest)
     suppressWarnings(
         ggsave(filename = file.path(savePath, "figures/bg-cell-scatter.png"),
-               p.bg.cell, dpi = 800, height = 6, width = 6)
+               p.bg.cell, dpi = 800, height = 4, width = 4)
     )
     suppressWarnings(
         ggsave(filename = file.path(savePath, "figures/bg-detect-scatter.png"),
-               p.bg.detect, dpi = 800, height = 6, width = 6)
+               p.bg.detect, dpi = 800, height = 4, width = 4)
     )
 
 
