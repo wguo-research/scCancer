@@ -1,9 +1,17 @@
 ---
 title: "scCancer"
 author: 
-- name: "G-Lab"
-  affiliation:
-    - Tsinghua University
+- name: "Wenbo Guo"
+  affiliation: &1 MOE Key Laboratory of Bioinformatics, BNRIST Bioinformatics Division, Department of Automa-tion, Tsinghua University, Beijing 100084, China
+- name: "Dongfang wang"
+  affiliation: *1
+- name: "Shicheng wang"
+  affiliation: *1
+- name: "Yi ran Shan"
+  affiliation: *1
+- name: "Jin Gu"
+  affiliation: *1
+  email: jgu@tsinghua.edu.cn
 date: "`r Sys.Date()`"
 output: 
   BiocStyle::html_document:
@@ -58,6 +66,9 @@ After these analyses, user-friendly graphic reports will be generated.
 
 
 ## Installation
+Please install or update the package `devtools` by running `install.packages("devtools")` firstly. 
+
+Then the `scCancer` can be installed via
 ```{r eval=FALSE}
 library(devtools)
 devtools::install_github("wguo-research/scCancer")
@@ -115,11 +126,23 @@ For other droplet-based platforms, the data folder can be prepared likewise.
 
 ## Quick start
 
+Here, we provide an [example data](http://lifeome.net/software/sccancer/KC-example.tar.gz) of 
+kidney cancer from 10X Genomics. Users can download it and run following scripts 
+to understand the workflow of `scCancer`. And following are the links of generated HTML reports:
+
+* [`report-scStat.html`](http://lifeome.net/software/sccancer/KC-example-results/report-scStat.html)
+* [`report-scAnno.html`](http://lifeome.net/software/sccancer/KC-example-results/report-scAnno.html)
+
+
 ### scStatistics
 The `scStatistics` mainly implements quality control for the expression matrix
 and return some suggested thresholds to filter cells and genes.
 
-Following is an example script to run the first step `scStatistics`.
+Following is the example script to run the first step `scStatistics`.
+
+And using `help(runScStatistics)` can get more details about the arguments 
+of `runScStatistics` to realize personalized setting.
+
 ```{r eval=FALSE}
     library(scCancer)
     
@@ -129,13 +152,15 @@ Following is an example script to run the first step `scStatistics`.
     savePath <- "./results/KC-example"
     # The sample name
     sampleName <- "KC-example"
+    # The author name or a string used to mark the report.
+    authorName <- "G-Lab@THU"
     
     # Run scStatistics
     stat.results <- runScStatistics(
         dataPath = dataPath,
         savePath = savePath,
         sampleName = sampleName,
-        authorName = NULL
+        authorName = authorName
     )
 ```
 
@@ -156,33 +181,44 @@ Running the `scStatistics` script will generate some files as below:
 ### scAnnotation
 
 Using the QC thresholds, the `scAnnotation` filters cells and genes firstly, and then 
-perform normal operations (normalization, data scaling, highly variable genes identification, 
-PCA, clustering, differential expression analysis and cell cycle estimation) using R 
-package `Seurat V3`[1,2]. Besides, `scAnnotation` also provides some cancer-specific analysis:
+performs basic operations (normalization, log-transformation, highly variable genes identification, 
+removing unwanted variance, scaling, centering, dimension reduction, clustering, 
+and differential expression analy-sis) using R package `Seurat V3`[1,2]. 
+Besides, `scAnnotation` also performs some cancer-specific analyses:
 
- * **Cancer micro-environmental cell types annotation** : In this step, we propose  
- a one-class logistic regression (OCLR) model to predict cell types.
- This step can be control by the parameter `bool.runCellClassify`.
+ * **Cancer micro-environmental cell type classification** : In this step, 
+ we develop a data-driven model (one-class logistic regression) to predict cell types, 
+ including endothelial cells, fibroblast, and immune cells 
+ (CD4+ T cells, CD8+ T cells, B cells, nature killer cells, and myeloid cells).
  
- * **Cell malignancy estimation** : In this step, we use moving average of expression values 
- across each chromosome to estimate CNV profile (refer to [`infercnv`](https://github.com/broadinstitute/inferCNV/wiki)).
- And then we use clustering information to estimated cells' malignancy scores and types.
- This step can be control by the parameter `bool.runMalignancy`.
+ * **Cell malignancy estimation** : In this step, we refer to the algorithm of 
+ R package [`infercnv`](https://github.com/broadinstitute/inferCNV/wiki) 
+ to estimate an initial CNV profiles [3]. Then, we take advantage of cells’ neighborhoods information 
+ to smooth CNV values and define the malignancy score as the mean of the squares of them.
  
- * **Gene set signature scores calculation** : In this step, we provide 
+ * **Cell cycle analysis** : In this step, to analyze intra-tumor cell phenotype heterogeneity,
+ we define cell cycle score with the relative average expression of a list of G2/M and S phase markers,
+ by using the function “AddModuleScore” of Seurat [2].
+ 
+ * **Cell stemness analysis** : In this step, to analyze intra-tumor cell phenotype heterogeneity,
+ we define cell stemness score with the Spearman correlation coefficient between cells’ expression and 
+ our pre-trained stemness signature, by referring to the algorithm of Malta et al [4].
+ 
+ * **Gene set signature analysis** : In this step, we provide 
  two methods to calculated gene set signature scores: 
  [GSVA](https://www.bioconductor.org/packages/release/bioc/html/GSVA.html) 
  and relative average expression levels. By default, we use 50 hallmark gene sets 
  from [MSigDB](http://software.broadinstitute.org/gsea/msigdb/).
- This step can be control by the parameter `bool.runGeneSets`.
  
- * **Expression programs identification** : In this step, we use non-negative 
- matrix factorization (NMF) to identify expression programs. 
- This step can be control by the parameter `bool.runExprProgram`.
+ * **Expression programs identification** : In this step, we use non-negative matrix 
+ factorization (NMF) to unsupervised identify potential expression program signatures.
 
 
 
-Following is an example script to run the first step `scAnnotation`.
+Following is the example script to run the second step `scAnnotation`. 
+
+And using `help(runScAnnotation)` can get more details about the arguments 
+of `runScAnnotation` to realize personalized setting.
 
 ```{r eval=FALSE}
     library(scCancer)
@@ -194,23 +230,18 @@ Following is an example script to run the first step `scAnnotation`.
     # A path used to save the results files
     savePath <- "./results/KC-example" 
     # The sample name
-    sampleName <- "KC-example"         
+    sampleName <- "KC-example"
+    # The author name or a string used to mark the report.
+    authorName <- "G-Lab@THU"    
     
     # Run scAnnotation
     anno.results <- runScAnnotation(
         dataPath = dataPath,
         statPath = statPath,
         savePath = savePath,
-        authorName = NULL,
+        authorName = authorName,
         sampleName = sampleName,
-        bgPercent.max = 0.001,
-        pc.use = 30,
-        bool.runDiffExpr = T,
-        bool.runCellClassify = T,
-        bool.runMalignancy = T,
-        bool.runGeneSets = T,
-        # geneSet.method = "GSVA",
-        bool.runExprProgram = T
+        # geneSet.method = "GSVA"
     )
 ```
 
@@ -239,7 +270,7 @@ Running the `scAnnotation` script will generate some files/folders as below:
 ### Modify cell QC thresholds
 
 After the step `scStatistics`, a HTML report (`report-scStat.html`) will be generated, which persents the statistical features of the data from various perspectives (`nUMI`, `nGene`, `mito.percent`, `ribo.percent`, `diss.percent`). 
-By identifying outliers from the distribution of these indices, `scCancer` adaptively provides some suggested thresholds to filter poor-quality cells and records them in file `cell.QC.thres.txt`.
+By identifying outliers from the distribution of these metrics, `scCancer` adaptively provides some suggested thresholds to filter low-quality cells and records them in file `cell.QC.thres.txt`.
 Besides, users can also modify the values in file `cell.QC.thres.txt` and then the step `scAnnotation` will use the updated thresholds to perform cell QC and downstream analyses.
 
 
@@ -280,6 +311,8 @@ the method `EmptyDrop` (the name of R package is [`DropletUtils`](http://biocond
 [2] Stuart T, Butler A, Hoffman P, et al. Comprehensive Integration of Single-Cell Data[J]. Cell, 2019.
 
 [3] inferCNV of the Trinity CTAT Project.  https://github.com/broadinstitute/inferCNV
+
+[4] Malta T M, Sokolov A, et al. Machine learning identifies stemness features asso-ciated with oncogenic dedifferentiation. Cell, 2018, 173(2): 338-354. e15.
 
 
 

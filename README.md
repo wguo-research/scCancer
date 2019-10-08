@@ -30,9 +30,9 @@ devtools::install_github("wguo-research/scCancer")
 
 ## Usage
 
-The vignette of `scCancer` can be found in the project [wiki](https://github.com/wguo-research/scCancer/wiki/scCancer-vignettes).
+The vignette of `scCancer` can be found in the project [wiki](https://github.com/wguo-research/scCancer/wiki/scCancer-vignettes) or vignette [page](http://lifeome.net/software/sccancer/scCancer-vignette.html).
 
-We also provide a [kidney cancer example data](http://lifeome.net/software/sccancer/KC-example.zip), and here are the generated reports: 
+We also provide an [example data](http://lifeome.net/software/sccancer/KC-example.tar.gz) of kidney cancer from 10X Genomics, and here are the generated reports: 
 
 * [`report-scStat.html`](http://lifeome.net/software/sccancer/KC-example-results/report-scStat.html)
 * [`report-scAnno.html`](http://lifeome.net/software/sccancer/KC-example-results/report-scAnno.html)
