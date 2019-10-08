@@ -4,14 +4,16 @@
 \alias{pointDRPlot}
 \title{pointDRPlot}
 \usage{
-pointDRPlot(cell.annotation, value, coor.names = c("tSNE_1", "tSNE_2"),
-  colors = NULL, discrete = T, limit.quantile = 0,
-  legend.position = "right", legend.title = NULL)
+pointDRPlot(cell.annotation, value, sel.clusters = NULL,
+  coor.names = c("tSNE_1", "tSNE_2"), colors = NULL, discrete = T,
+  limit.quantile = 0, legend.position = "right", legend.title = NULL)
 }
 \arguments{
 \item{cell.annotation}{A data.frame of cells' annotation containing the cells' coordinates and index to be colored.}
 
 \item{value}{The column name of cell.annotation, which is mapped to the colors of points.}
+
+\item{sel.clusters}{An array of selected clusters to present. (The default is NULL and all clusters will be used.)}
 
 \item{coor.names}{A vector indicating the names of two-dimension coordinate used in visualization.}
 
