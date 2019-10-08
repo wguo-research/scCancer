@@ -10,7 +10,7 @@ The workflow of  `scCancer` mainly consists of two parts: `scStatistics` and `sc
 
 After these analyses, user-friendly graphic reports will be generated.
 
-![scCancer-workflow](http://lifeome.net/software/sccancer/scCancer-workflow.png)
+<img src="http://lifeome.net/software/sccancer/scCancer-workflow.png" width="70%" alt="scCancer-workflow" align=center>
 
 ## System Requirements
 
