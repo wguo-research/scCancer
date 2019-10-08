@@ -35,7 +35,6 @@ The vignette of `scCancer` can be found in the project [wiki](https://github.com
 We also provide a [kidney cancer example data](http://lifeome.net/software/sccancer/KC-example.zip), and here are the generated reports: 
 
 * [`report-scStat.html`](http://lifeome.net/software/sccancer/KC-example-results/report-scStat.html)
-
 * [`report-scAnno.html`](http://lifeome.net/software/sccancer/KC-example-results/report-scAnno.html)
 
 
