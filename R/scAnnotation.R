@@ -285,6 +285,7 @@ markerPlot <- function(expr.data, coor.df, coor.names = c("tSNE_1", "tSNE_2"),
 #' Plot scatter for cells.
 #'
 #' @param cell.annotation A data.frame of cells' annotation containing the cells' coordinates and index to be colored.
+#' @param sel.clusters An array of selected clusters to present. (The default is NULL and all clusters will be used.)
 #' @param value The column name of cell.annotation, which is mapped to the colors of points.
 #' @param colors An array of colors used to show the gredients or type of points. If NULL, the default colors will be used.
 #' @param discrete A logical value indicating whether the value column is discrete or not.
@@ -298,6 +299,7 @@ markerPlot <- function(expr.data, coor.df, coor.names = c("tSNE_1", "tSNE_2"),
 #'
 #' @examples
 pointDRPlot <- function(cell.annotation, value,
+                        sel.clusters = NULL,
                         coor.names = c("tSNE_1", "tSNE_2"),
                         colors = NULL, discrete = T,
                         limit.quantile = 0,
@@ -326,10 +328,25 @@ pointDRPlot <- function(cell.annotation, value,
         coor.label[2] <- "t-SNE 2"
     }
 
-    p <- ggplot(cell.annotation, aes(x = cell.annotation[, coor.names[1]],
-                                     y = cell.annotation[, coor.names[2]],
-                                     fill = fill.value)) +
-        geom_point(shape = 21, size = 1, stroke = 0.25, color = "lightgrey") +
+    if(!is.null(sel.clusters)){
+        sel.cell <- cell.annotation$Cluster %in% sel.clusters
+        p <- ggplot() +
+            geom_point(cell.annotation[!sel.cell, ],
+                       mapping = aes(x = cell.annotation[!sel.cell, coor.names[1]],
+                                     y = cell.annotation[!sel.cell, coor.names[2]]),
+                       fill = "white",
+                       shape = 21, size = 1, stroke = 0.25, color = "white")
+    }else{
+        sel.cell <- rep(TRUE, dim(cell.annotation)[1])
+        p <- ggplot()
+    }
+
+    p <- p +
+        geom_point(cell.annotation[sel.cell, ],
+                   mapping = aes(x = cell.annotation[sel.cell, coor.names[1]],
+                                 y = cell.annotation[sel.cell, coor.names[2]],
+                                 fill = fill.value[sel.cell]),
+                   shape = 21, size = 1, stroke = 0.25, color = "lightgrey") +
         coord_fixed(ratio = ratio) +
         ggplot_config(base.size = 6) +
         labs(x = coor.label[1], y = coor.label[2]) +
@@ -339,6 +356,20 @@ pointDRPlot <- function(cell.annotation, value,
                                    default.unit = "inch",
                                    title = legend.title)) +
         theme(legend.position = legend.position)
+
+    # p <- ggplot(cell.annotation, aes(x = cell.annotation[, coor.names[1]],
+    #                                  y = cell.annotation[, coor.names[2]],
+    #                                  fill = fill.value)) +
+    #     geom_point(shape = 21, size = 1, stroke = 0.25, color = "lightgrey") +
+    #     coord_fixed(ratio = ratio) +
+    #     ggplot_config(base.size = 6) +
+    #     labs(x = coor.label[1], y = coor.label[2]) +
+    #     guides(fill = guide_legend(override.aes = list(size = 3),
+    #                                keywidth = 0.1,
+    #                                keyheight = 0.15,
+    #                                default.unit = "inch",
+    #                                title = legend.title)) +
+    #     theme(legend.position = legend.position)
 
     if(discrete){
         p <- p + scale_fill_manual(values = colors)
@@ -1214,7 +1245,8 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
         CellCycle.score <- runCellCycle(expr)
         cell.annotation$CellCycle.score <- CellCycle.score
         results[["cellCycle.plot"]] <-
-            pointDRPlot(subset(cell.annotation, Cluster %in% sel.clusters),
+            pointDRPlot(cell.annotation,
+                        sel.clusters = sel.clusters,
                         value = "CellCycle.score",
                         coor.names = coor.names,
                         colors = c("white", "#009b45"),
@@ -1232,7 +1264,8 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
         cell.annotation[["Stemness.score"]] <- stem.scores
 
         results[["stemness.plot"]] <-
-            pointDRPlot(subset(cell.annotation, Cluster %in% sel.clusters),
+            pointDRPlot(cell.annotation,
+                        sel.clusters = sel.clusters,
                         value = "Stemness.score",
                         coor.names = coor.names,
                         colors = c("white", "#ff9000"),

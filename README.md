@@ -8,9 +8,9 @@ The `scCancer` pipeline consists of two parts: `scStatistics` and `scAnnotation`
 
 After these analyses, user-friendly graphic reports will be generated.
 
-## Systems Requirement
+## System Requirement
 
-
+* **Memery**: 
 
 ## Installation
 
