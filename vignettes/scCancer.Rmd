@@ -2,10 +2,10 @@
 title: "scCancer"
 author: 
 - name: "Wenbo Guo"
-  affiliation: &1 MOE Key Laboratory of Bioinformatics, BNRIST Bioinformatics Division, Department of Automa-tion, Tsinghua University, Beijing 100084, China
-- name: "Dongfang wang"
+  affiliation: &1 MOE Key Laboratory of Bioinformatics, BNRIST Bioinformatics Division, Department of Automation, Tsinghua University, Beijing 100084, China
+- name: "Dongfang Wang"
   affiliation: *1
-- name: "Shicheng wang"
+- name: "Shicheng Wang"
   affiliation: *1
 - name: "Yi ran Shan"
   affiliation: *1
@@ -61,12 +61,15 @@ After these analyses, user-friendly graphic reports will be generated.
 # Getting started
 
 ## System Requirements
-* Memery:  >= 16G  (for a data with ~10000 cells)
+* Memery:  >=32G (for a data with ~10000 cells)
 * R version: >= 3.4.0 
 
 
 ## Installation
-Please install or update the package `devtools` by running `install.packages("devtools")` firstly. 
+Firstly, please install or update the package `devtools` by running 
+```{r eval=FALSE}
+install.packages("devtools")
+```
 
 Then the `scCancer` can be installed via
 ```{r eval=FALSE}

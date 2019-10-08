@@ -14,12 +14,15 @@ After these analyses, user-friendly graphic reports will be generated.
 
 ## System Requirements
 
-* **Memery**:  >= 16G  (for a data with ~10000 cells)
+* **Memery**:  >= 32G  (for a data with ~10000 cells)
 * **R version**: >= 3.4.0 
 
 ## Installation
 
-Please install or update the package `devtools` by running `install.packages("devtools")` firstly. 
+Firstly, please install or update the package `devtools` by running 
+```R
+install.packages("devtools")
+```
 
 Then the `scCancer` can be installed via
 
@@ -43,4 +46,4 @@ Please use the following citation:
 
 ## License
 
-GPL-3   &copy; [G-Lab](http://lifeome.net/glab/jgu/), [Tsinghua University](http://www.tsinghua.edu.cn)
+GPL-3
