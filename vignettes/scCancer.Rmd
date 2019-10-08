@@ -31,29 +31,30 @@ knitr::opts_chunk$set(
 ```
 
 # Introduction
-The molecular heterogeneity brings great challenges for cancer diagnosis and treatment. 
-However, recent advance in single cell RNA-sequencing (scRNA-seq) technology make it 
-possible to study cancer heterogeneities at single cell level. 
 
-Here we develop a R package named `scCancer` which focuses on processing and 
-analyzing droplet-based scRNA-seq data for cancer research. 
-Except routine data processing steps, this package takes several special 
-considerations for cancer-specific features. 
+Molecular heterogeneities bring great challenges for cancer diagnosis and treatment. 
+Recent advance in single cell RNA-sequencing (scRNA-seq) technology make it possible to 
+study cancer transcriptomic heterogeneities at single cell level. 
 
+Here, we develop an R package named `scCancer` which focuses on processing and 
+analyzing scRNA-seq data for cancer research. Except basic data processing steps, 
+this package takes several special considerations for cancer-specific features. 
 
-The `scCancer` pipeline consists of two parts: `scStatistics` and `scAnnotation`.
+The workflow of  `scCancer` mainly consists of two parts: `scStatistics` and `scAnnotation`.
+* The `scStatistics` performs basic statistical analysis of raw data and quality control.
+* The `scAnnotation` performs functional data analyses and visualizations, such as low dimensional representation, clustering, cell type classification, malignancy estimation, cellular phenotype scoring, gene signature analysis, etc.
 
-* The `scStatistics` implements quality control for cells and genes.
+After these analyses, user-friendly graphic reports will be generated.
 
-* The `scAnnotation` implements normal analysis and annotate the cells' low-dimension coordinates, 
-cluster, cell type, cell cycle, malignancy, gene set signatures, expression program, and so on. 
+![scCancer-workflow](http://lifeome.net/software/sccancer/scCancer-workflow.png)
 
-After these analyses, a user-friendly graphic report will be generated.
 
 
 # Getting started
 
-## System requirement
+## System Requirements
+* Memery:  >= 16G  (for a data with ~10000 cells)
+* R version: >= 3.4.0 
 
 
 ## Installation

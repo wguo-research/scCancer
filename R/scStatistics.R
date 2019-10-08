@@ -699,6 +699,7 @@ runScStatistics <- function(dataPath, savePath,
 
     results <- list(dataPath = dataPath,
                     savePath = savePath,
+                    authorName = authorName,
                     sampleName = sampleName,
                     species = species,
                     hg.mm.mix = hg.mm.mix,

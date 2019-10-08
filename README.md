@@ -10,6 +10,8 @@ The workflow of  `scCancer` mainly consists of two parts: `scStatistics` and `sc
 
 After these analyses, user-friendly graphic reports will be generated.
 
+![scCancer-workflow](http://lifeome.net/software/sccancer/scCancer-workflow.png)
+
 ## System Requirements
 
 * **Memery**:  >= 16G  (for a data with ~10000 cells)
@@ -30,7 +32,7 @@ devtools::install_github("wguo-research/scCancer")
 
 The vignette of `scCancer` can be found in the project [wiki](https://github.com/wguo-research/scCancer/wiki/scCancer-vignettes).
 
-We also provide a [kidney cancer example data](<http://lifeome.net/software/sccancer/KC-example.zip), and here are the generated reports: [`report-scStat`](), [`report-scAnno`]().
+We also provide a [kidney cancer example data](http://lifeome.net/software/sccancer/KC-example.zip), and here are the generated reports: [`report-scStat.html`](http://lifeome.net/software/sccancer/KC-example-results/report-scStat.html), [`report-scAnno.html`](http://lifeome.net/software/sccancer/KC-example-results/report-scAnno.html).
 
 
 ## Citation
@@ -38,4 +40,4 @@ Please use the following citation:
 
 ## License
 
-GPL-3   &copy; [G-Lab](http://lifeome.net/glab/jgu/),   [Tsinghua University](http://www.tsinghua.edu.cn)
+GPL-3   &copy; [G-Lab](http://lifeome.net/glab/jgu/), [Tsinghua University](http://www.tsinghua.edu.cn)
