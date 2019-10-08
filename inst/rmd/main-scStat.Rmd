@@ -114,7 +114,8 @@ h.ii <- h.ii + 1
 
 ### `r h.i`.`r h.ii` The number of UMIs and detected genes in cells
 
-After the identification by ` `r results$cr.version` `, we can futher filter cells according to `nUMI` (total number of UMIs) and `nGene` (total number of detected genes).
+After the cell calling by ` `r results$cr.version` `, we further perform quality control to 
+filter droplets with low quality cells according to `nUMI` (total number of UMIs) and `nGene` (total number of detected genes).
 
 For `nUMI` :
 * Suggested threshold to filter cells with extremely large `nUMI` : <span style="color:red">` `r results$cell.threshold$nUMI` `</span>.
@@ -126,7 +127,7 @@ For `nGene` :
 * Suggested threshold to filter cells with extremely small `nGene` : <span style="color:red">`200`</span>.
     + Using this threshold, ` `r sum(results$cell.manifest$nGene < 200)` ` cells will be filtered.
 
-**Comment**: The suggested thresholds (except the lower bound of `nGene`, which is set by convention) are determined based on the their  distributions. Using them, the outliers identified will be filtered. The same below.
+**Comment**: The suggested thresholds (except the lower bound of `nGene`, which is set by convention) are determined based on the their distributions. Using them, the outliers identified will be filtered. The same below.
 
 
 ```{r filter, echo=F, message=F, warning=F, dpi=300, fig.height=2.5, fig.width=8}
@@ -211,7 +212,7 @@ h.ii <- h.ii + 1
 
 ### `r h.i`.`r h.ii` Ambient and highly-expressed genes
 In order to analyze the gene expression profiles in detail and identify potential ambient genes, 
-we calculate some indicators as shown below.
+we calculate some metrics as shown below.
 * `bg.percent` : the expression proportion for each gene in background distribution (all droplets with `nUMI <= 10`).
 * `prop.median`	: the median of expression proportions for a gene in each cell.
 * `detect.rate`	: the detected (`#UMI > 0`) rate for a gene in all cells.

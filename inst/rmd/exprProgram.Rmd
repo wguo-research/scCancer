@@ -1,7 +1,8 @@
 
 
 ### `r h.i`.`r h.ii` Expression programs identification
-Here, we use non-negative matrix factorization (NMF) to identify cells' expression programs.
+In order to unsupervised identify potential expression program signatures,
+we apply non-negative matrix factorization (NMF) to the centralized and non-negative changed expression matrix.
 The input for number of identified programs (the rank in NMF) is ` `r results$nmf.rank` `.
 
 Following is the heatmap for identified cells' expression programs.

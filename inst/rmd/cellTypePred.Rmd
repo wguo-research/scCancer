@@ -1,7 +1,9 @@
 
 
 ### `r h.i`.`r h.ii` Cancer micro-environmental cell types annotation
-We train a one-class logistic regression (OCLR) model to annotate cancer micro-environmental cell type. 
+In order to annotate major microenvironment cell types, including endothelial cells, 
+fibroblast, and immune cells (CD4+ T cells, CD8+ T cells, B cells, nature killer cells, 
+and myeloid cells), we use a one-class logistic regression (OCLR) model to perform prediction. 
 The predicted cell type results can be found in the column `Cell.Type` of the table file 
 [cellAnnotation.txt](./cellAnnotation.txt).
 And the correlation coefficients with cell type templates are in columns `*.corr`.

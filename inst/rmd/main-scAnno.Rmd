@@ -101,8 +101,6 @@ h.i <- h.i + 1
 
 ## `r h.i` Data preprocessing
 
-In order to perform dimensional reduction, cluster and visualization, we do as following based on some functions of the R package [`Seurat V3`](https://satijalab.org/seurat/).
-
 After the quality control, we perform following preprocessing steps based on some functions of the R package [`Seurat V3`](https://satijalab.org/seurat/).
 
 * **Normalization.** Normalize the raw counts data to TPMs (tyranscripts-per-million) and log-transforms them.
@@ -113,7 +111,7 @@ After the quality control, we perform following preprocessing steps based on som
 results$seurat.plots$p.hvg
 ```
 <p align="right">(Hi-res image: <a href="./figures/hvg.png">view</a>)</p>
-* **PCA.** Perform principal component analysis (PCA) and select PCs to cluster and visualization.
+* **PCA.** Perform principal component analysis (PCA) and select PCs to perform clustering and visualization.
 * **Visualiztion.** Using t-SNE to persent each single cell in two-dimensional space.
 
 

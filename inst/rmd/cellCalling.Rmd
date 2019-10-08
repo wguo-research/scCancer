@@ -11,7 +11,7 @@ cat("* Cell calling result(fitered data) cannot be found, so we use the R packag
 cat("* After cell calling, `", results$nList[2], "` cells are identified (min.nUMI = `", results$min.nUMI, "`).\n", sep = "")
 ```
 
-* Following are two figures showing the distribution of `nUMI` for cells and empty droplets identified. 
+* Following are two plots showing the distribution of `nUMI` for cells and empty droplets identified.
 
 ```{r nUMI, echo=F, message=F, warning=F, dpi=300, fig.height=3, fig.width=8}
 plot_grid(results$p.cells.1, results$p.cells.2, ncol = 2)
