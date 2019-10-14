@@ -44,6 +44,7 @@ We also provide an [example data](http://lifeome.net/software/sccancer/KC-exampl
 ## Citation
 Please use the following citation:
 
-## License
+Wenbo Guo, Dongfang Wang, Shicheng Wang, Yiran Shan, Jin Gu. 2019. bioRxiv doi: https://doi.org/10.1101/800490
 
+## License
 GPL-3

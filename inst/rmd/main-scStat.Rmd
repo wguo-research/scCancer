@@ -231,7 +231,7 @@ Here is a plot showing the distributions of `prop.median` and `bg.percent` for t
 <p align="right">(Hi-res image: <a href="./figures/geneProp.png">view</a>)</p>
 
 
-The figure below shows the relationship between `bg.percent` and `prop.median`, `bg.percent` and `detect.rate`.
+The plot below shows the relationship between `bg.percent` and `prop.median`, `bg.percent` and `detect.rate`.
 ```{r gene.plot, echo=F, message=F, warning=F, dpi=300, fig.height=4, fig.width=8}
 plot_grid(results$p.bg.cell, results$p.bg.detect, ncol = 2)
 ```
