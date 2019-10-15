@@ -122,7 +122,7 @@ prepareData <- function(samplePath,
         if(is.null(data.path)){
             stop("Cannot find the raw data or filtered data.\n")
         }else{
-            warning("Cannot find the raw data, and use the filtered data instead.\n")
+            warning("Cannot find the raw data, and use the filtered data instead.")
         }
     }
 

@@ -63,10 +63,10 @@ getFilterData <- function(dataPath, statPath, savePath = NULL,
         if(is.null(data.path)){
             stop("Cannot find the raw data or filtered data.\n")
         }else{
-            warning("Cannot find the raw data, and use the filtered data instead.\n")
+            warning("Cannot find the raw data, and use the filtered data instead.")
         }
     }
-    expr.data <- Read10Xdata(data.dir = get10Xpath(dataPath, raw.data = T))
+    expr.data <- Read10Xdata(data.dir = data.path)
     gene.manifest <- read.table(file.path(statPath, 'geneManifest.txt'), header = T, sep = "\t")
     cell.manifest <- read.table(file.path(statPath, 'cellManifest-all.txt'), header = T)
     filter.thres <- read.table(file.path(statPath, 'cell.QC.thres.txt'), header = T)
