@@ -313,9 +313,12 @@ getBgPercent <- function(cell.manifest.all, expr.data, bg.low = 1, bg.up = 10){
     cell.manifest.all$barcodes <- rownames(cell.manifest.all)
     bg.bars <- subset(cell.manifest.all, nUMI >= bg.low & nUMI <= bg.up)$barcodes
 
-    bg.percent <- Matrix::rowSums(expr.data[, bg.bars])
-    bg.percent <- bg.percent / sum(bg.percent)
-
+    if(length(bg.bars) == 0){
+        bg.percent <- NULL
+    }else{
+        bg.percent <- Matrix::rowSums(expr.data[, bg.bars])
+        bg.percent <- bg.percent / sum(bg.percent)
+    }
     return(bg.percent)
 }
 
@@ -404,11 +407,15 @@ genePropPlot <- function(gene.manifest, expr.frac){
     rate.df.plot$subPlot <- factor(sub.ix[as.character(rate.df.plot$variable)],
                                    levels = c("1-50", "51-100"), ordered = T)
 
-    bg.df <- data.frame(ix = c(1:50, 1:50) + 0.1,
-                        frac = rev(gene.manifest[gene.show, ]$bg.percent),
-                        type = "Background proportion")
-    bg.df$subPlot <- factor(sub.ix[as.character(rev(gene.show))],
-                            levels = c("1-50", "51-100"), ordered = T)
+    if("bg.percent" %in% colnames(gene.manifest)){
+        bg.df <- data.frame(ix = c(1:50, 1:50) + 0.1,
+                            frac = rev(gene.manifest[gene.show, ]$bg.percent),
+                            type = "Background proportion")
+        bg.df$subPlot <- factor(sub.ix[as.character(rev(gene.show))],
+                                levels = c("1-50", "51-100"), ordered = T)
+    }else{
+        bg.df <- NULL
+    }
 
     gene.colors <- c(other = "#d56f6d", ribosome = "#f29721", dissociation = "#65a55d", mitochondrial = "#3778bf")
     p <- ggplot() + coord_flip() +
@@ -425,21 +432,24 @@ genePropPlot <- function(gene.manifest, expr.frac){
     p1 <- p + geom_boxplot(data = subset(rate.df.plot, subPlot == "1-50"),
                            mapping = aes(x = variable, y = value, fill = Annotation),
                            outlier.size = 0.1, alpha = 0.8) +
-        geom_point(data = subset(bg.df, subPlot == "1-50"),
-                   aes(x = ix, y = frac, color = type), shape = "*", size = 5) +
         xlab("") + ylab(paste0("Gene proportion of total UMI (1-50)"))
 
     p2 <- p + geom_boxplot(data = subset(rate.df.plot, subPlot == "51-100"),
                            mapping = aes(x = variable, y = value, fill = Annotation),
                            outlier.size = 0.1, alpha = 0.8) +
-        geom_point(data = subset(bg.df, subPlot == "51-100"),
-                   aes(x = ix, y = frac, color = type), shape = "*", size = 5) +
         xlab("") + ylab(paste0("Gene proportion of total UMI (51-100)"))
 
     all.p <- p + geom_boxplot(data = rate.df.plot,
                               mapping = aes(x = variable, y = value, fill = Annotation),
-                              outlier.size = 0.1, alpha = 0.8) +
-        geom_point(data = bg.df, aes(x = ix, y = frac, color = type), shape = "*", size = 5)
+                              outlier.size = 0.1, alpha = 0.8)
+
+    if(!is.null(bg.df)){
+        p1 <- p1 + geom_point(data = subset(bg.df, subPlot == "1-50"),
+                              aes(x = ix, y = frac, color = type), shape = "*", size = 5)
+        p2 <- p2 + geom_point(data = subset(bg.df, subPlot == "51-100"),
+                              aes(x = ix, y = frac, color = type), shape = "*", size = 5)
+        all.p <- all.p + geom_point(data = bg.df, aes(x = ix, y = frac, color = type), shape = "*", size = 5)
+    }
 
     p <- grid_arrange_shared_legend(p1, p2, all.p = all.p, ncol = 2, nrow = 1)
 
@@ -650,17 +660,21 @@ runScStatistics <- function(dataPath, savePath,
                p.geneProp, dpi = 800, height = 8, width = 8)
     )
 
-    p.bg.cell <- bgCellScatter(gene.manifest)
-    p.bg.detect <- bgDetScatter(gene.manifest)
-    suppressWarnings(
-        ggsave(filename = file.path(savePath, "figures/bg-cell-scatter.png"),
-               p.bg.cell, dpi = 800, height = 4, width = 4)
-    )
-    suppressWarnings(
-        ggsave(filename = file.path(savePath, "figures/bg-detect-scatter.png"),
-               p.bg.detect, dpi = 800, height = 4, width = 4)
-    )
-
+    if(!is.null(bg.percent) && raw.data){
+        p.bg.cell <- bgCellScatter(gene.manifest)
+        p.bg.detect <- bgDetScatter(gene.manifest)
+        suppressWarnings(
+            ggsave(filename = file.path(savePath, "figures/bg-cell-scatter.png"),
+                   p.bg.cell, dpi = 800, height = 4, width = 4)
+        )
+        suppressWarnings(
+            ggsave(filename = file.path(savePath, "figures/bg-detect-scatter.png"),
+                   p.bg.detect, dpi = 800, height = 4, width = 4)
+        )
+    }else{
+        p.bg.cell <- NULL
+        p.bg.detect <- NULL
+    }
 
     message("[", Sys.time(), "] -----: resutls saving")
     filter.thres <- list(

@@ -22,7 +22,12 @@ filterGene <- function(gene.manifest,
     }else{
         gene.manifest.left <- gene.manifest
     }
-    gene.manifest.left <- subset(gene.manifest.left, nCell >= nCell.min & bg.percent <= bgPercent.max)
+    gene.manifest.left <- subset(gene.manifest.left, nCell >= nCell.min)
+    if("bg.percent" %in% colnames(gene.manifest.left)){
+        gene.manifest.left <- subset(gene.manifest.left, bg.percent <= bgPercent.max)
+    }else{
+        warning("Can not filter gene by 'bg.percent' due to the lack of background distribution.\n")
+    }
     gene.manifest.filter <- subset(gene.manifest, !(EnsemblID %in% gene.manifest.left$EnsemblID))
 
     if(!is.null(savePath)){
