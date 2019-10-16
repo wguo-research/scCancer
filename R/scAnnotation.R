@@ -592,12 +592,14 @@ plotSeurat <- function(expr,
 predCellType <- function(X.test, ct.templates = NULL, species = "human"){
     if(is.null(ct.templates)){
         ct.templates <- readRDS(system.file("rds", "cellTypeTemplates.RDS", package = "scCancer"))
-        for(cur.ct in names(ct.templates)){
-            cur.temp <- ct.templates[[cur.ct]]
-            cur.genes <- getMouseGene(names(cur.temp), bool.name = T)
-            cur.temp <- cur.temp[names(cur.genes)]
-            names(cur.temp) <- cur.genes
-            ct.templates[[cur.ct]] <- cur.temp
+        if(species == "mouse"){
+            for(cur.ct in names(ct.templates)){
+                cur.temp <- ct.templates[[cur.ct]]
+                cur.genes <- getMouseGene(names(cur.temp), bool.name = T)
+                cur.temp <- cur.temp[names(cur.genes)]
+                names(cur.temp) <- cur.genes
+                ct.templates[[cur.ct]] <- cur.temp
+            }
         }
     }
 

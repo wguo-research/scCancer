@@ -240,10 +240,14 @@ if("bg.percent" %in% colnames(results$gene.manifest)){
 <p align="right">(Hi-res image: <a href="./figures/geneProp.png">view</a>)</p>
 
 
+```{r echo=F, results='asis'}
+if("bg.percent" %in% colnames(results$gene.manifest)){
+  cat("The plot below shows the relationship between `bg.percent` and `prop.median`, `bg.percent` and `detect.rate`.\n")
+}
+```
 
 ```{r gene.plot, echo=F, message=F, warning=F, dpi=300, fig.height=4, fig.width=8}
 if("bg.percent" %in% colnames(results$gene.manifest)){
-  cat("The plot below shows the relationship between `bg.percent` and `prop.median`, `bg.percent` and `detect.rate`.\n")
   plot_grid(results$p.bg.cell, results$p.bg.detect, ncol = 2)
 }
 ```
