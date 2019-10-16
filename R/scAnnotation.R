@@ -26,7 +26,7 @@ filterGene <- function(gene.manifest,
     if("bg.percent" %in% colnames(gene.manifest.left)){
         gene.manifest.left <- subset(gene.manifest.left, bg.percent <= bgPercent.max)
     }else{
-        warning("Can not filter gene by 'bg.percent' due to the lack of background distribution.")
+        cat("- Warning in 'filterGene': Can not filter gene by 'bg.percent' due to the lack of background distribution.\n")
     }
     gene.manifest.filter <- subset(gene.manifest, !(EnsemblID %in% gene.manifest.left$EnsemblID))
 
@@ -63,7 +63,7 @@ getFilterData <- function(dataPath, statPath, savePath = NULL,
         if(is.null(data.path)){
             stop("Cannot find the raw data or filtered data.\n")
         }else{
-            warning("Cannot find the raw data, and use the filtered data instead.")
+            cat("- Warning in 'getFilterData': Cannot find the raw data, and use the filtered data instead.\n")
         }
     }
     expr.data <- Read10Xdata(data.dir = data.path)
@@ -738,7 +738,7 @@ getTumorCluster <- function(cell.annotation, epi.thres = 0.6, malign.thres = 0.9
 
     tumor.clusters <- intersect(epithe.clusters, malign.clusters)
     if(length(tumor.clusters) == 0 || !bool.sel){
-        warning("Could not identify tumor clusters.")
+        cat("- Warning in 'getTumorCluster': Could not identify tumor clusters.\n")
         return(NULL)
     }
     tumor.clusters <- as.numeric(tumor.clusters)
@@ -827,7 +827,7 @@ runStemness <- function(X, stem.sig = NULL, species = "human"){
 #'
 #' @examples
 runGeneSets <- function(expr, geneSets = NULL, method = "average", species = "human"){
-    message("[", Sys.time(), "] -----: gene set signatures analyses")
+    message("[", Sys.time(), "] -----: gene set signatures analysis")
     if(is.null(geneSets)){
         geneSets <- readLines(system.file("txt", "hallmark-pathways.txt", package = "scCancer"))
         geneSets <- strsplit(geneSets, "\t")
@@ -842,7 +842,7 @@ runGeneSets <- function(expr, geneSets = NULL, method = "average", species = "hu
         }
     }else{
         if(class(geneSets) != "list"){
-            warning("The 'geneSets' should be a list of several gene sets.")
+            cat("- Warning in 'runGeneSets': The 'geneSets' should be a list of several gene sets.\n")
             return(NULL)
         }
     }
@@ -858,7 +858,7 @@ runGeneSets <- function(expr, geneSets = NULL, method = "average", species = "hu
         t.scores <- gsva(tmp.data, geneSets)
         t.scores <- t(t.scores)
     }else{
-        warning("The 'method' ", method, " is not allowed.")
+        cat("- Warning in 'runGeneSets': The 'method' ", method, " is not allowed.\n", sep = "")
         return(NULL)
     }
     colnames(t.scores) <- paste0("GS__", names(geneSets))
@@ -1252,7 +1252,7 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
     if(bool.runMalignancy){
         message("[", Sys.time(), "] -----: cells malignancy annotation")
         if(species != "human"){
-            warning("To perform 'runMalignancy', the argument 'species' needs to be 'human'.")
+            cat("- Warning in 'runScAnnotation': To perform 'runMalignancy', the argument 'species' needs to be 'human'.\n")
             results[["bool.runMalignancy"]] = FALSE
         }else{
             t.results <- runMalignancy(dataPath, statPath, savePath,
@@ -1332,7 +1332,7 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
 
     ## --------- gene sets ----------
     if(bool.runGeneSets){
-        t.scores <- runGeneSets(expr = expr, geneSets = geneSets, method = geneSet.method)
+        t.scores <- runGeneSets(expr = expr, geneSets = geneSets, method = geneSet.method, species = species)
         if(!is.null(t.scores)){
             cell.annotation <- cbind(cell.annotation, t.scores)
 

@@ -121,7 +121,7 @@ prepareData <- function(samplePath,
         if(is.null(data.path)){
             stop("Cannot find the raw data or filtered data.\n")
         }else{
-            warning("Cannot find the raw data, and use the filtered data instead.")
+            cat("- Warning in 'prepareData': Cannot find the raw data, and use the filtered data instead.\n")
         }
     }
 
@@ -141,7 +141,7 @@ prepareData <- function(samplePath,
                 filtered.cell <- colnames(expr.data)[which(is.cell)]
             }else{
                 if(!is.null(filter.path)){
-                    warning("Package 'DropletUtils' isn't installed and the pipeline will use the supplied CR2 filtered data instead.")
+                    cat("- Warning in 'prepareData': Package 'DropletUtils' isn't installed and the pipeline will use the supplied CR2 filtered data instead.\n")
                     filtered.cell <- getBarcodes(filter.path)
                 }else{
                     stop("Please install 'DropletUtils' package or provide filtered data.\n")

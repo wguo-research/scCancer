@@ -233,7 +233,7 @@ h.ii <- h.ii + 1
 
 
 --------------------------------
-```{r echo=FALSE, results='asis'}
+```{r echo=FALSE, results='asis', eval = results$bool.intraTumor}
 # if(is.null(results$tumor.clusters)){
 #     cat("#### According to the results of cell type prediction and cell malignancy estimation, ",
 #     "we couldn't identify tumor clusters, ", 
