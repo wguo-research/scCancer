@@ -233,7 +233,6 @@ singleGenePlot <- function(expr.data, gene,
     }
 
     if(ju.zero){
-        warning(gene, " isn't detected in the expression matrix.")
         new.label <- paste0(gene, " (0/", dim(expr.data)[2], ")")
         p <- ggplot(coor.df, aes(x = coor.df[, coor.names[1]], y = coor.df[, coor.names[2]])) +
             geom_point(shape = 21, size = 1, stroke = 0.25, color = "grey", fill = "white") +
@@ -1113,6 +1112,7 @@ plotExprProgram <- function(H, cell.annotation, bool.limit = T, sel.clusters = N
 #' @param coor.names A vector indicating the names of two-dimension coordinate used in visualization.
 #' @param bool.runMalignancy A logical value indicating whether to estimate malignancy.
 #' @param cutoff A threshold used in the CNV inference.
+#' @param bool.intraTumor A logical value indicating whether to identify tumor clusters and perform following analyses.
 #' @param p.value.cutoff A threshold to decide weather the bimodality distribution of malignancy score is significant.
 #' @param bool.runCellCycle A logical value indicating whether to estimate cell cycle scores.
 #' @param bool.runStemness A logical value indicating whether to estimate stemness scores.
@@ -1153,6 +1153,7 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
                             bool.runMalignancy = T,
                             cutoff = 0.1,
                             p.value.cutoff = 0.5,
+                            bool.intraTumor = T,
                             bool.runCellCycle = T,
                             bool.runStemness = T,
                             bool.runGeneSets = T,
@@ -1275,15 +1276,21 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
 
 
     ## --------- select tumor clusters ---------
-    tumor.clusters <- getTumorCluster(cell.annotation = cell.annotation)
-    results[["tumor.clusters"]] <- tumor.clusters
+    if(bool.intraTumor){
+        tumor.clusters <- getTumorCluster(cell.annotation = cell.annotation)
+        results[["tumor.clusters"]] <- tumor.clusters
 
-    if(is.null(tumor.clusters)){
+        if(is.null(tumor.clusters)){
+            sel.clusters <- unique(cell.annotation$Cluster)
+            sel.clusters <- sel.clusters[order(sel.clusters)]
+        }else{
+            sel.clusters <- tumor.clusters
+        }
+    }else{
         sel.clusters <- unique(cell.annotation$Cluster)
         sel.clusters <- sel.clusters[order(sel.clusters)]
-    }else{
-        sel.clusters <- tumor.clusters
     }
+
 
 
     ## --------- cell cycle ---------
