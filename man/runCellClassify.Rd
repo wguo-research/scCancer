@@ -5,7 +5,7 @@
 \title{runCellClassify}
 \usage{
 runCellClassify(expr, cell.annotation, coor.names = c("tSNE_1",
-  "tSNE_2"), savePath, ct.templates = NULL)
+  "tSNE_2"), savePath, ct.templates = NULL, species = "human")
 }
 \arguments{
 \item{expr}{A Seurat object return by function 'runSeurat'.}
@@ -18,6 +18,9 @@ runCellClassify(expr, cell.annotation, coor.names = c("tSNE_1",
 
 \item{ct.templates}{A list of vectors of several cell type templates.
 The default is NULL and the templates prepared in this package will be used.}
+
+\item{species}{A character string indicating what species the sample belong to.
+Only "human"(default) or "mouse" are allowed.}
 }
 \value{
 A list of updated Seurat object, cell.annotation, and the plots for cell type annotation.

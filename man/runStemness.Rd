@@ -4,12 +4,15 @@
 \alias{runStemness}
 \title{runStemness}
 \usage{
-runStemness(X, stem.sig = NULL)
+runStemness(X, stem.sig = NULL, species = "human")
 }
 \arguments{
 \item{X}{An expression matrix of gene by cell to estimate stemness.}
 
 \item{stem.sig}{An array of stemness signature. The default is NULL, and a prepared signature will be used.}
+
+\item{species}{A character string indicating what species the sample belong to.
+Only "human"(default) or "mouse" are allowed.}
 }
 \value{
 A array of cell stemness scores.

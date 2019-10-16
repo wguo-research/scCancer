@@ -4,12 +4,15 @@
 \alias{predCellType}
 \title{predCellType}
 \usage{
-predCellType(X.test, ct.templates = NULL)
+predCellType(X.test, ct.templates = NULL, species = "human")
 }
 \arguments{
 \item{X.test}{A cells expression matrix (row for genes, column for cells).}
 
 \item{ct.templates}{A list of gene weight vectors for each cell type.}
+
+\item{species}{A character string indicating what species the sample belong to.
+Only "human"(default) or "mouse" are allowed.}
 }
 \value{
 A list of predicted cell types and the relative correlations.

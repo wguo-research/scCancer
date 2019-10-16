@@ -14,8 +14,8 @@ runScAnnotation(dataPath, statPath, savePath = NULL, authorName = NULL,
   species = "human", hg.mm.mix = F, bool.runCellClassify = T,
   ct.templates = NULL, coor.names = c("tSNE_1", "tSNE_2"),
   bool.runMalignancy = T, cutoff = 0.1, p.value.cutoff = 0.5,
-  bool.runCellCycle = T, bool.runStemness = T, bool.runGeneSets = T,
-  geneSets = NULL, geneSet.method = "average",
+  bool.intraTumor = T, bool.runCellCycle = T, bool.runStemness = T,
+  bool.runGeneSets = T, geneSets = NULL, geneSet.method = "average",
   bool.runExprProgram = T, nmf.rank = 50, genReport = T)
 }
 \arguments{
@@ -63,7 +63,7 @@ The default is c("nUMI", "mito.percent", "ribo.percent").}
 \item{n.markers}{A integer indicating the number of differential expressed genes showed in the plot. The defalut is 5.}
 
 \item{species}{A character string indicating what species the sample belong to.
-Must be one of "human"(default) and "mouse".}
+Only "human"(default) or "mouse" are allowed.}
 
 \item{hg.mm.mix}{A logical value indicating whether the sample is a mix of
 human cells and mouse cells(such as PDX sample).
@@ -81,6 +81,8 @@ The default is NULL and the templates prepared in this package will be used.}
 \item{cutoff}{A threshold used in the CNV inference.}
 
 \item{p.value.cutoff}{A threshold to decide weather the bimodality distribution of malignancy score is significant.}
+
+\item{bool.intraTumor}{A logical value indicating whether to identify tumor clusters and perform following analyses.}
 
 \item{bool.runCellCycle}{A logical value indicating whether to estimate cell cycle scores.}
 

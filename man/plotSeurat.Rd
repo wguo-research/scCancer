@@ -27,7 +27,7 @@ plotSeurat(expr, cell.annotation = cell.annotation,
 \item{n.markers}{A integer indicating the number of differential expressed genes showed in the plot. The defalut is 5.}
 
 \item{species}{A character string indicating what species the sample belong to.
-Must be one of "human"(default) and "mouse".}
+Only "human"(default) or "mouse" are allowed.}
 
 \item{savePath}{A path to save the results files. If NULL, the 'statPath' will be used instead.}
 }

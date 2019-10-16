@@ -4,7 +4,8 @@
 \alias{runGeneSets}
 \title{runGeneSets}
 \usage{
-runGeneSets(expr, geneSets = NULL, method = "average")
+runGeneSets(expr, geneSets = NULL, method = "average",
+  species = "human")
 }
 \arguments{
 \item{expr}{A Seurat object.}
@@ -12,6 +13,9 @@ runGeneSets(expr, geneSets = NULL, method = "average")
 \item{geneSets}{A list of gene sets to be analyzed. The default is NULL and 50 hallmark gene sets from MSigDB will be used.}
 
 \item{method}{The method to be used in calculate gene set scores. Currently, only "average" and "GSVA" are allowed.}
+
+\item{species}{A character string indicating what species the sample belong to.
+Only "human"(default) or "mouse" are allowed.}
 }
 \value{
 A data.frame of calculated gene set signature scores.

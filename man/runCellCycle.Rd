@@ -4,10 +4,13 @@
 \alias{runCellCycle}
 \title{runCellCycle}
 \usage{
-runCellCycle(expr)
+runCellCycle(expr, species = "human")
 }
 \arguments{
 \item{expr}{A Seurat object.}
+
+\item{species}{A character string indicating what species the sample belong to.
+Only "human"(default) or "mouse" are allowed.}
 }
 \value{
 A array of cell cycle scores.
