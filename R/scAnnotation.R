@@ -766,7 +766,9 @@ runCellCycle <- function(expr, species = "human"){
     if(species == "mouse"){
         cellCycle.genes <- getMouseGene(cellCycle.genes)
     }
-    expr <- AddModuleScore(expr, features = list(cellCycle.genes), name = "cellCycle")
+    suppressWarnings(
+        expr <- AddModuleScore(expr, features = list(cellCycle.genes), name = "cellCycle")
+    )
     return(expr[["cellCycle1"]]$cellCycle1)
 }
 
