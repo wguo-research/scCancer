@@ -702,6 +702,7 @@ runCellClassify <- function(expr, cell.annotation, coor.names = c("tSNE_1", "tSN
 #'
 #' @examples
 getTumorCluster <- function(cell.annotation, epi.thres = 0.6, malign.thres = 0.9){
+    bool.sel <- F
     epithe.clusters <- c()
     if("Cell.Type" %in% names(cell.annotation)){
         for(cluster in unique(cell.annotation$Cluster)){
@@ -711,6 +712,9 @@ getTumorCluster <- function(cell.annotation, epi.thres = 0.6, malign.thres = 0.9
                 epithe.clusters <- c(epithe.clusters, cluster)
             }
         }
+        bool.sel <- T
+    }else{
+        epithe.clusters <- unique(cell.annotation$Cluster)
     }
     malign.clusters <- c()
     if("Malign.type" %in% names(cell.annotation)){
@@ -721,9 +725,13 @@ getTumorCluster <- function(cell.annotation, epi.thres = 0.6, malign.thres = 0.9
                 malign.clusters <- c(malign.clusters, cluster)
             }
         }
+        bool.sel <- T
+    }else{
+        malign.clusters <- unique(cell.annotation$Cluster)
     }
+
     tumor.clusters <- intersect(epithe.clusters, malign.clusters)
-    if(length(tumor.clusters) == 0){
+    if(length(tumor.clusters) == 0 || !bool.sel){
         warning("Could not identify tumor clusters.\n")
         return(NULL)
     }
@@ -1221,7 +1229,7 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
         message("[", Sys.time(), "] -----: cells malignancy annotation")
         if(species != "human"){
             warning("To perform 'runMalignancy', the argument 'species' needs to be 'human'.\n")
-            bool.runMalignancy = FALSE
+            results[["bool.runMalignancy"]] = FALSE
         }else{
             t.results <- runMalignancy(dataPath, statPath, savePath,
                                        cell.annotation = cell.annotation,

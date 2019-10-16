@@ -177,8 +177,12 @@ Following are some statistical indicators of these genes.
 final.genes <- names(results$seurat.plots$ps.markers)
 gene.manifest <- read.table(file.path(statPath, 'geneManifest.txt'), header = T, sep = "\t")
 final.gene.manifest <- subset(gene.manifest, Symbol %in% final.genes)
-final.gene.manifest <- final.gene.manifest[order(final.gene.manifest$Symbol), 
-                                           c("Symbol", "EnsemblID", "nCell", "bg.percent", "detect.rate", "prop.median")]
+if("bg.percent" %in% colnames(final.gene.manifest)){
+  show.cols <- c("Symbol", "EnsemblID", "nCell", "bg.percent", "detect.rate", "prop.median")
+}else{
+  show.cols <- c("Symbol", "EnsemblID", "nCell", "detect.rate", "prop.median")
+}
+final.gene.manifest <- final.gene.manifest[order(final.gene.manifest$Symbol), show.cols]
 rownames(final.gene.manifest) <- final.gene.manifest$Symbol
 rm(gene.manifest)
 print(format(final.gene.manifest, digits = 3, scientific = T))
