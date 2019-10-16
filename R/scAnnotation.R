@@ -942,6 +942,13 @@ runExprProgram <- function(expr, rank = 50, sel.clusters = NULL, clusterStashNam
     if(!is.null(sel.clusters)){
         data <- data[, expr@meta.data[[clusterStashName]] %in% sel.clusters]
     }
+
+    if(rank > min(dim(data))){
+        rank <- min(rank, min(dim(data)))
+        cat("- Warning in 'runExprProgram':
+            The input rank is larger than the size of data for NMF, and use the minimum of them instead.\n")
+    }
+
     ave.data <-  Matrix::rowSums(data) / Matrix::rowSums(data > 0)
 
     data@x <- data@x - ave.data[data@i + 1]
