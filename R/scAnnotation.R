@@ -26,7 +26,7 @@ filterGene <- function(gene.manifest,
     if("bg.percent" %in% colnames(gene.manifest.left)){
         gene.manifest.left <- subset(gene.manifest.left, bg.percent <= bgPercent.max)
     }else{
-        warning("Can not filter gene by 'bg.percent' due to the lack of background distribution.\n")
+        warning("Can not filter gene by 'bg.percent' due to the lack of background distribution.")
     }
     gene.manifest.filter <- subset(gene.manifest, !(EnsemblID %in% gene.manifest.left$EnsemblID))
 
@@ -233,7 +233,7 @@ singleGenePlot <- function(expr.data, gene,
     }
 
     if(ju.zero){
-        warning(gene, " isn't detected in the expression matrix.\n")
+        warning(gene, " isn't detected in the expression matrix.")
         new.label <- paste0(gene, " (0/", dim(expr.data)[2], ")")
         p <- ggplot(coor.df, aes(x = coor.df[, coor.names[1]], y = coor.df[, coor.names[2]])) +
             geom_point(shape = 21, size = 1, stroke = 0.25, color = "grey", fill = "white") +
@@ -739,7 +739,7 @@ getTumorCluster <- function(cell.annotation, epi.thres = 0.6, malign.thres = 0.9
 
     tumor.clusters <- intersect(epithe.clusters, malign.clusters)
     if(length(tumor.clusters) == 0 || !bool.sel){
-        warning("Could not identify tumor clusters.\n")
+        warning("Could not identify tumor clusters.")
         return(NULL)
     }
     tumor.clusters <- as.numeric(tumor.clusters)
@@ -843,7 +843,7 @@ runGeneSets <- function(expr, geneSets = NULL, method = "average", species = "hu
         }
     }else{
         if(class(geneSets) != "list"){
-            warning("The 'geneSets' should be a list of several gene sets.\n")
+            warning("The 'geneSets' should be a list of several gene sets.")
             return(NULL)
         }
     }
@@ -859,7 +859,7 @@ runGeneSets <- function(expr, geneSets = NULL, method = "average", species = "hu
         t.scores <- gsva(tmp.data, geneSets)
         t.scores <- t(t.scores)
     }else{
-        warning("The 'method' ", method, " is not allowed.\n")
+        warning("The 'method' ", method, " is not allowed.")
         return(NULL)
     }
     colnames(t.scores) <- paste0("GS__", names(geneSets))
@@ -1251,7 +1251,7 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
     if(bool.runMalignancy){
         message("[", Sys.time(), "] -----: cells malignancy annotation")
         if(species != "human"){
-            warning("To perform 'runMalignancy', the argument 'species' needs to be 'human'.\n")
+            warning("To perform 'runMalignancy', the argument 'species' needs to be 'human'.")
             results[["bool.runMalignancy"]] = FALSE
         }else{
             t.results <- runMalignancy(dataPath, statPath, savePath,

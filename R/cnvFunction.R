@@ -143,7 +143,7 @@ smoothByChr <- function(cnvList, window.len = 101){
     chrs <- as.character(unique(cnvList$gene.chr$CHR))
 
     if(window.len < 2){
-        warning("Window length < 2, returning original data.\n")
+        warning("Window length < 2, returning original data.")
         return(cnvList)
     }
 
@@ -156,7 +156,7 @@ smoothByChr <- function(cnvList, window.len = 101){
         if(length(cur.genes.ix) > 1) {
             if(window.len %% 2 == 0){
                 window.len = window.len + 1
-                warning("Window length is even, adding one to 'window.len'.\n")
+                warning("Window length is even, adding one to 'window.len'.")
             }
 
             smooth.data <- apply(cur.data, 2, smoothOne, window.len = window.len)

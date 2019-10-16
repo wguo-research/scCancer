@@ -81,12 +81,12 @@ addGeneAnno <- function (gene.manifest, species = "human"){
         ribo.genes <- grep('^RPL|^RPS|^MRPL|^MRPS', gene.manifest$Symbol, value = TRUE)
         diss.genes <- read.table(system.file("txt", "diss-genes.txt", package = "scCancer"),
                                  header = F, stringsAsFactors = F)$V1
-    }
-    else if(species == "mouse"){
+    }else if(species == "mouse"){
         mito.genes <- grep('^mt-', gene.manifest$Symbol, value = TRUE)
         ribo.genes <- grep('^Rpl|^Rps|^Mrpl|^Mrps', gene.manifest$Symbol, value = TRUE)
-        diss.genes <- read.table(system.file("txt", "mus-diss-genes.txt", package = "scCancer"),
+        diss.genes <- read.table(system.file("txt", "diss-genes.txt", package = "scCancer"),
                                  header = F, stringsAsFactors = F)$V1
+        diss.genes <- getMouseGene(diss.genes)
     }
 
     annotation[gene.manifest$Symbol %in% mito.genes] <- "mitochondrial"
@@ -96,7 +96,6 @@ addGeneAnno <- function (gene.manifest, species = "human"){
     gene.manifest$Annotation <- annotation
     return(gene.manifest)
 }
-
 
 
 
@@ -142,7 +141,7 @@ prepareData <- function(samplePath,
                 filtered.cell <- colnames(expr.data)[which(is.cell)]
             }else{
                 if(!is.null(filter.path)){
-                    warning("Package 'DropletUtils' isn't installed and the pipeline will use the supplied CR2 filtered data instead.\n")
+                    warning("Package 'DropletUtils' isn't installed and the pipeline will use the supplied CR2 filtered data instead.")
                     filtered.cell <- getBarcodes(filter.path)
                 }else{
                     stop("Please install 'DropletUtils' package or provide filtered data.\n")
