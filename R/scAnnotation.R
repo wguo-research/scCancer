@@ -585,14 +585,21 @@ plotSeurat <- function(expr,
 #'
 #' @param X.test A cells expression matrix (row for genes, column for cells).
 #' @param ct.templates A list of gene weight vectors for each cell type.
+#' @inheritParams runScAnnotation
 #'
 #' @return A list of predicted cell types and the relative correlations.
 #' @export
 #'
-predCellType <- function(X.test, ct.templates = NULL){
-
+predCellType <- function(X.test, ct.templates = NULL, species = "human"){
     if(is.null(ct.templates)){
         ct.templates <- readRDS(system.file("rds", "cellTypeTemplates.RDS", package = "scCancer"))
+        for(cur.ct in names(ct.templates)){
+            cur.temp <- ct.templates[[cur.ct]]
+            cur.genes <- getMouseGene(names(cur.temp), bool.name = T)
+            cur.temp <- cur.temp[names(cur.genes)]
+            names(cur.temp) <- cur.genes
+            ct.templates[[cur.ct]] <- cur.temp
+        }
     }
 
     cor.df <- list()
@@ -640,8 +647,8 @@ predCellType <- function(X.test, ct.templates = NULL){
 #'
 #' @examples
 runCellClassify <- function(expr, cell.annotation, coor.names = c("tSNE_1", "tSNE_2"),
-                            savePath, ct.templates = NULL){
-    t.results <- predCellType(X.test = GetAssayData(expr), ct.templates = ct.templates)
+                            savePath, ct.templates = NULL, species = "human"){
+    t.results <- predCellType(X.test = GetAssayData(expr), ct.templates = ct.templates, species = species)
 
     expr[["Cell.Type"]] <- t.results$type.pred
 
@@ -747,15 +754,19 @@ getTumorCluster <- function(cell.annotation, epi.thres = 0.6, malign.thres = 0.9
 #' Estimate cell cycle scores.
 #'
 #' @param expr A Seurat object.
+#' @inheritParams runScAnnotation
 #'
 #' @return A array of cell cycle scores.
 #' @export
 #'
 #' @examples
-runCellCycle <- function(expr){
+runCellCycle <- function(expr, species = "human"){
     message("[", Sys.time(), "] -----: cell cycle score estimation")
     cellCycle.genes <- read.table(system.file("txt", "cellCycle-genes.txt", package = "scCancer"),
                                   header = F, stringsAsFactors = F)$V1
+    if(species == "mouse"){
+        cellCycle.genes <- getMouseGene(cellCycle.genes)
+    }
     expr <- AddModuleScore(expr, features = list(cellCycle.genes), name = "cellCycle")
     return(expr[["cellCycle1"]]$cellCycle1)
 }
@@ -768,16 +779,22 @@ runCellCycle <- function(expr){
 #'
 #' @param X An expression matrix of gene by cell to estimate stemness.
 #' @param stem.sig An array of stemness signature. The default is NULL, and a prepared signature will be used.
+#' @inheritParams runScAnnotation
 #'
 #' @return A array of cell stemness scores.
 #' @export
 #'
 #' @examples
-runStemness <- function(X, stem.sig = NULL){
+runStemness <- function(X, stem.sig = NULL, species = "human"){
     message("[", Sys.time(), "] -----: stemness score calculation")
     if(is.null(stem.sig)){
         stem.sig.file <- system.file("txt", "pcbc-stemsig.tsv", package = "scCancer")
         stem.sig <- read.delim(stem.sig.file, header = FALSE, row.names = 1)
+        if(species == "mouse"){
+            sig.genes <- getMouseGene(rownames(stem.sig), bool.name = T)
+            stem.sig <- stem.sig[names(sig.genes), , drop=F]
+            rownames(stem.sig) <- sig.genes
+        }
     }
 
     common.genes <- intersect(rownames(stem.sig), rownames(X))
@@ -810,7 +827,7 @@ runStemness <- function(X, stem.sig = NULL){
 #' @importFrom GSVA gsva
 #'
 #' @examples
-runGeneSets <- function(expr, geneSets = NULL, method = "average"){
+runGeneSets <- function(expr, geneSets = NULL, method = "average", species = "human"){
     message("[", Sys.time(), "] -----: gene set signatures analyses")
     if(is.null(geneSets)){
         geneSets <- readLines(system.file("txt", "hallmark-pathways.txt", package = "scCancer"))
@@ -819,6 +836,11 @@ runGeneSets <- function(expr, geneSets = NULL, method = "average"){
         colnames(geneSets) <- geneSets[1, ]
         geneSets <- as.list(geneSets[2, ])
         geneSets <- sapply(geneSets, function(x) strsplit(x, ", "))
+        if(species == "mouse"){
+            for(set.name in names(geneSets)){
+                geneSets[[set.name]] <- getMouseGene(geneSets[[set.name]])
+            }
+        }
     }else{
         if(class(geneSets) != "list"){
             warning("The 'geneSets' should be a list of several gene sets.\n")
@@ -1081,7 +1103,7 @@ plotExprProgram <- function(H, cell.annotation, bool.limit = T, sel.clusters = N
 #' @param bool.runDiffExpr A logical value indicating whether to perform differential expressed analysis.
 #' @param n.markers A integer indicating the number of differential expressed genes showed in the plot. The defalut is 5.
 #' @param species A character string indicating what species the sample belong to.
-#' Must be one of "human"(default) and "mouse".
+#' Only "human"(default) or "mouse" are allowed.
 #' @param hg.mm.mix  A logical value indicating whether the sample is a mix of
 #' human cells and mouse cells(such as PDX sample).
 #' If TRUE, the arguments 'hg.mm.thres' and 'mix.anno' should be set to corresponding values.
@@ -1215,7 +1237,8 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
         t.results <- runCellClassify(expr, cell.annotation,
                                      coor.names = coor.names,
                                      savePath = savePath,
-                                     ct.templates = ct.templates)
+                                     ct.templates = ct.templates,
+                                     species = species)
 
         expr <- t.results$expr
         cell.annotation <- t.results$cell.annotation
@@ -1265,7 +1288,7 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
 
     ## --------- cell cycle ---------
     if(bool.runCellCycle){
-        CellCycle.score <- runCellCycle(expr)
+        CellCycle.score <- runCellCycle(expr, species = species)
         cell.annotation$CellCycle.score <- CellCycle.score
         results[["cellCycle.plot"]] <-
             pointDRPlot(cell.annotation,
@@ -1283,7 +1306,7 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
 
     ## --------- stemness ---------
     if(bool.runStemness){
-        stem.scores <- runStemness(X = GetAssayData(object = expr, slot = "scale.data"))
+        stem.scores <- runStemness(X = GetAssayData(object = expr, slot = "scale.data"), species = species)
         cell.annotation[["Stemness.score"]] <- stem.scores
 
         results[["stemness.plot"]] <-

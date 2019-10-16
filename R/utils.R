@@ -325,3 +325,17 @@ getClusterInfo <- function(cell.annotation){
                 cluster.pos = cluster.pos))
 }
 
+
+
+getMouseGene <- function(hg.genes, bool.name = F){
+    hg.mm.shareGene <- read.table(system.file("txt", "hg-mm-shareGenes.txt", package = "scCancer"),
+                                  header = T, stringsAsFactors = F)
+    rownames(hg.mm.shareGene) <- hg.mm.shareGene$hgGenes
+
+    hg.genes <- hg.genes[hg.genes %in% hg.mm.shareGene$hgGenes]
+    mm.genes <- hg.mm.shareGene[hg.genes, "mmGenes"]
+    if(bool.name){
+        names(mm.genes) <- hg.genes
+    }
+    return(mm.genes)
+}
