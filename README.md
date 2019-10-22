@@ -15,7 +15,7 @@ After these analyses, user-friendly graphic reports will be generated.
 ## System Requirements
 
 * **Memery**:  >= 32G  (for a data with ~10000 cells)
-* **R version**: >= 3.4.0 
+* **R version**: >= 3.5.0 
 
 ## Installation
 
