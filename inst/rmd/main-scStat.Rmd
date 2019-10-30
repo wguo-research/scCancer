@@ -221,7 +221,7 @@ if("bg.percent" %in% colnames(results$gene.manifest)){
 * `prop.median`	: the median of expression proportions for a gene in each cell.
 * `detect.rate`	: the detected (`#UMI > 0`) rate for a gene in all cells.
 
-Here is a plot showing the distributions of gene proportion in cells for the first 100 genes (ordered by their median `prop.median`). And the points (genes) are colored according to whether they belongs to mitochondrial, ribosome, or dissociation associated genes.
+Here is a plot showing the distributions of gene proportion in cells for the first 100 genes (ordered by their proportion in background `bg.percent`). And the points (genes) are colored according to whether they belongs to mitochondrial, ribosome, or dissociation associated genes.
 ```{r echo=F, results='asis'}
 if("bg.percent" %in% colnames(results$gene.manifest)){
   cat("The red star signs mark the genes’ proportion in background.\n")

@@ -250,18 +250,18 @@ getDefaultMarkers <- function(species = "human"){
             "T cell" = c("PTPRC", "CD3D", "CD4", "CD8A", "CD8B"),
             "B cell" = c("CD79A"),
             "NK cell" = c("NKG7"),
-            "Myeloblasts" = c("LYZ"),
+            "Myeloid cell" = c("LYZ"),
             "Endothelial" = c("PLVAP"),
-            "Myofibroblast" = c("ACTA2", "S100A4"),
+            "Fibroblast" = c("ACTA2", "S100A4"),
             "Epithelial" = c("EPCAM", "KRT8"))
     }else if(species == "mouse"){
         feature.def <- list(
             "T cell" = c("Ptprc", "Cd3d", "Cd4", "Cd8a", "Cd8b"),
             "B cell" = c("Cd79a"),
             "NK cell" = c("Nkg7"),
-            "Myeloblasts" = c("Lyz1", "Lyz2"),
+            "Myeloid cell" = c("Lyz1", "Lyz2"),
             "Endothelial" = c("Plvap"),
-            "Myofibroblast" = c("Acta2", "S100a4"),
+            "Fibroblast" = c("Acta2", "S100a4"),
             "Epithelial" = c("Epcam", "Krt8"))
     }
 
