@@ -337,7 +337,7 @@ pointDRPlot <- function(cell.annotation, value,
     }
 
     coor.label <- coor.names
-    if(all.equal(coor.label, c("tSNE_1", "tSNE_2"))){
+    if(all.equal(coor.label, c("tSNE_1", "tSNE_2")) == TRUE){
         coor.label[1] <- "t-SNE 1"
         coor.label[2] <- "t-SNE 2"
     }
