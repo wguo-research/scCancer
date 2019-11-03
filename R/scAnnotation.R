@@ -181,12 +181,15 @@ runSeurat <- function(exprList, savePath, sampleName = "sc",
         #             file = file.path(savePath, "diff.expr.genes.txt"), quote = F, sep = "\t", row.names = F)
 
         diff.expr.genes <- diff.expr.genes[, c("cluster", "gene", "p_val", "avg_logFC", "pct.1", "pct.2", "p_val_adj")]
+        diff.expr.genes$cluster <- as.numeric(diff.expr.genes$cluster)
         nCluster <- length(unique(diff.expr.genes$cluster))
         for(ci in 1:nCluster){
             # write.table(subset(diff.expr.genes, cluster == ci),
             #             file = file.path(savePath, "diff.expr.genes", paste0("cluster", ci ,".txt")),
             #             quote = F, sep = "\t", row.names = F)
-            write.csv(subset(diff.expr.genes, cluster == ci),
+            cur.diff.genes <- subset(diff.expr.genes, cluster == ci)
+            cur.diff.genes <- cur.diff.genes[order(cur.diff.genes$avg_logFC, decreasing = T), ]
+            write.csv(cur.diff.genes,
                       file = file.path(savePath, "diff.expr.genes", paste0("cluster", ci ,".csv")),
                       quote = F, row.names = F)
         }
@@ -526,6 +529,7 @@ plotSeurat <- function(expr,
     if(bool.runDiffExpr && !(is.null(diff.expr.genes))){
         # message(sprintf('------p.DE.heatmap------'))
         top.genes <- diff.expr.genes %>% group_by(cluster) %>% top_n(n = n.markers, wt = avg_logFC)
+        top.genes <- top.genes[order(top.genes$cluster, top.genes$avg_logFC, decreasing = c(F, T)), ]
         de.pre <- preDEheatmap(expr = expr,
                                cell.annotation = cell.annotation,
                                genes = top.genes$gene,
