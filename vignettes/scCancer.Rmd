@@ -148,8 +148,8 @@ Here, we provide an [example data](http://lifeome.net/software/sccancer/KC-examp
 kidney cancer from 10X Genomics. Users can download it and run following scripts 
 to understand the workflow of `scCancer`. And following are the generated HTML reports:
 
-* [report-scStat.html](http://lifeome.net/software/sccancer/KC-example-results/report-scStat.html)
-* [report-scAnno.html](http://lifeome.net/software/sccancer/KC-example-results/report-scAnno.html)
+* [report-scStat.html](http://lifeome.net/software/sccancer/KC-example-report-scStat.html)
+* [report-scAnno.html](http://lifeome.net/software/sccancer/KC-example-report-scAnno.html)
 
 For multi-datasets, following is a generated report for three kidney cancer samples integration analysis.
 

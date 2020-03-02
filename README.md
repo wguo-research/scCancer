@@ -13,7 +13,7 @@ After these analyses, user-friendly graphic reports will be generated.
 
 <img src="http://lifeome.net/software/sccancer/scCancer-workflow.png" width="70%" alt="scCancer-workflow" align=center>
 
-
+          
 ## System Requirements
 * R version: >= 3.5.0
 
@@ -41,12 +41,12 @@ devtools::install_github("constantAmateur/SoupX")
 
 ## Usage
 
-The vignette of `scCancer` can be found in the project [wiki]( https://github.com/wguo-research/scCancer/wiki) or vignette [page](http://lifeome.net/software/sccancer/scCancer-vignette.html).
+The vignette of `scCancer` can be found in the project [wiki]( https://github.com/wguo-research/scCancer/wiki).
 
 We also provide an [example data](http://lifeome.net/software/sccancer/KC-example.tar.gz) of kidney cancer from 10X Genomics, and here are the generated reports: 
 
-* [`report-scStat.html`](http://lifeome.net/software/sccancer/KC-example-results/report-scStat.html)
-* [`report-scAnno.html`](http://lifeome.net/software/sccancer/KC-example-results/report-scAnno.html)
+* [`report-scStat.html`](http://lifeome.net/software/sccancer/KC-example-report-scStat.html)
+* [`report-scAnno.html`](http://lifeome.net/software/sccancer/KC-example-report-scAnno.html)
 
 For multi-datasets, following is a generated report for three kidney cancer samples integration analysis.
 
