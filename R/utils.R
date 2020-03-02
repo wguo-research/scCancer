@@ -6,6 +6,12 @@ get10Xpath <- function (samplePath, raw.data = F){
     if (!dir.exists(res.path)){
         res.path <- paste0(cur.path, prefix, '_gene_bc_matrices/hg19/')
     }
+    if (!dir.exists(res.path)){
+        res.path <- paste0(cur.path, prefix, '_gene_bc_matrices/hg38/')
+    }
+    if (!dir.exists(res.path)){
+        res.path <- paste0(cur.path, prefix, '_gene_bc_matrices/mm10/')
+    }
     if(!dir.exists(res.path)){
         res.path <- NULL
     }
@@ -52,22 +58,39 @@ getBarcodes <- function(data.path){
 }
 
 
-
-Read10Xdata <- function (data.dir = NULL, gene.column = 2) {
+#' Read10Xdata
+#'
+#' Read expression matrix data from 10X. This function is modified from Seurat package.
+#'
+#' @param data.dir Directory containing the matrix.mtx, genes.tsv (or features.tsv), and barcodes.tsv files provided by 10X.
+#' A vector or named vector can be given in order to load several data directories.
+#' If a named vector is given, the cell barcode names will be prefixed with the name.
+#' @param gene.column An integer indicating which column of genes.tsv or features.tsv to use for gene names; default is 2.
+#' @param unique.features Make feature names unique (default TRUE).
+#' @param only.expr Whether to read expression data only if have multiple features (default TRUE).
+#'
+#' @return If the 10X data only has expression data or the argument 'only.expr' is TRUE,
+#' a sparse matrix containing the expression data will be returned.
+#' Otherwise, if the 10X data has multiple data types,
+#' a list containing a sparse matrix of the data from each type will be returned.
+#'
+#' @export
+#'
+Read10Xdata <- function (data.dir = NULL, gene.column = 2,
+                         unique.features = TRUE, only.expr = TRUE)  {
     full.data <- list()
     for (i in seq_along(data.dir)) {
         run <- data.dir[i]
-        if (!dir.exists(run)) {
-            stop("Directory provided does not exist.\n")
+        if (!dir.exists(paths = run)) {
+            stop("Directory provided does not exist")
         }
         if (!grepl("\\/$", run)) {
             run <- paste(run, "/", sep = "")
         }
-        barcode.loc <- paste0(run, "barcodes.tsv")
-        gene.loc <- paste0(run, "genes.tsv")
-        features.loc <- paste0(run, "features.tsv.gz")
-        matrix.loc <- paste0(run, "matrix.mtx")
-        # Flag to indicate if this data is from CellRanger >= 3.0
+        barcode.loc <- file.path(run, "barcodes.tsv")
+        gene.loc <- file.path(run, "genes.tsv")
+        features.loc <- file.path(run, "features.tsv.gz")
+        matrix.loc <- file.path(run, "matrix.mtx")
         pre_ver_3 <- file.exists(gene.loc)
         if (!pre_ver_3) {
             addgz <- function(s) {
@@ -77,13 +100,13 @@ Read10Xdata <- function (data.dir = NULL, gene.column = 2) {
             matrix.loc <- addgz(s = matrix.loc)
         }
         if (!file.exists(barcode.loc)) {
-            stop("Barcode file missing.\n")
+            stop("Barcode file missing")
         }
         if (!pre_ver_3 && !file.exists(features.loc)) {
-            stop("Gene name or features file missing.\n")
+            stop("Gene name or features file missing")
         }
         if (!file.exists(matrix.loc)) {
-            stop("Expression matrix file missing.\n")
+            stop("Expression matrix file missing")
         }
         data <- readMM(file = matrix.loc)
         cell.names <- readLines(barcode.loc)
@@ -116,16 +139,36 @@ Read10Xdata <- function (data.dir = NULL, gene.column = 2) {
             header = FALSE,
             stringsAsFactors = FALSE
         )
-        rownames(x = data) <-
-            make.unique(names = feature.names[, gene.column])
+        if (any(is.na(x = feature.names[, gene.column]))) {
+            warning("Some features names are NA. Replacing NA names with ID from the opposite column requested",
+                    call. = FALSE, immediate. = TRUE)
+            na.features <- which(x = is.na(x = feature.names[,
+                                                             gene.column]))
+            replacement.column <- ifelse(test = gene.column ==
+                                             2, yes = 1, no = 2)
+            feature.names[na.features, gene.column] <- feature.names[na.features,
+                                                                     replacement.column]
+        }
+        if (unique.features) {
+            fcols = ncol(x = feature.names)
+            if (fcols < gene.column) {
+                stop(paste0("gene.column was set to ", gene.column,
+                            " but feature.tsv.gz (or genes.tsv) only has ",
+                            fcols, " columns.", " Try setting the gene.column argument to a value <= to ",
+                            fcols, "."))
+            }
+            rownames(x = data) <- make.unique(names = feature.names[,
+                                                                    gene.column])
+        }
         # In cell ranger 3.0, a third column specifying the type of data was added
         # and we will return each type of data as a separate matrix
         if (ncol(x = feature.names) > 2) {
-            # if (length(x = full.data) == 0) {
-            #     message("10X data contains more than one type and is being returned as a list containing matrices of each type.")
-            # }
             data_types <- factor(x = feature.names$V3)
             lvls <- levels(x = data_types)
+            if (length(x = lvls) > 1 && length(x = full.data) ==
+                0) {
+                message("10X data contains more than one type and is being returned as a list containing matrices of each type.")
+            }
             expr_name <- "Gene Expression"
             if (expr_name %in% lvls) {
                 # Return Gene Expression first
@@ -149,22 +192,32 @@ Read10Xdata <- function (data.dir = NULL, gene.column = 2) {
     for (j in 1:length(x = full.data[[1]])) {
         list_of_data[[j]] <-
             do.call(cbind, lapply(X = full.data, FUN = `[[`, j))
-        # Fix for Issue #913
         list_of_data[[j]] <-
             as(object = list_of_data[[j]], Class = "dgCMatrix")
     }
     names(x = list_of_data) <- names(x = full.data[[1]])
-    # If multiple features, will return a list, otherwise
-    # a matrix.
-    if (length(x = list_of_data) == 1) {
+
+    if (only.expr){
         return(list_of_data[[1]])
-    } else {
-        return(list_of_data)
+    }else{
+        # If multiple features, only return a list, otherwise a matrix.
+        if (length(x = list_of_data) == 1) {
+            return(list_of_data[[1]])
+        } else {
+            return(list_of_data)
+        }
     }
 }
 
 
 
+#' ggplot_config
+#'
+#' @param base.size The size of text.
+#'
+#' @return A theme.
+#' @export
+#'
 ggplot_config <- function(base.size = 8){
     p <- theme_classic() +
         theme(plot.title = element_text(size = 2 * base.size),
@@ -235,6 +288,15 @@ grid_arrange_shared_legend <- function(..., all.p, ncol = length(list(...)), nro
 
 
 
+#' getDefaultMarkers
+#'
+#' Return default markers of several common cell types.
+#'
+#' @inheritParams runScAnnotation
+#'
+#' @return A list of default markers of several common cell types.
+#' @export
+#'
 getDefaultMarkers <- function(species = "human"){
     # feature.def <- list(
     #     "T cell" = c("CD3D"),
@@ -252,7 +314,7 @@ getDefaultMarkers <- function(species = "human"){
             "NK cell" = c("NKG7"),
             "Myeloid cell" = c("LYZ"),
             "Endothelial" = c("PLVAP"),
-            "Fibroblast" = c("ACTA2", "S100A4"),
+            "Fibroblast" = c("ACTA2"),
             "Epithelial" = c("EPCAM", "KRT8"))
     }else if(species == "mouse"){
         feature.def <- list(
@@ -261,7 +323,7 @@ getDefaultMarkers <- function(species = "human"){
             "NK cell" = c("Nkg7"),
             "Myeloid cell" = c("Lyz1", "Lyz2"),
             "Endothelial" = c("Plvap"),
-            "Fibroblast" = c("Acta2", "S100a4"),
+            "Fibroblast" = c("Acta2"),
             "Epithelial" = c("Epcam", "Krt8"))
     }
 
@@ -270,23 +332,94 @@ getDefaultMarkers <- function(species = "human"){
 
 
 
-getDefaultColors <- function(n = NULL){
-    colors <- c("#cb7c77", "#68d359", "#6a7dc9", "#c9d73d", "#c555cb",
-                "#d7652d", "#7cd5c8", "#c49a3f", "#507d41", "#5d8d9c",
-                "#90353b", "#674c2a", "#1B9E77", "#c5383c", "#0081d1",
-                "#ffd900", "#502e71", "#c8b693", "#aed688", "#f6a97a",
-                "#c6a5cc", "#798234", "#6b42c8", "#cf4c8b", "#666666")
+#' getDefaultColors
+#'
+#' @param n The number of colors.
+#' @param type The type of color style. Only 1, 2, or 3 is allowed.
+#'
+#' @return A vector of colors.
+#' @export
+#'
+getDefaultColors <- function(n = NULL, type = 1){
+    if(type == 1){
+        colors <- c("#cb7c77", "#68d359", "#6a7dc9", "#c9d73d", "#c555cb",
+                    "#d7652d", "#7cd5c8", "#c49a3f", "#507d41", "#5d8d9c",
+                    "#90353b", "#674c2a", "#1B9E77", "#c5383c", "#0081d1",
+                    "#ffd900", "#502e71", "#c8b693", "#aed688", "#f6a97a",
+                    "#c6a5cc", "#798234", "#6b42c8", "#cf4c8b", "#666666",
+                    "#feb308", "#ff1a1a", "#1aff1a", "#1a1aff", "#ffff1a")
+    }else if(type == 2){
+        if(n <= 8){
+            colors <- c("#66C2A5", "#FC8D62", "#8DA0CB", "#E78AC3",
+                        "#A6D854", "#FFD92F", "#E5C494", "#B3B3B3")
+        }else if(n <= 14){
+            colors <- c("#437BFE", "#FEC643", "#43FE69", "#FE6943", "#C643FE",
+                        "#43D9FE", "#B87A3D", "#679966", "#993333", "#7F6699",
+                        "#E78AC3", "#333399", "#A6D854", "#E5C494")
+        }
+        else if(n <= 20){
+            colors <- c("#87b3d4", "#d5492f", "#6bd155", "#683ec2", "#c9d754",
+                        "#d04dc7", "#81d8ae", "#d34a76", "#607d3a", "#6d76cb",
+                        "#ce9d3f", "#81357a", "#d3c3a4", "#3c2f5a", "#b96f49",
+                        "#4e857e", "#6e282c", "#d293c8", "#393a2a", "#997579")
+        }else if(n <= 30){
+            colors <- c("#628bac", "#ceda3f", "#7e39c9", "#72d852", "#d849cc",
+                        "#5e8f37", "#5956c8", "#cfa53f", "#392766", "#c7da8b",
+                        "#8d378c", "#68d9a3", "#dd3e34", "#8ed4d5", "#d84787",
+                        "#498770", "#c581d3", "#d27333", "#6680cb", "#83662e",
+                        "#cab7da", "#364627", "#d16263", "#2d384d", "#e0b495",
+                        "#4b272a", "#919071", "#7b3860", "#843028", "#bb7d91")
+        }else{
+            colors <- c("#982f29", "#5ddb53", "#8b35d6", "#a9e047", "#4836be",
+                        "#e0dc33", "#d248d5", "#61a338", "#9765e5", "#69df96",
+                        "#7f3095", "#d0d56a", "#371c6b", "#cfa738", "#5066d1",
+                        "#e08930", "#6a8bd3", "#da4f1e", "#83e6d6", "#df4341",
+                        "#6ebad4", "#e34c75", "#50975f", "#d548a4", "#badb97",
+                        "#b377cf", "#899140", "#564d8b", "#ddb67f", "#292344",
+                        "#d0cdb8", "#421b28", "#5eae99", "#a03259", "#406024",
+                        "#e598d7", "#343b20", "#bbb5d9", "#975223", "#576e8b",
+                        "#d97f5e", "#253e44", "#de959b", "#417265", "#712b5b",
+                        "#8c6d30", "#a56c95", "#5f3121", "#8f846e", "#8f5b5c")
+        }
+    }else if(type == 3){
+        # colors <- c("#07a2a4", "#9a7fd1", "#588dd5", "#f5994e",
+        #             "#c05050", "#59678c", "#c9ab00", "#7eb00a")
+        colors <- c("#c14089", "#6f5553", "#E5C494", "#738f4c", "#bb6240",
+                    "#66C2A5", "#2dfd29", "#0c0fdc")
+    }
     if(!is.null(n)){
-        if(n <= 25){
+        if(n <= length(colors)){
             colors <- colors[1:n]
         }else{
-            step <- 16777200 %/% n - 2
-            colors <- paste0("#", as.hexmode(seq(from = sample(1:step, 1), by = step, length.out = n)))
+            step <- 16777200 %/% (n - length(colors)) - 2
+            add.colors <- paste0("#", as.hexmode(seq(from = sample(1:step, 1),
+                                                     by = step, length.out = (n-length(colors)))))
+            colors <- c(colors, add.colors)
         }
     }
     return(colors)
 }
 
+
+getCellTypeColor <- function(cell.types){
+    cell.colors <- c(
+        "T.cells.CD4" = "#07a2a4",
+        "T.cells.CD8" = "#9a7fd1",
+        "B.cells" = "#588dd5",
+        "NK.cells" = "#f5994e",
+        "Myeloid.cells" = "#c05050",
+        "Endothelial" = "#59678c",
+        "Fibroblast" = "#c9ab00",
+        "Epithelial" = "#7eb00a",
+        "Unknown" = "grey")
+    cti = 1
+    new.types <- setdiff(cell.types, names(cell.colors))
+    for(ct in new.types){
+        cell.colors[ct] <- getDefaultColors(n = length(new.types), type = 3)[cti]
+        cti = cti + 1
+    }
+    return(cell.colors)
+}
 
 
 limitData <- function(data, min = NULL, max = NULL){
@@ -327,15 +460,146 @@ getClusterInfo <- function(cell.annotation){
 
 
 
-getMouseGene <- function(hg.genes, bool.name = F){
-    hg.mm.shareGene <- read.table(system.file("txt", "hg-mm-shareGenes.txt", package = "scCancer"),
+getMouseGene <- function(hg.genes, bool.name = F, deduplicate = T){
+    hg.mm.HomologyGenes <- read.table(system.file("txt", "hg-mm-HomologyGenes.txt", package = "scCancer"),
                                   header = T, stringsAsFactors = F)
-    rownames(hg.mm.shareGene) <- hg.mm.shareGene$hgGenes
+    hg.mm.HomologyGenes <- subset(hg.mm.HomologyGenes, hgGenes %in% hg.genes)
 
-    hg.genes <- hg.genes[hg.genes %in% hg.mm.shareGene$hgGenes]
-    mm.genes <- hg.mm.shareGene[hg.genes, "mmGenes"]
+    if(deduplicate){
+        hg.num <- table(hg.mm.HomologyGenes$hgGenes)
+        hg.mm.HomologyGenes <- subset(hg.mm.HomologyGenes, !(hgGenes %in% names(hg.num)[hg.num > 1]))
+        mm.num <- table(hg.mm.HomologyGenes$mmGenes)
+        hg.mm.HomologyGenes <- subset(hg.mm.HomologyGenes, !(mmGenes %in% names(mm.num)[mm.num > 1]))
+    }
+
+    mm.genes <- hg.mm.HomologyGenes$mmGenes
+
     if(bool.name){
-        names(mm.genes) <- hg.genes
+        names(mm.genes) <- hg.mm.HomologyGenes$hgGenes
     }
     return(mm.genes)
+}
+
+
+#' extractFiles
+#'
+#' Extract files from each sample's folder and rename them with sample's name.
+#'
+#' @param savePath A path of samples' result folder.
+#' @param sampleNames A vector of samples' names (the subfolder names in 'savePath').
+#' @param outputPath A path to saving the extracted reports.
+#' @param files The name of files you want to extract. The default is c("report-scStat.html", "report-scAnno.html").
+#' @param subfolders The name of subfolders for the files you want to extract. The default is NULL.
+#' It can be a character string, which means all files are under the subfolder.
+#' It can also be a character string vector with same length as "files", which are corresponding to "files".
+#'
+#' @return NULL
+#' @export
+#'
+extractFiles <- function(savePath, sampleNames, outputPath,
+                         files = c("report-scStat.html", "report-scAnno.html"),
+                         subfolders = NULL){
+    message("[", Sys.time(), "] -----: extract files")
+    if((!is.null(subfolders)) & (length(subfolders) != 1) & (length(subfolders) != length(files))){
+        stop("The lengths of files and subfolders are not equal.")
+    }
+
+    if(!dir.exists(file.path(outputPath))){
+        dir.create(file.path(outputPath), recursive = T)
+    }
+
+    for(sampleName in sampleNames){
+        cur.path <- paste0(savePath, "/", sampleName, "/")
+        ori.files <- paste0(cur.path, subfolders, "/", files)
+        new.files <- paste0(outputPath, "/", sampleName, "-", files)
+        file.copy(ori.files, new.files, overwrite = T)
+    }
+}
+
+
+
+#' checkStatArguments
+#'
+#'
+#' @param argList A list of arguments passed into 'runScStatistics".
+#'
+#' @return NULL
+#' @export
+#'
+checkStatArguments <- function(argList){
+    if(!dir.exists(argList$dataPath)){
+        stop("No such directory for the 'dataPath':",argList$dataPath ,".\n")
+    }
+
+    if(!(argList$species %in% c("human", "mouse"))){
+        stop("The parameter 'species' should be one of the c(\"human\", \"mouse\").\n")
+    }
+
+    if(!is.numeric(argList$hg.mm.thres)){
+        stop("The parameter 'hg.mm.thres' should be a float-point number within [0.5, 1].\n")
+    }else if(argList$hg.mm.thres < 0.5 | argList$hg.mm.thres > 1){
+        stop("The parameter 'hg.mm.thres' should be within [0.5, 1].\n")
+    }
+}
+
+
+#' checkAnnoArguments
+#'
+#' @param argList A list of arguments passed into 'runScAnnotation".
+#'
+#' @return NULL
+#' @export
+#'
+checkAnnoArguments <- function(argList){
+    if(!dir.exists(argList$dataPath)){
+        stop("No such directory for the 'dataPath':",argList$dataPath ,".\n")
+    }
+
+    if(!dir.exists(argList$statPath)){
+        stop("No such directory for the 'statPath':",argList$statPath ,".\n")
+    }
+
+    if(!(argList$species %in% c("human", "mouse"))){
+        stop("The parameter 'species' should be one of the c(\"human\", \"mouse\").\n")
+    }
+
+    if(!(argList$genome %in% c("hg19", "hg38", "mm10"))){
+        stop("The parameter 'genome' should be one of the c(\"hg19\", \"hg38\", \"mm10\").\n")
+    }
+
+    if(!(all(argList$anno.filter %in% c("mitochondrial", "ribosome", "dissociation"))) &
+       !(is.null(argList$anno.filter))){
+        stop("The parameter 'anno.filter' should be some of c(\"mitochondrial\", \"ribosome\", \"dissociation\") or NULL.\n")
+    }
+
+    if(!(argList$doublet.method %in% c("cxds", "bcds"))){
+        stop("The parameter 'doublet.method' should be one of the c(\"cxds\", \"bcds\").\n")
+    }
+
+    if(!(all(argList$coor.names == c("tSNE_1", "tSNE_2")) |
+         all(argList$coor.names == c("UMAP_1", "UMAP_2")))){
+        stop("The parameter 'coor.names' should be c(\"tSNE_1\", \"tSNE_2\") or c(\"UMAP_1\", \"UMAP_2\").\n")
+    }
+
+    if(!(argList$geneSet.method %in% c("average", "GSVA"))){
+        stop("The parameter 'geneSet.method' should be one of the c(\"average\", \"GSVA\").\n")
+    }
+}
+
+
+
+#' checkCombArguments
+#'
+#' @param argList A list of arguments passed into 'runScCombination".
+#'
+#' @return NULL
+#' @export
+#'
+checkCombArguments <- function(argList){
+    if(length(argList$single.savePaths) != length(argList$sampleNames)){
+        stop("The length of parameter 'single.savePaths' and 'sampleNames' should be equal.\n")
+    }
+    if(!(argList$comb.method %in% c("NormalMNN", "SeuratMNN", "Raw", "Regression"))){
+        stop("The parameter 'comb.method' should be one of the c(\"NormalMNN\", \"SeuratMNN\", \"Raw\", \"Regression\").\n")
+    }
 }

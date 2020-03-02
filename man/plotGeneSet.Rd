@@ -4,8 +4,7 @@
 \alias{plotGeneSet}
 \title{plotGeneSet}
 \usage{
-plotGeneSet(cell.annotation, prefix = "GS__", bool.limit = T,
-  savePath = NULL)
+plotGeneSet(cell.annotation, prefix = "GS__", bool.limit = T, savePath = NULL)
 }
 \arguments{
 \item{cell.annotation}{A data.frame of cells' annotation containing gene set signature scores.}

@@ -4,8 +4,13 @@
 \alias{runExprProgram}
 \title{runExprProgram}
 \usage{
-runExprProgram(expr, rank = 50, sel.clusters = NULL,
-  clusterStashName = "default", savePath = NULL)
+runExprProgram(
+  expr,
+  rank = 50,
+  sel.clusters = NULL,
+  clusterStashName = "default",
+  savePath = NULL
+)
 }
 \arguments{
 \item{expr}{A Seurat object.}

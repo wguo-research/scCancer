@@ -6,9 +6,9 @@ We train a stemness signature and use it to estimate stemness scores.
 The predicted stemness scores can be found in the column `Stemness.score` of the table file 
 [cellAnnotation.txt](./cellAnnotation.txt).
 
-Here is the t-SNE plot colored by estimated stemness scores.
+Here is the scatter plot colored by estimated stemness scores.
 
-```{r stemnessPlot, echo=F, message=F, warning=F, dpi=500, fig.width=5, fig.height=5.2, fig.align="center", out.width='60%'}
+```{r stemnessPlot, echo=F, message=F, warning=F, dpi=500, fig.width=5, fig.height=4, fig.align="center", out.width='60%'}
 results$stemness.plot
 ```
 <p align="right">(Hi-res image: <a href="./figures/stemness-point.png">view</a>)</p>

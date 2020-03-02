@@ -13,7 +13,7 @@ runCellCycle(expr, species = "human")
 Only "human"(default) or "mouse" are allowed.}
 }
 \value{
-A array of cell cycle scores.
+An array of cell cycle scores.
 }
 \description{
 Estimate cell cycle scores.

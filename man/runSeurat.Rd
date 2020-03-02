@@ -4,21 +4,19 @@
 \alias{runSeurat}
 \title{runSeurat}
 \usage{
-runSeurat(exprList, savePath, sampleName = "sc",
-  vars.to.regress = c("nUMI", "mito.percent", "ribo.percent"),
-  pc.use = 30, resolution = 0.8, clusterStashName = "default",
-  bool.runDiffExpr = T)
+runSeurat(
+  expr,
+  savePath,
+  pc.use = 30,
+  resolution = 0.8,
+  clusterStashName = "default",
+  bool.runDiffExpr = T
+)
 }
 \arguments{
-\item{exprList}{A list containing expr.data, cell.manifest, gene.manifest and filter.thres.
-It should be the return value of function 'getFilterData' generally.}
+\item{expr}{A Seurat object return by prepareSeurat.}
 
 \item{savePath}{A path to save the results files. If NULL, the 'statPath' will be used instead.}
-
-\item{sampleName}{A character string giving a label for this sample.}
-
-\item{vars.to.regress}{A vector indicating the variables to regress out in R package Seurat.
-The default is c("nUMI", "mito.percent", "ribo.percent").}
 
 \item{pc.use}{An integer number indicating the number of PCs to use as input features. The default is 30.}
 

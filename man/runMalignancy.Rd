@@ -4,24 +4,33 @@
 \alias{runMalignancy}
 \title{runMalignancy}
 \usage{
-runMalignancy(dataPath, statPath, savePath, cell.annotation, expr,
-  cutoff = 0.1, minCell = 3, p.value.cutoff = 0.5,
-  coor.names = c("tSNE_1", "tSNE_2"), hg.mm.mix = F)
+runMalignancy(
+  expr,
+  gene.manifest,
+  cell.annotation,
+  savePath,
+  cutoff = 0.1,
+  minCell = 3,
+  p.value.cutoff = 0.5,
+  coor.names = c("tSNE_1", "tSNE_2"),
+  ref.data = NULL,
+  referAdjMat = NULL,
+  species = "human",
+  genome = "hg19",
+  hg.mm.mix = F
+)
 }
 \arguments{
-\item{dataPath}{A path containing the cell ranger processed data.
-Under this path, folders 'filtered_feature_bc_matrix' and 'raw_feature_bc_matrix' exist generally.}
+\item{expr}{A Seurat object.}
 
-\item{statPath}{A path containing the results files of step 'runScStatistics'.}
+\item{gene.manifest}{A data.frame of genes' manifest.}
+
+\item{cell.annotation}{A data.frame of cells' annotation.}
 
 \item{savePath}{A path to save the results files. If NULL, the 'statPath' will be used instead.}
 
-\item{cell.annotation}{A data.frame of cells' annotation}
-
-\item{expr}{A Seurat object.}
-
 \item{cutoff}{The cut-off for min average read counts per gene among
-reference cells. The default is 0.1)}
+reference cells. The default is 0.1.}
 
 \item{minCell}{An integer number used to filter gene. The default is 3.}
 
@@ -29,6 +38,20 @@ reference cells. The default is 0.1)}
 malignancy score is bimodality.}
 
 \item{coor.names}{A vector indicating the names of two-dimension coordinate used in visualization.}
+
+\item{ref.data}{An expression matrix of gene by cell, which is used as the normal reference.
+The default is NULL, and an immune cells or bone marrow cells expression matrix will be used for human or mouse species, respectively.}
+
+\item{referAdjMat}{An adjacent matrix for the normal reference data.
+The larger the value, the closer the cell pair is.
+The default is NULL, and a SNN matrix of the default ref.data will be used.}
+
+\item{species}{A character string indicating what species the sample belong to.
+Only "human"(default) or "mouse" are allowed.}
+
+\item{genome}{A character string indicating the version of the reference gene annotation information.
+This information is mainly used to infer CNV profile and estimate malignancy.
+Only 'hg19' (defalut) or 'hg38' are allowed for "human" species, and only "mm10" is allowed for "mouse" species.}
 
 \item{hg.mm.mix}{A logical value indicating whether the sample is a mix of
 human cells and mouse cells(such as PDX sample).

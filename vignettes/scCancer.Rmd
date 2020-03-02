@@ -7,7 +7,9 @@ author:
   affiliation: *1
 - name: "Shicheng Wang"
   affiliation: *1
-- name: "Yi ran Shan"
+- name: "Yiran Shan"
+  affiliation: *1
+- name: "Changyi Liu"
   affiliation: *1
 - name: "Jin Gu"
   affiliation: *1
@@ -48,9 +50,13 @@ Here, we develop an R package named `scCancer` which focuses on processing and
 analyzing scRNA-seq data for cancer research. Except basic data processing steps, 
 this package takes several special considerations for cancer-specific features. 
 
-The workflow of  `scCancer` mainly consists of two parts: `scStatistics` and `scAnnotation`.
-* The `scStatistics` performs basic statistical analysis of raw data and quality control.
-* The `scAnnotation` performs functional data analyses and visualizations, such as low dimensional representation, clustering, cell type classification, malignancy estimation, cellular phenotype scoring, gene signature analysis, etc.
+The workflow of  `scCancer` mainly consists of three parts: `scStatistics`, `scAnnotation`, and `scCombination`.
+
+* The `scStatistics` performs basic statistical analyses of raw data and quality control.
+
+* The `scAnnotation` performs functional data analyses and visualizations, such as low dimensional representation, clustering, cell type classification, cell malignancy estimation, cellular phenotype analyses, gene signature analyses, cell-cell interaction analyses, etc.
+
+* The `scCombination` perform multiple samples combination, batch effect correction and analyses visualization.
 
 After these analyses, user-friendly graphic reports will be generated.
 
@@ -58,11 +64,10 @@ After these analyses, user-friendly graphic reports will be generated.
 
 
 
-# Getting started
+# Basic instructions
 
 ## System Requirements
-* Memery:  >=32G (for a data with ~10000 cells)
-* R version: >= 3.5.0 
+* R version: >= 3.5.0
 
 
 ## Installation
@@ -75,6 +80,16 @@ Then the `scCancer` can be installed via
 ```{r eval=FALSE}
 library(devtools)
 devtools::install_github("wguo-research/scCancer")
+```
+
+
+Hint: A dependent package `NNLM` was removed from the CRAN repository recently, so an error about it may be reported during the installation. 
+If so, you can install a formerly available version manually from its [archive](https://cran.r-project.org/src/contrib/Archive/NNLM/).
+
+
+Besides, if you encounter errors saying package `SoupX` is unavalibale, you can refer to its [GitHub](https://github.com/constantAmateur/SoupX) and install it via
+```R
+devtools::install_github("constantAmateur/SoupX")
 ```
 
 
@@ -104,9 +119,9 @@ In general, the data folder needs to be organized as following which is the outp
 
 Comparing to `Cell Ranger V2 (CR2)`, `Cell Ranger V3 (CR3)` can identify cells with 
 low RNA content better. So we suggest to use `CR3` to do alignment and cell-calling. 
-Considering that some open data is from `CR2` or the raw matrix isn't supported, we 
+Considering that some published data is from `CR2` or the raw matrix isn't supported, we 
 specially deisgn the pipeline to be compatible with these situations. 
-A common structure of `CR2` is as below.
+A common folder structure of `CR2` is as below.
 
 ```
     /sampleFolder
@@ -123,7 +138,7 @@ A common structure of `CR2` is as below.
     └── web_summary.html
 ```
 
-For other droplet-based platforms, the data folder can be prepared likewise.
+For other droplet-based platforms, the data folder should be prepared likewise.
 
 
 
@@ -131,53 +146,57 @@ For other droplet-based platforms, the data folder can be prepared likewise.
 
 Here, we provide an [example data](http://lifeome.net/software/sccancer/KC-example.tar.gz) of 
 kidney cancer from 10X Genomics. Users can download it and run following scripts 
-to understand the workflow of `scCancer`. And following are the links of generated HTML reports:
+to understand the workflow of `scCancer`. And following are the generated HTML reports:
 
-* [`report-scStat.html`](http://lifeome.net/software/sccancer/KC-example-results/report-scStat.html)
-* [`report-scAnno.html`](http://lifeome.net/software/sccancer/KC-example-results/report-scAnno.html)
+* [report-scStat.html](http://lifeome.net/software/sccancer/KC-example-results/report-scStat.html)
+* [report-scAnno.html](http://lifeome.net/software/sccancer/KC-example-results/report-scAnno.html)
 
+For multi-datasets, following is a generated report for three kidney cancer samples integration analysis.
+
+* [report-scAnnoComb.html](http://lifeome.net/software/sccancer/KC123-report-scAnnoComb.html)
 
 ### scStatistics
 The `scStatistics` mainly implements quality control for the expression matrix
-and return some suggested thresholds to filter cells and genes.
+and returns some suggested thresholds to filter cells and genes. 
+Meanwhile, to evaluate the influence of ambient RNAs from lysed cells better, 
+this step also estimates the contamination fraction by using the algorithm of [`SoupX`](https://github.com/constantAmateur/SoupX).
 
-Following is the example script to run the first step `scStatistics`.
-
-And using `help(runScStatistics)` can get more details about the arguments 
-of `runScStatistics` to realize personalized setting.
+Following is the example script to run the first part `scStatistics`.
+And using `help(runScStatistics)` can get more details about its arguments to realize personalized setting.
 
 ```{r eval=FALSE}
-    library(scCancer)
-    
-    # A path containing the cell ranger processed data
-    dataPath <- "./data/KC-example"
-    # A path used to save the results files
-    savePath <- "./results/KC-example"
-    # The sample name
-    sampleName <- "KC-example"
-    # The author name or a string used to mark the report.
-    authorName <- "G-Lab@THU"
-    
-    # Run scStatistics
-    stat.results <- runScStatistics(
-        dataPath = dataPath,
-        savePath = savePath,
-        sampleName = sampleName,
-        authorName = authorName
-    )
+library(scCancer)
+
+# A path containing the cell ranger processed data
+dataPath <- "./data/KC-example"
+# A path used to save the results files
+savePath <- "./results/KC-example"
+# The sample name
+sampleName <- "KC-example"
+# The author name or a string used to mark the report.
+authorName <- "G-Lab@THU"
+
+# Run scStatistics
+stat.results <- runScStatistics(
+    dataPath = dataPath,
+    savePath = savePath,
+    sampleName = sampleName,
+    authorName = authorName
+)
 ```
 
 
-Running the `scStatistics` script will generate some files as below:
+Running the `scStatistics` script will generate some files/folders as below:
 
-1. **report-scStat.html** : A HTML report containing all results and corresponding description.
+1. **report-scStat.html** : A HTML report containing all results.
 2. **report-scStat.md** : A markdown report.
-3. **figures\/** : All figures generated during the pipeline.
-4. **report-figures\/**: All figures presented in the report.
-5. **cellManifest-all.txt** : The results calculated for all droplets.
+3. **figures\/** : All figures generated during this part.
+4. **report-figures\/** : All figures presented in the HTML report.
+5. **cellManifest-all.txt** : The statistical results for all droplets.
 6. **cell.QC.thres.txt** : The suggested thresholds to filter poor-quality cells.
-7. **geneManifest.txt** : The results calculated for each genes.
-8. **report-cellRanger.html**: The summary report generated by `Cell Ranger`.
+7. **geneManifest.txt** : The statistical results for genes.
+8. **ambientRNA-SoupX.txt** : The results of estimating contamination fraction.
+9. **report-cellRanger.html** : The summary report generated by `Cell Ranger`.
 
 
 
@@ -185,9 +204,13 @@ Running the `scStatistics` script will generate some files as below:
 
 Using the QC thresholds, the `scAnnotation` filters cells and genes firstly, and then 
 performs basic operations (normalization, log-transformation, highly variable genes identification, 
-removing unwanted variance, scaling, centering, dimension reduction, clustering, 
-and differential expression analy-sis) using R package `Seurat V3`[1,2]. 
+unwanted variance removing, scaling, centering, dimension reduction, clustering, 
+and differential expression analysis) using R package [`Seurat V3`](https://satijalab.org/seurat/). 
 Besides, `scAnnotation` also performs some cancer-specific analyses:
+
+ * **Doublet score estimation** : In this step, we integrate two methods 
+ (binary classification based `bcds` and co-expression based `cxds`) of R package 
+ [`scds`](https://bioconductor.org/packages/release/bioc/html/scds.html) to estimate doublet scores.
 
  * **Cancer micro-environmental cell type classification** : In this step, 
  we develop a data-driven model (one-class logistic regression) to predict cell types, 
@@ -196,126 +219,215 @@ Besides, `scAnnotation` also performs some cancer-specific analyses:
  
  * **Cell malignancy estimation** : In this step, we refer to the algorithm of 
  R package [`infercnv`](https://github.com/broadinstitute/inferCNV/wiki) 
- to estimate an initial CNV profiles [3]. Then, we take advantage of cells’ neighborhoods information 
+ to estimate an initial CNV profiles. Then, we take advantage of cells’ neighbor information 
  to smooth CNV values and define the malignancy score as the mean of the squares of them.
  
  * **Cell cycle analysis** : In this step, to analyze intra-tumor cell phenotype heterogeneity,
- we define cell cycle score with the relative average expression of a list of G2/M and S phase markers,
- by using the function “AddModuleScore” of Seurat [2].
+ we define cell cycle score as the relative average expression of a list of G2/M and S phase markers,
+ by using the function “AddModuleScore” of [`Seurat`](https://satijalab.org/seurat/).
  
  * **Cell stemness analysis** : In this step, to analyze intra-tumor cell phenotype heterogeneity,
- we define cell stemness score with the Spearman correlation coefficient between cells’ expression and 
- our pre-trained stemness signature, by referring to the algorithm of Malta et al [4].
+ we define cell stemness score as the Spearman correlation coefficient between cells’ expression and 
+ our pre-trained stemness signature, by referring to the algorithm of [`Malta et al`](https://doi.org/10.1016/j.cell.2018.03.034).
  
  * **Gene set signature analysis** : In this step, we provide 
  two methods to calculated gene set signature scores: 
- [GSVA](https://www.bioconductor.org/packages/release/bioc/html/GSVA.html) 
+ [`GSVA`](https://www.bioconductor.org/packages/release/bioc/html/GSVA.html) 
  and relative average expression levels. By default, we use 50 hallmark gene sets 
- from [MSigDB](http://software.broadinstitute.org/gsea/msigdb/).
+ from [`MSigDB`](http://software.broadinstitute.org/gsea/msigdb/).
  
  * **Expression programs identification** : In this step, we use non-negative matrix 
- factorization (NMF) to unsupervised identify potential expression program signatures.
+ factorization (NMF) to unsupervisedly identify potential expression program signatures.
+ 
+ * **Cell-cell interaction analyses** : In this step, we referred to the methods 
+ of [`Kumar et al`](https://doi.org/10.1016/j.celrep.2018.10.047) to characterize 
+ ligand-receptor interactions across cell clusters.
 
 
 
-Following is the example script to run the second step `scAnnotation`. 
-
-And using `help(runScAnnotation)` can get more details about the arguments 
-of `runScAnnotation` to realize personalized setting.
+Following is the example script to run the second part `scAnnotation`. 
+And using `help(runScAnnotation)` can get more details about its arguments to realize personalized setting.
 
 ```{r eval=FALSE}
-    library(scCancer)
-    
-    # A path containing the cell ranger processed data
-    dataPath <- "./data/KC-example"    
-    # A path containing the scStatistics results
-    statPath <- "./results/KC-example" 
-    # A path used to save the results files
-    savePath <- "./results/KC-example" 
-    # The sample name
-    sampleName <- "KC-example"
-    # The author name or a string used to mark the report.
-    authorName <- "G-Lab@THU"    
-    
-    # Run scAnnotation
-    anno.results <- runScAnnotation(
-        dataPath = dataPath,
-        statPath = statPath,
-        savePath = savePath,
-        authorName = authorName,
-        sampleName = sampleName,
-        geneSet.method = "average"   # or "GSVA"
-    )
+library(scCancer)
+
+# A path containing the cell ranger processed data
+dataPath <- "./data/KC-example"    
+# A path containing the scStatistics results
+statPath <- "./results/KC-example" 
+# A path used to save the results files
+savePath <- "./results/KC-example" 
+# The sample name
+sampleName <- "KC-example"
+# The author name or a string used to mark the report.
+authorName <- "G-Lab@THU"    
+
+# Run scAnnotation
+anno.results <- runScAnnotation(
+    dataPath = dataPath,
+    statPath = statPath,
+    savePath = savePath,
+    authorName = authorName,
+    sampleName = sampleName,
+    geneSet.method = "average"   # or "GSVA"
+)
 ```
 
 
 Running the `scAnnotation` script will generate some files/folders as below:
 
-1. **report-scAnno.html** : A HTML report containing all results and corresponding description.
+1. **report-scAnno.html** : A HTML report containing all results.
 2. **report-scAnno.md** : A markdown report.
-3. **figures\/** : All figures generated during the pipeline.
-4. **report-figures\/**: All figures used in the report.
-5. **gene.manifest.filter.txt** : The filtered genes during QC.
+3. **figures\/** : All figures generated during this part.
+4. **report-figures\/** : All figures presented in the HTML report.
+5. **geneManifest.txt** : The annotation results of genes updated by filter information.
 6. **expr.RDS** : A Seurat object.
 7. **diff.expr.genes\/** : Differentially expressed genes information for all clusters.
 8. **cellAnnotation.txt** : The annotation results for each cells.
 9. **malignancy\/**: All results of cell malignancy estimation.
-10. **expr.programs\/**: All results of expression programs identification.
+10. **expr.programs\/** : All results of expression programs identification.
+11. **InteractionScore.txt** : Cell clusters interactions scores.
 
 
 
+### scCombination
+The `scCombination` mainly performs multiple samples data combination, batch effect correction and analyses visualization based on the `scAnnotation` results of each sample. And four methods (`NormalMNN` (default), `SeuratMNN`, `Raw` and `Regression`) to integrate data and correct batch effect are optional.
 
-
-
-## Other personalized setting
-
-
-### Modify cell QC thresholds
-
-After the step `scStatistics`, a HTML report (`report-scStat.html`) will be generated, which persents the statistical features of the data from various perspectives (`nUMI`, `nGene`, `mito.percent`, `ribo.percent`, `diss.percent`). 
-By identifying outliers from the distribution of these metrics, `scCancer` adaptively provides some suggested thresholds to filter low-quality cells and records them in file `cell.QC.thres.txt`.
-Besides, users can also modify the values in file `cell.QC.thres.txt` and then the step `scAnnotation` will use the updated thresholds to perform cell QC and downstream analyses.
-
-
-### Modify gene QC thresholds
-
-For the step gene QC, the `scCancer` filters genes according to three aspects of information. 
-
- * First, it filters mitochondrial, ribosomal, and dissociation-associated genes.
- * Second, it filters genes with the number of expressed cells less than argument `nCell.min` (the default is 3).
- * Third, it filters genes with the background percentage larger than the argument `bgPercent.max` (the default is 0.001). The distribution of `bgPercent.max` can be found in the `report-scStat.html`.
- 
-Users can also modify the value of these arguments according to their needs.
-
-
-### Analyze PDX samples
-
-For patient-drived tumor xenograft (PDX) samples, it contains both human and mouse cells generally. In order to deal with these human-mouse-mixed data, users can explicitly set the arguments `hg.mm.mix`, `species`, `hg.mm.thres`, and `mix.anno` of relevant functions.
-More details for the meaning of these arguments can be found by using command `help()`.
-
-
-### Re-perform cell calling
-If the sample data is generated by `Cell Ranger V2 (CR2)` and contain 'raw_gene_bc_matrices' matrix, the scCancer package can re-perform cell calling using 
-the method `EmptyDrop` (the name of R package is [`DropletUtils`](http://bioconductor.org/packages/release/bioc/html/DropletUtils.html)). But users need to manually install the `DropletUtils` and import it in script.
+Following is the example script to run the part `scCombination`.
+And using `help(runScCombination)` can get more details about its arguments.
 
 ```{r eval=FALSE}
-    if (!requireNamespace("BiocManager", quietly = TRUE))
-        install.packages("BiocManager")
-    BiocManager::install("DropletUtils")
-    
-    library(DropletUtils)
+library(scCancer)
+
+# Paths containing the results of 'runScAnnotation' for each sample.
+single.savePaths <- c("./results/KC1", "./results/KC2", "./results/KC3")
+# Labels for all samples.
+sampleNames <- c("KC1", "KC2", "KC3")
+# A path used to save the results files
+savePath <- "./results/KC123-comb"
+# A label for the combined samples.
+combName <- "KC123-comb"
+# The author name or a string used to mark the report.
+authorName <- "G-Lab@THU"
+# The method to combine data.
+comb.method <- "NormalMNN"  # SeuratMNN  Raw  Regression
+
+# Run scCombination
+comb.results <- runScCombination(
+    single.savePaths = single.savePaths, 
+    sampleNames = sampleNames, 
+    savePath = savePath, 
+    combName = combName,
+    authorName = authorName,
+    comb.method = comb.method
+)    
 ```
 
 
+Running the `scAnnotation` script will generate some files/folders as below:
 
-# References
-[1] Butler A, Hoffman P, Smibert P, et al. Integrating single-cell transcriptomic data across different conditions, technologies, and species[J]. Nature biotechnology, 2018, 36(5): 411.
+1. **report-scAnnoComb.html** : A HTML report containing all results.
+2. **report-scAnnoComb.md** : A markdown report.
+3. **figures\/** : All figures generated during this step.
+4. **report-figures\/** : All figures presented in the HTML report.
+5. **expr.RDS** : A Seurat object.
+6. **diff.expr.genes\/** : Differentially expressed genes information for all clusters.
+7. **cellAnnotation.txt** : The annotation results for each cells.
+8. **expr.programs\/** : All results of expression programs identification.
+9. (**anchors.RDS** : The anchors used for batch correction of "NormalMNN" or "SeuratMNN".)
 
-[2] Stuart T, Butler A, Hoffman P, et al. Comprehensive Integration of Single-Cell Data[J]. Cell, 2019.
 
-[3] inferCNV of the Trinity CTAT Project.  https://github.com/broadinstitute/inferCNV
 
-[4] Malta T M, Sokolov A, et al. Machine learning identifies stemness features asso-ciated with oncogenic dedifferentiation. Cell, 2018, 173(2): 338-354. e15.
+
+
+# Other personalized settings
+
+
+## Re-perform cell calling
+If the sample data is generated by `CR2` and contain 'raw_gene_bc_matrices' matrix, the scCancer package can re-perform cell calling using the method `EmptyDrop` (the name of its R package is [`DropletUtils`](http://bioconductor.org/packages/release/bioc/html/DropletUtils.html)). But users need to manually install the `DropletUtils` and import it in script.
+
+```{r eval=FALSE}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install("DropletUtils")
+
+library(DropletUtils)
+```
+
+
+## Modify cell QC thresholds
+After the step `scStatistics`, a HTML report (`report-scStat.html`) will be generated, which persents the statistical features of the data from various perspectives (`nUMI`, `nGene`, `mito.percent`, `ribo.percent`, `diss.percent`). 
+By identifying outliers from the distribution of these metrics, `scCancer` adaptively provides some suggested thresholds to filter low-quality cells and records them in file `cell.QC.thres.txt`.
+
+Users can modify the values in file `cell.QC.thres.txt` to make `scAnnotation` use the updated thresholds to perform cell QC and downstream analyses.
+
+
+## Modify gene QC thresholds
+For the step gene QC, the `scCancer` filters genes according to three aspects of information. 
+
+ 1) Mitochondrial, ribosomal, and dissociation-associated genes.
+ 2) Genes with the number of expressed cells less than argument `nCell.min` (the default is 3).
+ 3) Genes with the background percentage larger than the argument `bgPercent.max` (the default is 1, which means unfilter). The distribution of `bgPercent.max` can be found in the `report-scStat.html`.
+ 
+Users can modify the values of these arguments according to their needs.
+
+
+## Perform ambient RNAs contamination correction
+In the `scStatistics` part, users can pass in the soup (background) specific gene lists by the argument `bg.spec.genes` or use the default setting: 
+
+```{r eval=FALSE}
+bg.spec.genes <- list(
+    igGenes = c('IGHA1','IGHA2','IGHG1','IGHG2','IGHG3','IGHG4','IGHD','IGHE','IGHM', 'IGLC1','IGLC2','IGLC3','IGLC4','IGLC5','IGLC6','IGLC7', 'IGKC', 'IGLL5', 'IGLL1'),
+    HLAGenes = c('HLA-DRA', 'HLA-DRB5', 'HLA-DRB1', 'HLA-DQA1', 'HLA-DQB1', 'HLA-DQB1', 'HLA-DQA2', 'HLA-DQB2', 'HLA-DPA1', 'HLA-DPB1'),
+    HBGenes = c("HBB","HBD","HBG1","HBG2", "HBE1","HBZ","HBM","HBA2", "HBA1","HBQ1")
+)
+```
+
+Then a contamination fraction will be estimated and saved in file `ambientRNA-SoupX.txt`. 
+
+In the `scAnnotation` part, if users want to correct the expression data according to the estimated ambient RNAs contamination fraction, they can set argument `bool.rmContamination` as `TRUE`, and set `contamination.fraction` as a number (between 0 and 1) or `NULL` (`NULL` means the result of `scStatistics` will be used).
+
+
+## Set species and genome used for the sample
+By default, the arguments `species` and `genome` are set as `human` and `hg19`.
+Users can set `species` as `human` or `mouse`, and set `genome` as `hg19`, `hg38`, or `mm10`, respectively.
+
+
+## Analyze PDX samples
+For patient-drived tumor xenograft (PDX) samples, it contains both human and mouse cells generally. In order to deal with these human-mouse-mixed data, users can explicitly set the arguments `hg.mm.mix`, `species`, `genome`, `hg.mm.thres`, and `mix.anno` of relevant functions.
+More details for the meaning of these arguments can be found by using command `help()`.
+
+
+
+## Use "UMAP" coordinates to present analyses results
+By default, we use both t-SNE and UMAP to get low-dimension coordiantes, 
+and the clustering results are presented using both of them.
+For other analyses, we use t-SNE 2D coordinates by default. 
+Users can also set the arguments `coor.names` as `c("UMAP_1", "UMAP_2")` 
+to view the results under UMAP coordinates.
+
+**Note**: If users haven't installed `UMAP`, they can do so via 
+```{python eval=FALSE}
+reticulate::py_install(packages = 'umap-learn')
+```
+
+
+## Analyze multi-modal data
+For the multi-modal data, which have both gene expression and antibody capture results, `scCancer` is also compatible. Users don't need to perform special setting, and `scCancer` will extract the expression data automatically and run downstream analyses.
+
+
+## Train new cell type templates
+If users' samples have other cell types to classify, they can train the new templates and pass in the argument `ct.templates`. To train the new templates, following cods can be referred:
+
+```{r eval=FALSE}
+library(gelnet)
+
+train.data <- list("type1" = expr.data1, "type2" = expr.data2)
+ct.templates <- lapply(names(train.data), FUN = function(x){
+    result <- gelnet(t(train.data[[x]]), NULL, 0, 1)
+    return(result$w[result$w != 0])
+})
+```
 
 
 
@@ -323,66 +435,102 @@ the method `EmptyDrop` (the name of R package is [`DropletUtils`](http://biocond
 Here is the output of `sessionInfo()` on the system.
 
 ```
-R version 3.6.0 (2019-04-26)
-Platform: x86_64-conda_cos6-linux-gnu (64-bit)
-Running under: Ubuntu 16.04.2 LTS
+R version 3.6.1 (2019-07-05)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: CentOS Linux 7 (Core)
 
-Matrix products: default
+Matrix products: defaulto
 
 locale:
-[1] en_US.UTF-8
+ [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C
+ [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8
+ [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8
+ [7] LC_PAPER=en_US.UTF-8       LC_NAME=C
+ [9] LC_ADDRESS=C               LC_TELEPHONE=C
+[11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C
 
 attached base packages:
-[1] stats     graphics  grDevices utils     datasets  methods   base     
+[1] stats     graphics  grDevices utils     datasets  methods   base
 
 other attached packages:
-[1] scCancer_1.0.0
+[1] scCancer_2.0.0
 
 loaded via a namespace (and not attached):
-  [1] Seurat_3.1.0         Rtsne_0.15           colorspace_1.4-1    
-  [4] ggridges_0.5.1       IRdisplay_0.7.0      markdown_1.1        
-  [7] base64enc_0.1-3      leiden_0.3.1         listenv_0.7.0       
- [10] npsurv_0.4-0         bit64_0.9-7          ggrepel_0.8.1       
- [13] AnnotationDbi_1.46.1 codetools_0.2-16     splines_3.6.0       
- [16] R.methodsS3_1.7.1    lsei_1.2-0           geneplotter_1.62.0  
- [19] knitr_1.24           shinythemes_1.1.2    zeallot_0.1.0       
- [22] IRkernel_1.0.1.9000  jsonlite_1.6         annotate_1.62.0     
- [25] ica_1.0-2            cluster_2.0.9        png_0.1-7           
- [28] R.oo_1.22.0          pheatmap_1.0.12      graph_1.62.0        
- [31] uwot_0.1.3           shiny_1.3.2          sctransform_0.2.0   
- [34] compiler_3.6.0       httr_1.4.1           backports_1.1.4     
- [37] assertthat_0.2.1     Matrix_1.2-17        lazyeval_0.2.2      
- [40] later_0.8.0          htmltools_0.3.6      tools_3.6.0         
- [43] rsvd_1.0.2           igraph_1.2.4.1       gtable_0.3.0        
- [46] glue_1.3.1           RANN_2.6.1           reshape2_1.4.3      
- [49] dplyr_0.8.3          Rcpp_1.0.2           Biobase_2.44.0      
- [52] vctrs_0.2.0          gdata_2.18.0         ape_5.3             
- [55] nlme_3.1-140         gbRd_0.4-11          lmtest_0.9-37       
- [58] xfun_0.9             stringr_1.4.0        globals_0.12.4      
- [61] miniUI_0.1.1.1       mime_0.7             lifecycle_0.1.0     
- [64] irlba_2.3.3          gtools_3.8.1         XML_3.98-1.20       
- [67] NNLM_0.4.3           future_1.14.0        MASS_7.3-51.4       
- [70] zoo_1.8-6            scales_1.0.0         promises_1.0.1      
- [73] parallel_3.6.0       RColorBrewer_1.1-2   memoise_1.1.0       
- [76] reticulate_1.13      pbapply_1.4-2        gridExtra_2.3       
- [79] ggplot2_3.2.1        ggExtra_0.9          RSQLite_2.1.2       
- [82] stringi_1.4.3        GSVA_1.32.0          highr_0.8           
- [85] S4Vectors_0.22.0     caTools_1.17.1.2     BiocGenerics_0.30.0 
- [88] bibtex_0.4.2         repr_1.0.1           Rdpack_0.11-0       
- [91] SDMTools_1.1-221.1   rlang_0.4.0          pkgconfig_2.0.2     
- [94] bitops_1.0-6         evaluate_0.14        lattice_0.20-38     
- [97] ROCR_1.0-7           purrr_0.3.2          labeling_0.3        
-[100] htmlwidgets_1.3      bit_1.1-14           cowplot_1.0.0       
-[103] tidyselect_0.2.5     GSEABase_1.46.0      RcppAnnoy_0.0.12    
-[106] plyr_1.8.4           magrittr_1.5         R6_2.4.0            
-[109] IRanges_2.18.1       gplots_3.0.1.1       DBI_1.0.0           
-[112] pbdZMQ_0.3-3         pillar_1.4.2         fitdistrplus_1.0-14 
-[115] survival_2.44-1.1    RCurl_1.95-4.12      tibble_2.1.3        
-[118] future.apply_1.3.0   tsne_0.1-3           crayon_1.3.4        
-[121] uuid_0.1-2           KernSmooth_2.23-15   plotly_4.9.0        
-[124] grid_3.6.0           data.table_1.12.2    blob_1.2.0          
-[127] diptest_0.75-7       metap_1.1            digest_0.6.20       
-[130] xtable_1.8-4         tidyr_1.0.0          httpuv_1.5.2        
-[133] R.utils_2.9.0        stats4_3.6.0         RcppParallel_4.4.3  
-[136] munsell_0.5.0        viridisLite_0.3.0   
+  [1] backports_1.1.5             sn_1.5-4
+  [3] plyr_1.8.5                  igraph_1.2.4.2
+  [5] lazyeval_0.2.2              GSEABase_1.48.0
+  [7] splines_3.6.1               BiocParallel_1.20.1
+  [9] listenv_0.8.0               GenomeInfoDb_1.22.0
+ [11] ggplot2_3.2.1               TH.data_1.0-10
+ [13] digest_0.6.23               htmltools_0.4.0
+ [15] gdata_2.18.0                magrittr_1.5
+ [17] memoise_1.1.0               cluster_2.1.0
+ [19] ROCR_1.0-7                  globals_0.12.5
+ [21] annotate_1.64.0             matrixStats_0.55.0
+ [23] RcppParallel_4.4.4          R.utils_2.9.2
+ [25] sandwich_2.5-1              colorspace_1.4-1
+ [27] blob_1.2.0                  rappdirs_0.3.1
+ [29] ggrepel_0.8.1               xfun_0.11
+ [31] dplyr_0.8.3                 crayon_1.3.4
+ [33] RCurl_1.95-4.12             jsonlite_1.6
+ [35] graph_1.64.0                zeallot_0.1.0
+ [37] survival_3.1-8              zoo_1.8-6
+ [39] ape_5.3                     glue_1.3.1
+ [41] gtable_0.3.0                zlibbioc_1.32.0
+ [43] XVector_0.26.0              leiden_0.3.1
+ [45] DelayedArray_0.12.1         future.apply_1.3.0
+ [47] SingleCellExperiment_1.8.0  BiocGenerics_0.32.0
+ [49] scales_1.1.0                pheatmap_1.0.12
+ [51] mvtnorm_1.0-11              DBI_1.1.0
+ [53] bibtex_0.4.2.1              miniUI_0.1.1.1
+ [55] Rcpp_1.0.3                  metap_1.2
+ [57] plotrix_3.7-7               viridisLite_0.3.0
+ [59] xtable_1.8-4                reticulate_1.14
+ [61] bit_1.1-14                  rsvd_1.0.2
+ [63] SDMTools_1.1-221.2          stats4_3.6.1
+ [65] tsne_0.1-3                  GSVA_1.34.0
+ [67] NNLM_0.4.3                  scds_1.2.0
+ [69] htmlwidgets_1.5.1           httr_1.4.1
+ [71] gplots_3.0.1.1              RColorBrewer_1.1-2
+ [73] TFisher_0.2.0               Seurat_3.1.2
+ [75] ica_1.0-2                   pkgconfig_2.0.3
+ [77] XML_3.98-1.20               R.methodsS3_1.7.1
+ [79] uwot_0.1.5                  tidyselect_0.2.5
+ [81] rlang_0.4.2                 reshape2_1.4.3
+ [83] later_1.0.0                 AnnotationDbi_1.48.0
+ [85] munsell_0.5.0               tools_3.6.1
+ [87] xgboost_0.90.0.2            RSQLite_2.1.5
+ [89] ggridges_0.5.1              stringr_1.4.0
+ [91] fastmap_1.0.1               npsurv_0.4-0
+ [93] knitr_1.26                  bit64_0.9-7
+ [95] fitdistrplus_1.0-14         caTools_1.17.1.3
+ [97] purrr_0.3.3                 RANN_2.6.1
+ [99] pbapply_1.4-2               future_1.15.1
+[101] nlme_3.1-143                mime_0.8
+[103] R.oo_1.23.0                 ggExtra_0.9
+[105] compiler_3.6.1              shinythemes_1.1.2
+[107] plotly_4.9.1                png_0.1-7
+[109] lsei_1.2-0                  tibble_2.1.3
+[111] geneplotter_1.64.0          stringi_1.4.3
+[113] lattice_0.20-38             Matrix_1.2-18
+[115] markdown_1.1                multtest_2.42.0
+[117] vctrs_0.2.1                 mutoss_0.1-12
+[119] pillar_1.4.3                lifecycle_0.1.0
+[121] Rdpack_0.11-1               lmtest_0.9-37
+[123] RcppAnnoy_0.0.14            data.table_1.12.8
+[125] cowplot_1.0.0               bitops_1.0-6
+[127] irlba_2.3.3                 gbRd_0.4-11
+[129] GenomicRanges_1.38.0        httpuv_1.5.2
+[131] R6_2.4.1                    promises_1.1.0
+[133] KernSmooth_2.23-16          gridExtra_2.3
+[135] IRanges_2.20.1              codetools_0.2-16
+[137] MASS_7.3-51.5               gtools_3.8.1
+[139] assertthat_0.2.1            SummarizedExperiment_1.16.1
+[141] sctransform_0.2.1           mnormt_1.5-5
+[143] GenomeInfoDbData_1.2.2      multcomp_1.4-11
+[145] S4Vectors_0.24.1            parallel_3.6.1
+[147] grid_3.6.1                  tidyr_1.0.0
+[149] Rtsne_0.15                  pROC_1.15.3
+[151] numDeriv_2016.8-1.1         Biobase_2.46.0
+[153] shiny_1.4.0
 ```

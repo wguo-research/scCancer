@@ -4,7 +4,7 @@
 \alias{getTumorCluster}
 \title{getTumorCluster}
 \usage{
-getTumorCluster(cell.annotation, epi.thres = 0.6, malign.thres = 0.9)
+getTumorCluster(cell.annotation, epi.thres = 0.6, malign.thres = 0.8)
 }
 \arguments{
 \item{cell.annotation}{A data.frame of cells' annotation containing predicted cell typea and estimated cell malignant type.}

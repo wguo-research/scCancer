@@ -1,34 +1,43 @@
-prepareCNV <- function(dataPath, statPath,
+prepareCNV <- function(expr.data,
+                       gene.manifest,
                        cell.annotation,
-                       hg.mm.mix = F,
-                       species = "human"){
+                       ref.data = NULL,
+                       species = "human",
+                       genome = "hg19",
+                       hg.mm.mix = F){
     ## gene.chr
     if(species == "human"){
-        gene.chr <- read.table(system.file("txt", "gene.chr.txt", package = "scCancer"),
-                               col.names = c("EnsemblID", "CHR", "C_START", "C_STOP"),
-                               stringsAsFactors = F)
+        if(genome == "hg38"){
+            gene.chr <- read.table(system.file("txt", "gene-chr-hg38.txt", package = "scCancer"),
+                                   col.names = c("EnsemblID", "CHR", "C_START", "C_STOP"),
+                                   stringsAsFactors = F)
+        }else if(genome == "hg19"){
+            gene.chr <- read.table(system.file("txt", "gene-chr-hg19.txt", package = "scCancer"),
+                                   col.names = c("EnsemblID", "CHR", "C_START", "C_STOP"),
+                                   stringsAsFactors = F)
+        }else{
+            stop("Error in 'runInferCNV': ", genome, " is not allowed for 'genome'.\n")
+        }
+    }else if(species == "mouse"){
+        if(genome == "mm10"){
+            gene.chr <- read.table(system.file("txt", "gene-chr-mm10.txt", package = "scCancer"),
+                                   col.names = c("EnsemblID", "CHR", "C_START", "C_STOP"),
+                                   stringsAsFactors = F)
+        }else{
+            stop("Error in 'runInferCNV': ", genome, " is not allowed for 'genome'.\n")
+        }
     }else{
-        stop("Error in 'runInferCNV': ", species, " is not 'human'.\n")
+        stop("Error in 'runInferCNV': ", species, " is not allowed for 'species'.\n")
     }
 
-    ## expr.data
-    exprList <- getFilterData(
-        dataPath = dataPath,
-        statPath = statPath,
-        bool.filter.cell = T,
-        bool.filter.gene = T,
-        anno.filter = c(),
-        nCell.min = 3,
-        bgPercent.max = 1,
-        hg.mm.mix = hg.mm.mix
-    )
-    expr.data <- exprList$expr.data
-    gene.manifest <- exprList$gene.manifest
-    rownames(gene.manifest) <- gene.manifest$Symbol
-
-
     ## reference.data
-    ref.data <- readRDS(system.file("rds", "cnvRefData-immune.RDS", package = "scCancer"))
+    if(is.null(ref.data)){
+        if(species == "human"){
+            ref.data <- readRDS(system.file("rds", "cnvRef_Data-HM.RDS", package = "scCancer"))
+        }else if(species == "mouse"){
+            ref.data <- readRDS(system.file("rds", "cnvRef_Data-boneMarrow-MS.RDS", package = "scCancer"))
+        }
+    }
     ref.anno <- data.frame(cellName = colnames(ref.data),
                            cellAnno = "Reference",
                            stringsAsFactors = F)
@@ -243,19 +252,22 @@ removeOutliers <- function(cnvList){
 
 
 
-runCNV <- function(dataPath, statPath, savePath,
+runCNV <- function(expr.data,
+                   gene.manifest,
                    cell.annotation,
                    cutoff = 0.1, minCell = 3,
+                   ref.data = NULL,
+                   species = "human",
+                   genome = "hg19",
                    hg.mm.mix = F){
 
-    # cell.annotation <- read.table(paste0(savePath, "/cellAnnotation.txt"),
-    #                               sep = "\t", header = T, stringsAsFactors = F)
-
-    cnvList <- prepareCNV(dataPath = dataPath,
-                          statPath = statPath,
+    cnvList <- prepareCNV(expr.data = expr.data,
+                          gene.manifest = gene.manifest,
                           cell.annotation,
-                          hg.mm.mix = hg.mm.mix,
-                          species = "human")
+                          ref.data = ref.data,
+                          species = species,
+                          genome = genome,
+                          hg.mm.mix = hg.mm.mix)
     cnvList <- rmGeneForCNV(cnvList, cutoff = cutoff, minCell = minCell)
     cnvList <- normalizeDataForCNV(cnvList)
     cnvList <- anscombeTransform(cnvList)
@@ -282,27 +294,27 @@ getMalignScore <- function(cnvList, cell.type = "Observation", method = "smooth"
 
     cur.data <- cnvList$expr.data[, cell.names]
 
+    if(is.null(adjMat) & method == "smooth"){
+        cat("- Warning in 'getMalignScore': Adjacent matrix is not provided, and use 'direct' method instead.\n")
+        method <- "direct"
+    }
     if(method == "smooth"){
-        if(is.null(adjMat)){
-            stop("Please provide adjacent matrix.\n")
-        }else{
-            thres <- quantile(adjMat@x, 1- (dim(adjMat)[1] * 10 / length(adjMat@x)))
+        thres <- quantile(adjMat@x, 1- (dim(adjMat)[1] * 10 / length(adjMat@x)))
 
-            indexes <- as.matrix((adjMat > thres) + 0)
-            tt <- 0.5 / (rowSums(indexes) - 1)
-            tt[is.infinite(tt)] <- 0
+        indexes <- as.matrix((adjMat > thres) + 0)
+        tt <- 0.5 / (rowSums(indexes) - 1)
+        tt[is.infinite(tt)] <- 0
 
-            indexes <- indexes * tt
-            indexes <- indexes * (1 - diag(rep(1, dim(indexes)[1])))
-            diagValue <- rep(0.5, dim(indexes)[1])
-            diagValue[tt == 0] <- 1
+        indexes <- indexes * tt
+        indexes <- indexes * (1 - diag(rep(1, dim(indexes)[1])))
+        diagValue <- rep(0.5, dim(indexes)[1])
+        diagValue[tt == 0] <- 1
 
-            indexes <- t(indexes + diag(diagValue))
+        indexes <- t(indexes + diag(diagValue))
 
-            new.cur.data <- as.matrix(cur.data) %*% indexes
-            malignScore <- colSums((new.cur.data - 1)^2)
-            malignScore <- malignScore / dim(new.cur.data)[1]
-        }
+        new.cur.data <- as.matrix(cur.data) %*% indexes
+        malignScore <- colSums((new.cur.data - 1)^2)
+        malignScore <- malignScore / dim(new.cur.data)[1]
 
     }else if(method == "direct"){
         malignScore <- colSums((cur.data - 1)^2)
@@ -327,134 +339,115 @@ malignPlot <- function(obserScore, referScore, malign.thres = NULL){
         geom_histogram(data = subset(scoreDF, sets == "Reference"),
                        mapping = aes(x = malignScore, fill = "Reference"),
                        bins = 150, alpha = 0.6) +
-        geom_vline(aes(xintercept = malign.thres), colour = "red", linetype = "dashed") +
         labs(x = "Malignancy score", y = "Droplets count") +
         scale_fill_manual(name = "Cells sets", guide = "legend",
                           values = c("Observation"="#2e68b7", "Reference"="grey")) +
-        ggplot_config(base.size = 8) +
         theme_classic() +
+        ggplot_config(base.size = 7) +
         theme(legend.justification = c(1.12,1.12), legend.position = c(1,1))
-
+    if(!is.null(malign.thres)){
+        p <- p + geom_vline(xintercept = malign.thres, colour = "red", linetype = "dashed")
+    }
     return(p)
 }
 
 
-getMalignThres <- function(malignScore){
-    d.t <- dip.test(malignScore)
-    p.value <- d.t$p.value
 
-    score.density <- density(malignScore)
-    d.score.density <- diff(score.density$y)
-    d.sign <- (d.score.density > 0) + 0
-    # threshold <- score.density$x[which(d.sign[2:length(d.sign)] - d.sign[1:(length(d.sign)-1)] == 1)[1]+1]
+getBimodalThres <- function(scores){
+    x.density <- density(scores)
+    d.x.density <- diff(x.density$y)
+    d.sign <- (d.x.density > 0) + 0
 
     ext.pos <- which(d.sign[2:length(d.sign)] - d.sign[1:(length(d.sign)-1)] != 0)
-    ext.density <- score.density$y[ext.pos]
+    ext.density <- x.density$y[ext.pos]
+    y.max <- max(ext.density)
+    if(length(ext.pos) >= 3){
+        del.ix <- c()
+        for(ei in 2:length(ext.density)){
+            if(abs(ext.density[ei] - ext.density[ei - 1]) < y.max * 0.001){
+                del.ix <- c(del.ix, ei - 1, ei)
+            }
+        }
+        sel.ix <- !(1:length(ext.density) %in% unique(del.ix))
+        ext.density <- ext.density[sel.ix]
+        ext.pos <- ext.pos[sel.ix]
+    }
 
     if(length(ext.pos) >= 3){
-        left.gap <- ext.density[1:(length(ext.density)-2)] - ext.density[2:(length(ext.density)-1)]
-        right.gap <- ext.density[3:length(ext.density)] - ext.density[2:(length(ext.density)-1)]
-        thres.pos <- ext.pos[which.max(apply(data.frame(left.gap, right.gap), 1, min)) + 1] + 1
-    }else{
-        if(which(d.sign[2:length(d.sign)] - d.sign[1:(length(d.sign)-1)] == 1) > 0){
-            thres.pos <- ext.pos[1]
+        t.ext.density <- c(0, ext.density, 0)
+        ext.height <- sapply(2:(length(ext.pos) + 1), FUN = function(x){
+            return(min(abs(t.ext.density[x] - t.ext.density[x-1]), abs(t.ext.density[x] - t.ext.density[(x+1)])))
+        })
+        ext <- data.frame(x = ext.pos, y = ext.density, height = ext.height)
+        max.ix <- order(ext.density, decreasing = T)
+        if(ext.height[max.ix[2]] / ext.height[max.ix[1]] > 0.01){
+            cut.df <- ext[c(max.ix[2]:max.ix[1]), ]
+            threshold <- x.density$x[cut.df[which.min(cut.df$y), ]$x]
         }else{
-            thres.pos <- 1
+            threshold <- NULL
         }
+    }else{
+        threshold <- NULL
     }
-    return(list(threshold = score.density$x[thres.pos],
-                p.value = p.value))
+
+    return(threshold)
 }
 
 
+#
+# getBimodalThres <- function(scores){
+#     x.density <- density(scores)
+#     d.x.density <- diff(x.density$y)
+#     d.sign <- (d.x.density > 0) + 0
+#
+#     ext.pos <- which(d.sign[2:length(d.sign)] - d.sign[1:(length(d.sign)-1)] != 0)
+#     if(length(ext.pos) >= 3){
+#         ext.density <- x.density$y[ext.pos]
+#         t.ext.density <- c(0, ext.density, 0)
+#         ext.height <- sapply(2:(length(ext.pos) + 1), FUN = function(x){
+#             return(min(abs(t.ext.density[x] - t.ext.density[x-1]), abs(t.ext.density[x] - t.ext.density[(x+1)])))
+#         })
+#         ext <- data.frame(x = ext.pos, y = ext.density, height = ext.height)
+#
+#         max.ix <- order(ext.density, decreasing = T)
+#         if(ext.height[max.ix[2]] / ext.height[max.ix[1]] > 0.1){
+#             cut.df <- ext[c(max.ix[2]:max.ix[1]), ]
+#             threshold <- x.density$x[cut.df[which.min(cut.df$y), ]$x]
+#         }else{
+#             threshold <- NULL
+#         }
+#     }else{
+#         threshold <- NULL
+#     }
+#     return(threshold)
+# }
 
-#' runMalignancy
+
+
+#' plotMalignancy
 #'
-#' @param cell.annotation A data.frame of cells' annotation
-#' @param expr A Seurat object.
-#' @param cutoff The cut-off for min average read counts per gene among
-#' reference cells. The default is 0.1)
-#' @param minCell An integer number used to filter gene. The default is 3.
-#' @param p.value.cutoff The p-value to decide whether the distribution of
-#' malignancy score is bimodality.
 #' @inheritParams runScAnnotation
 #'
-#' @return A list of cnvList, reference malignancy score, seurat object,
-#' cell.annotatino, bimodal.pvalue, malign.thres, and all generated plots.
+#' @return A plot list.
 #' @export
 #'
-#' @importFrom diptest dip.test
-#'
-#' @examples
-runMalignancy <- function(dataPath, statPath, savePath,
-                          cell.annotation,
-                          expr,
-                          cutoff = 0.1, minCell = 3,
-                          p.value.cutoff = 0.5,
-                          coor.names = c("tSNE_1", "tSNE_2"),
-                          hg.mm.mix = F){
-    if(!dir.exists(file.path(savePath, 'malignancy/'))){
-        dir.create(file.path(savePath, 'malignancy/'), recursive = T)
-    }
-
-    cnvList <- runCNV(dataPath = dataPath,
-                      statPath = statPath,
-                      savePath = savePath,
-                      cell.annotation = cell.annotation,
-                      cutoff = cutoff, minCell = minCell,
-                      hg.mm.mix = hg.mm.mix)
-
-    referAdjMat <- readRDS(system.file("rds", "cnvRef_SNN-immune.RDS", package = "scCancer"))
-    referScore.smooth <- getMalignScore(cnvList, "Reference", method = "smooth", adjMat = referAdjMat)
-    obserScore.smooth <- getMalignScore(cnvList, "Observation", method = "smooth",
-                                        adjMat = expr@graphs$RNA_snn)
-
-    ## malignant type
-    ju.exist.malign <- dip.test(c(referScore.smooth, obserScore.smooth))$p.value < 0.95
-    tmp <- getMalignThres(obserScore.smooth)
-    malign.thres <- tmp$threshold
-    bimodal.pvalue <- tmp$p.value
-
-    ## score hist plot
-    if(ju.exist.malign){
-        malign.type <- rep("malignant", length(obserScore.smooth))
-        names(malign.type) <- names(obserScore.smooth)
-
-        if(bimodal.pvalue < p.value.cutoff){
-            p.malignScore <- malignPlot(obserScore.smooth, referScore.smooth,
-                                        malign.thres = malign.thres)
-            malign.type[names(obserScore.smooth)[obserScore.smooth < malign.thres]] <- "nonMalignant"
-        }else{
-            p.malignScore <- malignPlot(obserScore.smooth, referScore.smooth,
-                                        malign.thres = min(obserScore.smooth))
-        }
-    }else{
-        p.malignScore <- malignPlot(obserScore.smooth, referScore.smooth,
-                                    malign.thres = max(obserScore.smooth))
-        malign.type <- rep("nonMalignant", length(obserScore.smooth))
-        names(malign.type) <- names(obserScore.smooth)
-    }
-
-    ## add score and type to cell.annotation
-    cell.annotation$Malign.score <- obserScore.smooth[rownames(cell.annotation)]
-    cell.annotation$Malign.type <- malign.type[rownames(cell.annotation)]
-    expr[["Malign.score"]] <- cell.annotation$Malign.score
-    expr[["Malign.type"]] <- cell.annotation$Malign.type
-
+plotMalignancy <- function(cell.annotation,
+                           coor.names = c("tSNE_1", "tSNE_2"),
+                           savePath = NULL){
     ## scatter plot of malignancy
     p.malignType.Point <- pointDRPlot(cell.annotation, value = "Malign.type",
                                       coor.names = coor.names,
                                       colors = c("malignant" = "#f57e87", "nonMalignant" = "#66d5a5"),
-                                      legend.position = "bottom",
-                                      legend.title = "Malignancy type")
+                                      legend.position = "right",
+                                      legend.title = "Malignancy\n type")
 
     p.malignScore.Point <- pointDRPlot(cell.annotation, value = "Malign.score",
                                        coor.names = coor.names,
                                        colors = c("white", "#f57e87"),
                                        discrete = F,
                                        limit.quantile = 0.1,
-                                       legend.position = "bottom",
-                                       legend.title = "Malignancy score")
+                                       legend.position = "right",
+                                       legend.title = "Malignancy\n score")
 
     p.malignType.bar <- clusterBarPlot(cell.annotation = cell.annotation,
                                        cell.colors = c("malignant" = "#f57e87", "nonMalignant" = "#66d5a5"),
@@ -462,15 +455,122 @@ runMalignancy <- function(dataPath, statPath, savePath,
                                        legend.title = "Malignancy type")
 
     ## save
-    ggsave(filename = file.path(savePath, "figures/malignScore.png"),
-           p.malignScore, width = 8, height = 4, dpi = 800)
-    ggsave(filename = file.path(savePath, "figures/malignType-point.png"),
-           p.malignType.Point, width = 4, height = 4.1, dpi = 800)
-    ggsave(filename = file.path(savePath, "figures/malignScore-point.png"),
-           p.malignScore.Point, width = 4, height = 4.1, dpi = 800)
-    ggsave(filename = file.path(savePath, "figures/malignType-bar.png"),
-           p.malignType.bar, width = 6, height = 3, dpi = 800)
+    if(!is.null(savePath)){
+        ggsave(filename = file.path(savePath, "figures/malignType-point.png"),
+               p.malignType.Point, width = 5, height = 3.8, dpi = 500)
+        ggsave(filename = file.path(savePath, "figures/malignScore-point.png"),
+               p.malignScore.Point, width = 5, height = 3.8, dpi = 500)
+        ggsave(filename = file.path(savePath, "figures/malignType-bar.png"),
+               p.malignType.bar, width = 6, height = 3, dpi = 500)
+    }
 
+    return(list(p.malignType.Point = p.malignType.Point,
+                p.malignScore.Point = p.malignScore.Point,
+                p.malignType.bar = p.malignType.bar))
+}
+
+
+
+
+#' runMalignancy
+#'
+#' @param expr A Seurat object.
+#' @param gene.manifest A data.frame of genes' manifest.
+#' @param cell.annotation A data.frame of cells' annotation.
+#' @param cutoff The cut-off for min average read counts per gene among
+#' reference cells. The default is 0.1.
+#' @param minCell An integer number used to filter gene. The default is 3.
+#' @param p.value.cutoff The p-value to decide whether the distribution of
+#' malignancy score is bimodality.
+#' @param ref.data An expression matrix of gene by cell, which is used as the normal reference.
+#' The default is NULL, and an immune cells or bone marrow cells expression matrix will be used for human or mouse species, respectively.
+#' @param referAdjMat An adjacent matrix for the normal reference data.
+#' The larger the value, the closer the cell pair is.
+#' The default is NULL, and a SNN matrix of the default ref.data will be used.
+#' @inheritParams runScAnnotation
+#'
+#' @return A list of cnvList, reference malignancy score, seurat object,
+#' cell.annotatino, bimodal.pvalue, malign.thres, and all generated plots.
+#' @export
+#'
+runMalignancy <- function(expr,
+                          gene.manifest,
+                          cell.annotation,
+                          savePath,
+                          cutoff = 0.1, minCell = 3,
+                          p.value.cutoff = 0.5,
+                          coor.names = c("tSNE_1", "tSNE_2"),
+                          ref.data = NULL,
+                          referAdjMat = NULL,
+                          species = "human",
+                          genome = "hg19",
+                          hg.mm.mix = F){
+    if(!dir.exists(file.path(savePath, 'malignancy/'))){
+        dir.create(file.path(savePath, 'malignancy/'), recursive = T)
+    }
+
+    expr.data <- expr@assays$RNA@counts
+    cnvList <- runCNV(expr.data = expr.data,
+                      gene.manifest = gene.manifest,
+                      cell.annotation = cell.annotation,
+                      cutoff = cutoff, minCell = minCell,
+                      ref.data = ref.data,
+                      species = species,
+                      genome = genome,
+                      hg.mm.mix = hg.mm.mix)
+
+    if(is.null(ref.data)){
+        if(species == "human"){
+            referAdjMat <- readRDS(system.file("rds", "cnvRef_SNN-HM.RDS", package = "scCancer"))
+        }else if(species == "mouse"){
+            referAdjMat <- readRDS(system.file("rds", "cnvRef_SNN-boneMarrow-MS.RDS", package = "scCancer"))
+        }
+    }
+    referScore.smooth <- getMalignScore(cnvList, "Reference", method = "smooth", adjMat = referAdjMat)
+    obserScore.smooth <- getMalignScore(cnvList, "Observation", method = "smooth",
+                                        adjMat = expr@graphs$RNA_snn)
+    up.refer <- quantile(referScore.smooth, 0.995)
+    low.refer <- quantile(referScore.smooth, 0.005)
+    referScore.smooth <- (referScore.smooth - low.refer) / (up.refer - low.refer)
+    obserScore.smooth <- (obserScore.smooth - low.refer) / (up.refer - low.refer)
+
+    all.thres <- getBimodalThres(scores = c(referScore.smooth, obserScore.smooth))
+    malign.thres <- getBimodalThres(scores = obserScore.smooth)
+
+    ju.exist.malign <- !is.null(all.thres) | !is.null(malign.thres)
+
+    ## malignancy type
+    if(!is.null(all.thres)){
+        malign.type <- rep("malignant", length(obserScore.smooth))
+        names(malign.type) <- names(obserScore.smooth)
+        if(!is.null(malign.thres)){
+            malign.type[names(obserScore.smooth)[obserScore.smooth < malign.thres]] <- "nonMalignant"
+        }
+    }else{
+        malign.type <- rep("nonMalignant", length(obserScore.smooth))
+        names(malign.type) <- names(obserScore.smooth)
+        if(!is.null(malign.thres)){
+            malign.type[names(obserScore.smooth)[obserScore.smooth >= malign.thres]] <- "malignant"
+        }
+    }
+    p.malignScore <- malignPlot(obserScore.smooth, referScore.smooth,
+                                malign.thres = malign.thres)
+
+    ## add score and type to cell.annotation
+    cell.annotation$Malign.score <- obserScore.smooth[rownames(cell.annotation)]
+    cell.annotation$Malign.type <- malign.type[rownames(cell.annotation)]
+    expr[["Malign.score"]] <- cell.annotation$Malign.score
+    expr[["Malign.type"]] <- cell.annotation$Malign.type
+
+    ## plot
+    p.results <- plotMalignancy(cell.annotation = cell.annotation,
+                                coor.names = coor.names,
+                                savePath = savePath)
+    p.results[["p.malignScore"]] <- p.malignScore
+    ggsave(filename = file.path(savePath, "figures/malignScore.png"),
+           p.malignScore, width = 5, height = 4, dpi = 500)
+
+    ## save results
     write.table(cnvList$expr.data[, names(obserScore.smooth)],
                 file = file.path(savePath, "malignancy/inferCNV-observation.txt"),
                 quote = F, sep = "\t", row.names = T)
@@ -487,12 +587,9 @@ runMalignancy <- function(dataPath, statPath, savePath,
         expr = expr,
         cell.annotation = cell.annotation,
         ju.exist.malign = ju.exist.malign,
-        bimodal.pvalue = bimodal.pvalue,
+        # bimodal.pvalue = bimodal.pvalue,
         malign.thres = malign.thres,
-        p.results = list(p.malignScore = p.malignScore,
-                         p.malignType.Point = p.malignType.Point,
-                         p.malignScore.Point = p.malignScore.Point,
-                         p.malignType.bar = p.malignType.bar)
+        p.results = p.results
     )
     return(results)
 }

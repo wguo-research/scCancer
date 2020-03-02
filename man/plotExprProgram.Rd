@@ -4,8 +4,13 @@
 \alias{plotExprProgram}
 \title{plotExprProgram}
 \usage{
-plotExprProgram(H, cell.annotation, bool.limit = T,
-  sel.clusters = NULL, savePath = NULL)
+plotExprProgram(
+  H,
+  cell.annotation,
+  bool.limit = T,
+  sel.clusters = NULL,
+  savePath = NULL
+)
 }
 \arguments{
 \item{H}{The decomposed right matrix H.}

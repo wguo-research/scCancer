@@ -4,13 +4,19 @@
 \alias{runCellClassify}
 \title{runCellClassify}
 \usage{
-runCellClassify(expr, cell.annotation, coor.names = c("tSNE_1",
-  "tSNE_2"), savePath, ct.templates = NULL, species = "human")
+runCellClassify(
+  expr,
+  cell.annotation,
+  coor.names = c("tSNE_1", "tSNE_2"),
+  savePath,
+  ct.templates = NULL,
+  species = "human"
+)
 }
 \arguments{
-\item{expr}{A Seurat object return by function 'runSeurat'.}
+\item{expr}{A Seurat object.}
 
-\item{cell.annotation}{A data.frame of cells' annotation return by function 'runSeurat'.}
+\item{cell.annotation}{A data.frame of cells' annotation.}
 
 \item{coor.names}{A vector indicating the names of two-dimension coordinate used in visualization.}
 

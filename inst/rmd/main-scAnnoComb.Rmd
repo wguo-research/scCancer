@@ -1,0 +1,357 @@
+---
+title: "scCancer"
+author: "G-Lab"
+date: "2019/6/11"
+output: html_document
+---
+
+<style type="text/css">
+    body{
+        font-size: 15px;
+        line-height: 22px;
+    }
+    h1.title {
+        font-size: 38px;
+    }
+    h1 {
+        font-size: 28px;
+        margin-top: 23px;
+    }
+    h2 {
+        font-size: 24px;
+        margin-top: 25px;
+    }
+    h3 {
+      font-size: 20px;
+        margin-top: 25px;
+    }
+    code.r{
+        font-size: 13px;
+    }
+    pre {
+        font-size: 14px;
+    }
+    p {
+        margin-top:10px;
+        margin-bottom:10px;
+    }
+    table { 
+        width: 60%;
+        border-collapse: collapse;
+        font-family: Futura, Arial, sans-serif;
+    }
+    th,td {
+        padding: 5px;
+    }
+    th,td {
+        border-bottom: 1px solid #ddd;
+        border-top: 1px solid #ddd;
+        padding-right: 20px
+    }
+</style>
+
+
+```{r setting, include=FALSE}
+options(knitr.table.format = "html") 
+options(scipen=10)
+knitr::opts_chunk$set(echo = TRUE, fig.path = file.path(results$savePath, 'report-figures//'))
+
+title <- "scCancer"
+if(!is.null(results$combName)){
+  title <- paste0(results$combName, "  -  ", title)
+}
+
+if(!is.null(results$authorName)){
+  userName <- results$authorName
+}else{
+  userName <- Sys.getenv("USERNAME")
+}
+reportMark <- Sys.time()
+if(userName != ""){
+  reportMark <- paste0(userName, " , ", reportMark)
+}
+
+h.i <- 1
+h.ii <- 1
+```
+
+
+# `r title`
+--------------------------------
+<p align="right">`r reportMark`</p>
+
+
+
+## `r h.i` Read data
+
+The input samples are:
+
+<center>
+
+```{r echo=FALSE, results='asis'}
+cat("| Sample name     | #cells after QC          |\n", sep="")
+cat("| :-------------- | :----------------------- |\n", sep="")
+for(s in results$sampleNames){
+  cat("| ", s, " | ", sum(results$cell.annotation$sample == s), " |\n", sep = "")
+}
+```
+
+</center>
+
+
+```{r echo=F}
+h.i <- h.i + 1
+```
+
+
+
+
+
+## `r h.i` Data preprocessing
+
+After the quality control, we perform following preprocessing steps based on some functions of the R package [`Seurat V3`](https://satijalab.org/seurat/).
+
+* **Normalization.** Normalize the raw counts data to TPMs (tyranscripts-per-million) and log-transforms them.
+* **Scale data.** Remove unwanted sources of variations (` `r results$vars.to.regress` `) by regression and center the resulting residuals.
+* **Highly variable genes.** Calcuate the average expression and dispersion of each gene across all cells to select highly variable genes(HVGs).
+
+```{r hvgPlot, echo=F, message=F, warning=F, eval=results$bool.plotHVG, dpi=500, fig.width=8, fig.height=4, fig.align="center", out.width='70%'}
+results$seurat.plots$p.hvg
+```
+```{r eval = results$bool.plotHVG, echo = F, results='asis'}
+cat("<p align=\"right\">(Hi-res image: <a href=\"./figures/hvg.png\">view</a>)</p>\n")
+```
+* **PCA.** Perform principal component analysis (PCA) and select PCs to perform clustering and visualization.
+* **Visualiztion.** Using t-SNE or UMAP to persent each single cell in two-dimensional space.
+
+
+
+```{r echo=F}
+h.i <- h.i + 1
+```
+
+
+
+
+
+## `r h.i` Cells annotation
+
+
+
+### `r h.i`.`r h.ii` Markers expression profile
+Here are the scatter plots colored by the normalized expression of some cell type markers. 
+
+<center>
+
+```{r echo=FALSE, results='asis'}
+if(results$bool.add.features){
+  if(results$species == "human"){
+    cat("| Cell Type       | Markers                  |\n", sep="")
+    cat("| :-------------- | :----------------------- |\n", sep="")
+    cat("| T cells (CD4+)  | PTPRC, CD3D, CD4         |\n", sep="")
+    cat("| T cells (CD8+)  | PTPRC, CD3D, CD8A, CD8B  |\n", sep="")
+    cat("| B cells         | PTPRC, CD79A             |\n", sep="")
+    cat("| NK cell         | PTPRC, NKG7              |\n", sep="")
+    cat("| Myeloid cells   | PTPRC, LYZ               |\n", sep="")
+    cat("| Endothelial     | PLVAP                    |\n", sep="")
+    cat("| Fibroblast      | ACTA2                    |\n", sep="")
+    cat("| Epithelial      | EPCAM, KRT8              |\n", sep="")
+  }else{
+    cat("| Cell Type       | Markers                  |\n", sep="")
+    cat("| :-------------- | :----------------------- |\n", sep="")
+    cat("| T cells (CD4+)  | Ptprc, Cd3d, Cd4         |\n", sep="")
+    cat("| T cells (CD8+)  | Ptprc, Cd3d, Cd8a, Cd8b  |\n", sep="")
+    cat("| B cells         | Ptprc, Cd79a             |\n", sep="")
+    cat("| NK cell         | Ptprc, Nkg7              |\n", sep="")
+    cat("| Myeloid cells   | Ptprc, Lyz1, Lyz2        |\n", sep="")
+    cat("| Endothelial     | Plvap                    |\n", sep="")
+    cat("| Fibroblast      | Acta2                    |\n", sep="")
+    cat("| Epithelial      | Epcam, Krt8              |\n", sep="")
+  }
+}
+if(!is.null(results$show.features)){
+  cat("| Input genes     | ", paste(results$show.features, collapse=", "), " |\n", sep="")
+}
+```
+
+</center>
+
+```{r markersPlot, eval=!is.null(results$seurat.plots$p.markers.all), echo=F, message=F, warning=F, dpi=500, fig.width=8, fig.height=results$markersPlot.height}
+results$seurat.plots$p.markers.all
+```
+<p align="right" style="margin-top:1px">(Hi-res image: <a href="./figures/markers-all.png">view</a>, <a href="./figures/singleMarkerPlot/">view single</a>)</p>
+
+
+```{r echo=F}
+h.ii <- h.ii + 1
+```
+
+
+
+
+### `r h.i`.`r h.ii` Clustering
+In order to identify clusters of all single cells, we perform a graph-based clustering by running [`Seurat`](https://satijalab.org/seurat/) functions. 
+The cluster information can be found in the column `Cluster` of the table file 
+[cellAnnotation.txt](./cellAnnotation.txt). 
+
+Here is the t-SNE plot colored by cell clusters. 
+
+```{r clusterPlotTsne, echo=F, message=F, warning=F, dpi=500, fig.width=5, fig.height=4, fig.align="center", out.width='80%'}
+results$seurat.plots$p.cluster.tsne
+```
+<p align="right">(Hi-res image: <a href="./figures/cluster-point.png">view</a>)</p>
+
+
+```{r umap, child=system.file("rmd", "umap.Rmd", package = "scCancer"), eval = !is.null(results$seurat.plots$p.cluster.umap)}
+```
+
+
+```{r echo=F}
+h.ii <- h.ii + 1
+```
+
+
+
+
+### `r h.i`.`r h.ii` Sample source
+The sample source information can be found in the column `sample` of the table file 
+[cellAnnotation.txt](./cellAnnotation.txt). The method of batch effect correction is ` `r results$comb.method` `.
+
+Here is the the scatter plot colored by cell clusters. 
+
+```{r samplePlot, echo=F, message=F, warning=F, dpi=500, fig.width=7, fig.height=5, fig.align="center", out.width='80%'}
+results$p.sample
+```
+<p align="right">(Hi-res image: <a href="./figures/sampleSource-point.png">view</a>)</p>
+
+Here is a bar plot showing the relationship between cell cluster and sample source.
+
+```{r sampleBarPlot, echo=F, message=F, warning=F, dpi=300, fig.width=6, fig.height=3, fig.align="center", out.width='80%'}
+results$p.bar.sample
+```
+<p align="right">(Hi-res image: <a href="./figures/sampleSource-bar.png">view</a>)</p>
+
+```{r echo=F}
+h.ii <- h.ii + 1
+```
+
+
+
+
+```{r diffExpr, child=system.file("rmd", "diffExpr.Rmd", package = "scCancer"), eval = results$bool.runDiffExpr}
+```
+
+
+
+
+```{r cellType, child=system.file("rmd", "cellTypePred.Rmd", package = "scCancer"), eval = results$bool.runCellClassify}
+```
+
+
+
+
+```{r malignancy, child=system.file("rmd", "malignancy.Rmd", package = "scCancer"), eval = (results$bool.runMalignancy & ("cnvList" %in% names(results)))}
+```
+
+```{r malignancyPlot, child=system.file("rmd", "malign-comb.Rmd", package = "scCancer"), eval = (results$bool.runMalignancy & !("cnvList" %in% names(results)))}
+```
+
+
+
+
+--------------------------------
+```{r echo=FALSE, results='asis', eval = results$bool.intraTumor}
+# if(is.null(results$tumor.clusters)){
+#     cat("#### According to the results of cell type prediction and cell malignancy estimation, ",
+#     "we couldn't identify tumor clusters, ", 
+#     "so we use all clusters to perform following heterogeneity analyses.\n", sep = "")
+# }else{
+#     # cat("#### According to the results of cell type prediction and cell malignancy estimation, we identify the clusters `",
+#     #     str_c(results$tumor.clusters, collapse = ", "),
+#     #     "` as tumor clusters, and following intra-tumor heterogeneity analyses mainly focus on them.\n", sep = "")
+#     cat("#### According to the results of cell type prediction and cell malignancy estimation, we identify the tumor clusters, ",
+#         "and following intra-tumor heterogeneity analyses mainly focus on them.\n", sep = "")
+# }
+cat("#### In order to analyze <span style='color:red'>intra-tumor heterogeneity</span>, we select tumor clusters firstly based on the results of cell type prediction.\n")
+if(is.null(results$tumor.clusters)){
+    cat("#### <span style='color:red;font-size:19px'>Warning:</span> Here, we couldn't identify the tumor clusters, so we use <span style='color:red'>all clusters</span> to perform following analyses.\n")
+}else{
+    cat("#### Here, we identify <span style='color:red'>cluster `", str_c(results$tumor.clusters, collapse = ", "),
+        "`</span> as tumor cells. And following analyses mainly focus on them.\n", sep = "")
+}
+```
+
+
+
+
+```{r cellCycle, child=system.file("rmd", "cellCycle.Rmd", package = "scCancer"), eval = results$bool.runCellCycle}
+```
+
+
+
+
+```{r stemness, child=system.file("rmd", "stemness.Rmd", package = "scCancer"), eval = results$bool.runStemness}
+```
+
+
+
+
+```{r geneSets, child=system.file("rmd", "geneSets.Rmd", package = "scCancer"), eval = results$bool.runGeneSets}
+```
+
+
+
+
+```{r exprProgram, child=system.file("rmd", "exprProgram.Rmd", package = "scCancer"), eval = results$bool.runExprProgram}
+```
+
+
+
+
+```{r echo=F}
+h.i <- h.i + 1
+```
+
+
+## `r h.i` Output
+
+```{r echo=F}
+r.i <- 7
+```
+
+Running this script generates following files:
+
+1. **Html report** :
+[report-scAnnoComb.html](./report-scAnnoComb.html).
+2. **Markdown report** :
+[report-scAnnoComb.md](./report-scAnnoComb.md).
+3. **Figure files** :
+[figures/](./figures/).
+4. **Figures used in the report** :
+[report-figures/](./report-figures/).
+5. **Seurat object** :
+[expr.RDS](./).
+6. **Annotation of cells** :
+[cellAnnotation.txt](./cellAnnotation.txt).
+```{r echo=FALSE, results='asis', eval=(results$comb.method=="SeuratMNN" | results$comb.method=="NormalMNN")}
+cat(r.i, ". **Anchors for batch correction** : ", sep = "")
+cat("[anchors.RDS](./anchors.RDS).\n", sep = "")
+r.i <- r.i + 1
+```
+```{r echo=FALSE, results='asis', eval=results$bool.runDiffExpr}
+cat(r.i, ". **Differentially expressed genes' information for all clusters** : ", sep = "")
+cat("[diff.expr.genes/](./diff.expr.genes/).\n", sep = "")
+r.i <- r.i + 1
+```
+```{r echo=FALSE, results='asis', eval=results$bool.runExprProgram}
+cat(r.i, ". **Results of expression programs identification** : [expr.programs/](./expr.programs/).\n", sep = "")
+r.i <- r.i + 1
+```
+
+
+
+<br>
+
+--------------------------------------
+&copy; [G-Lab](http://lifeome.net/glab/jgu/),   [Tsinghua University](http://www.tsinghua.edu.cn)
+

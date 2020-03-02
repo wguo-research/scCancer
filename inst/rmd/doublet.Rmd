@@ -1,0 +1,28 @@
+
+
+### `r h.i`.`r h.ii` Doublet score estimation
+
+```{r echo=FALSE, results='asis'}
+if(results$doublet.method == "bcds"){
+    cat("* We estimate doublet score by using the binary classification based algorithm `bcds` in R package [scds](https://bioconductor.org/packages/release/bioc/html/scds.html).\n")
+}else if(results$doublet.method == "cxds"){
+    cat("* We estimate doublet score by using the co-expression based algorithm `cxds` in R package [scds](https://bioconductor.org/packages/release/bioc/html/scds.html).\n")
+}else if(results$doublet.method == "DoubletFinder"){
+    cat("* We estimate doublet score by using the algorithm in R package [DoubletFinder](https://github.com/chris-mcginnis-ucsf/DoubletFinder).\n")
+}
+```
+
+The estimated doublet scores can be found in the column `doublet.score` of the table file 
+[cellAnnotation.txt](./cellAnnotation.txt).
+
+Here is the scatter plot colored by the number of UMIs(left) and the estimated doublet scores(right).
+
+```{r doubletPlot, echo=F, message=F, warning=F, dpi=500, fig.width=10, fig.height=4, fig.align="center"}
+plot_grid(results$nUMI.plot, results$doublet.plot, ncol = 2)
+```
+<p align="right">(Hi-res image: <a href="./figures/nUMI-point.png">left</a>, <a href="./figures/doublet-point.png">right</a>)</p>
+
+
+```{r echo=F}
+h.ii <- h.ii + 1
+```

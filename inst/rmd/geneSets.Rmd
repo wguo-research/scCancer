@@ -21,7 +21,7 @@ The calculated gene set signature scores can be found in the column `GS__*` of t
 
 Following is the heatmap for these signatures scores.
 
-```{r geneSetplot, echo=F, message=F, warning=F, dpi=800, fig.width=8, fig.height=results$geneSetPlot.height}
+```{r geneSetPlot, echo=F, message=F, warning=F, dpi=500, fig.width=10, fig.height=results$geneSetPlot.height}
 results$geneSet.plot
 ```
 <p align="right">(Hi-res image: <a href="./figures/geneSet-heatmap.png">view</a>)</p>

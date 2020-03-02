@@ -4,15 +4,24 @@
 \alias{plotSeurat}
 \title{plotSeurat}
 \usage{
-plotSeurat(expr, cell.annotation = cell.annotation,
-  show.features = NULL, bool.add.features = T,
-  coor.names = c("tSNE_1", "tSNE_2"), bool.runDiffExpr = T,
-  diff.expr.genes = NULL, n.markers = 5, species = "human", savePath)
+plotSeurat(
+  expr,
+  cell.annotation = cell.annotation,
+  show.features = NULL,
+  bool.add.features = T,
+  coor.names = c("tSNE_1", "tSNE_2"),
+  bool.plotHVG = T,
+  bool.runDiffExpr = T,
+  diff.expr.genes = NULL,
+  n.markers = 5,
+  species = "human",
+  savePath
+)
 }
 \arguments{
-\item{expr}{A Seurat object return by function 'runSeurat'.}
+\item{expr}{A Seurat object.}
 
-\item{cell.annotation}{A data.frame of cells' annotation return by function 'runSeurat'.}
+\item{cell.annotation}{A data.frame of cells' annotation.}
 
 \item{show.features}{A list or vector for genes to be plotted in 'markerPlot'.}
 
@@ -20,11 +29,13 @@ plotSeurat(expr, cell.annotation = cell.annotation,
 
 \item{coor.names}{A vector indicating the names of two-dimension coordinate used in visualization.}
 
+\item{bool.plotHVG}{A logical value indicating Whehter to plot highly variable genes.}
+
 \item{bool.runDiffExpr}{A logical value indicating whether to perform differential expressed analysis.}
 
-\item{diff.expr.genes}{A data.frame of differential expressed genes return by function 'runSeurat'.}
+\item{diff.expr.genes}{A data.frame of differential expressed genes.}
 
-\item{n.markers}{A integer indicating the number of differential expressed genes showed in the plot. The defalut is 5.}
+\item{n.markers}{An integer indicating the number of differential expressed genes showed in the plot. The defalut is 5.}
 
 \item{species}{A character string indicating what species the sample belong to.
 Only "human"(default) or "mouse" are allowed.}

@@ -86,6 +86,9 @@ h.ii <- 1
 ## `r h.i` Read data
 Read the expression data and filter cells and genes according to quality control steps.
 
+```{r contamination, child=system.file("rmd", "contamination.Rmd", package = "scCancer"), eval = results$bool.rmContamination}
+```
+
 ```{r filterCell, child=system.file("rmd", "filterCell.Rmd", package = "scCancer"), eval = results$bool.filter.cell}
 ```
 
@@ -112,7 +115,7 @@ results$seurat.plots$p.hvg
 ```
 <p align="right">(Hi-res image: <a href="./figures/hvg.png">view</a>)</p>
 * **PCA.** Perform principal component analysis (PCA) and select PCs to perform clustering and visualization.
-* **Visualiztion.** Using t-SNE to persent each single cell in two-dimensional space.
+* **Visualiztion.** Using t-SNE or UMAP to persent each single cell in two-dimensional space.
 
 
 
@@ -129,7 +132,7 @@ h.i <- h.i + 1
 
 
 ### `r h.i`.`r h.ii` Markers expression profile
-Here are t-SNE plots colored by the normalized expression of some cell type markers. 
+Here are the scatter plots colored by the normalized expression of some cell type markers. 
 
 <center>
 
@@ -144,7 +147,7 @@ if(results$bool.add.features){
     cat("| NK cell         | PTPRC, NKG7              |\n", sep="")
     cat("| Myeloid cells   | PTPRC, LYZ               |\n", sep="")
     cat("| Endothelial     | PLVAP                    |\n", sep="")
-    cat("| Fibroblast      | ACTA2, S100A4            |\n", sep="")
+    cat("| Fibroblast      | ACTA2                    |\n", sep="")
     cat("| Epithelial      | EPCAM, KRT8              |\n", sep="")
   }else{
     cat("| Cell Type       | Markers                  |\n", sep="")
@@ -155,7 +158,7 @@ if(results$bool.add.features){
     cat("| NK cell         | Ptprc, Nkg7              |\n", sep="")
     cat("| Myeloid cells   | Ptprc, Lyz1, Lyz2        |\n", sep="")
     cat("| Endothelial     | Plvap                    |\n", sep="")
-    cat("| Fibroblast      | Acta2, S100a4            |\n", sep="")
+    cat("| Fibroblast      | Acta2                    |\n", sep="")
     cat("| Epithelial      | Epcam, Krt8              |\n", sep="")
   }
 }
@@ -203,16 +206,24 @@ The cluster information can be found in the column `Cluster` of the table file
 
 Here is the t-SNE plot colored by cell clusters. 
 
-```{r clusterPlot, echo=F, message=F, warning=F, dpi=500, fig.width=5, fig.height=4, fig.align="center", out.width='80%'}
-results$seurat.plots$p.cluster
+```{r clusterPlotTsne, echo=F, message=F, warning=F, dpi=500, fig.width=5, fig.height=4, fig.align="center", out.width='80%'}
+results$seurat.plots$p.cluster.tsne
 ```
-<p align="right">(Hi-res image: <a href="./figures/cluster-point.png">view</a>)</p>
+<p align="right">(Hi-res image: <a href="./figures/cluster-point-tsne.png">view</a>)</p>
+
+
+```{r umap, child=system.file("rmd", "umap.Rmd", package = "scCancer"), eval = !is.null(results$seurat.plots$p.cluster.umap)}
+```
 
 
 ```{r echo=F}
 h.ii <- h.ii + 1
 ```
 
+
+
+```{r doublet, child=system.file("rmd", "doublet.Rmd", package = "scCancer"), eval = results$bool.runDoublet}
+```
 
 
 
@@ -281,6 +292,12 @@ if(is.null(results$tumor.clusters)){
 
 
 
+```{r cellInteraction, child=system.file("rmd", "cellInteraction.Rmd", package = "scCancer"), eval = results$bool.runInteraction}
+```
+
+
+
+
 ```{r echo=F}
 h.i <- h.i + 1
 ```
@@ -306,11 +323,6 @@ Running this script generates following files:
 [expr.RDS](./).
 6. **Annotation of cells** :
 [cellAnnotation.txt](./cellAnnotation.txt).
-```{r echo=FALSE, results='asis', eval=results$bool.filter.gene}
-cat(r.i, ". **Filtered genes in QC** : ", sep = "")
-cat("[gene.manifest.filter.txt](./gene.manifest.filter.txt).\n", sep = "")
-r.i <- r.i + 1
-```
 ```{r echo=FALSE, results='asis', eval=results$bool.runDiffExpr}
 cat(r.i, ". **Differentially expressed genes' information for all clusters** : ", sep = "")
 cat("[diff.expr.genes/](./diff.expr.genes/).\n", sep = "")
@@ -322,6 +334,10 @@ r.i <- r.i + 1
 ```
 ```{r echo=FALSE, results='asis', eval=results$bool.runExprProgram}
 cat(r.i, ". **Results of expression programs identification** : [expr.programs/](./expr.programs/).\n", sep = "")
+r.i <- r.i + 1
+```
+```{r echo=FALSE, results='asis', eval=results$bool.runInteraction}
+cat(r.i, ". **Cell clusters interactions scores** : [InteractionScore.txt](./InteractionScore.txt).\n", sep = "")
 r.i <- r.i + 1
 ```
 

@@ -3,7 +3,7 @@
 * The number of droplets containing UMI (nUMI > 0) is ` `r results$nList[1]` `.
 
 ```{r echo=FALSE, results='asis', eval=!results$run.emptydrop}
-cat("* Using the supplied cell calling results(fitered data), `", results$nList[2], "` cells are identified (min.nUMI = `", results$min.nUMI, "`).\n", sep = "")
+cat("* Using the supplied cell calling results(filtered data), `", results$nList[2], "` cells are identified (min.nUMI = `", results$min.nUMI, "`).\n", sep = "")
 ```
 
 ```{r echo=FALSE, results='asis', eval=results$run.emptydrop}

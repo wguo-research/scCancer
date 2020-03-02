@@ -1,0 +1,30 @@
+
+### `r h.i`.`r h.ii` Cell malignancy estimation
+Using the cell malignancy results from each sample, we can get following plots.
+
+Here is the t-SNE plot colored by malignancy score (left) and type (right).
+
+```{r malignPointPlot, echo=F, message=F, warning=F, dpi=300, fig.width=10, fig.height=4, fig.align="center"}
+plot_grid(results$malign.plot$p.malignScore.Point, 
+          results$malign.plot$p.malignType.Point, ncol = 2)
+```
+<p align='right' style='margin-top:3px'>(Hi-res image: <a href='./figures/malignType-point.png'>left</a>, <a href='./figures/malignScore-point.png'>right</a>)</p>
+
+
+
+Here is a bar plot showing the relationship between cell cluster and cell malignancy type.
+
+```{r malignBarPlot, echo=F, message=F, warning=F, dpi=300, fig.width=6, fig.height=3, fig.align="center", out.width='80%'}
+results$malign.plot$p.malignType.bar
+```
+<p align="right">(Hi-res image: <a href="./figures/malignType-bar.png">view</a>)</p>
+
+
+The estimated cell malignancy scores and types can be found in the column `Malign.score` and `Malign.type` of the table file 
+[cellAnnotation.txt](./cellAnnotation.txt). 
+
+
+
+```{r echo=F}
+h.ii <- h.ii + 1
+```

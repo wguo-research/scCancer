@@ -15,7 +15,7 @@ runStemness(X, stem.sig = NULL, species = "human")
 Only "human"(default) or "mouse" are allowed.}
 }
 \value{
-A array of cell stemness scores.
+An array of cell stemness scores.
 }
 \description{
 Estimate cell stemness according to the Spearman correlation with stemness signature.

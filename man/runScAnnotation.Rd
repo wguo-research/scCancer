@@ -4,19 +4,52 @@
 \alias{runScAnnotation}
 \title{runScAnnotation}
 \usage{
-runScAnnotation(dataPath, statPath, savePath = NULL, authorName = NULL,
-  sampleName = "sc", bool.filter.cell = T, bool.filter.gene = T,
+runScAnnotation(
+  dataPath,
+  statPath,
+  savePath = NULL,
+  authorName = NULL,
+  sampleName = "sc",
+  bool.filter.cell = T,
+  bool.filter.gene = T,
   anno.filter = c("mitochondrial", "ribosome", "dissociation"),
-  nCell.min = 3, bgPercent.max = 0.001, vars.to.regress = c("nUMI",
-  "mito.percent", "ribo.percent"), pc.use = 30, resolution = 0.8,
-  clusterStashName = "default", show.features = NULL,
-  bool.add.features = T, bool.runDiffExpr = T, n.markers = 5,
-  species = "human", hg.mm.mix = F, bool.runCellClassify = T,
-  ct.templates = NULL, coor.names = c("tSNE_1", "tSNE_2"),
-  bool.runMalignancy = T, cutoff = 0.1, p.value.cutoff = 0.5,
-  bool.intraTumor = T, bool.runCellCycle = T, bool.runStemness = T,
-  bool.runGeneSets = T, geneSets = NULL, geneSet.method = "average",
-  bool.runExprProgram = T, nmf.rank = 50, genReport = T)
+  nCell.min = 3,
+  bgPercent.max = 1,
+  bool.rmContamination = F,
+  contamination.fraction = NULL,
+  vars.add.meta = c("mito.percent", "ribo.percent", "diss.percent"),
+  vars.to.regress = c("nUMI", "mito.percent", "ribo.percent"),
+  pc.use = 30,
+  resolution = 0.8,
+  clusterStashName = "default",
+  show.features = NULL,
+  bool.add.features = T,
+  bool.runDiffExpr = T,
+  n.markers = 5,
+  species = "human",
+  genome = "hg19",
+  hg.mm.mix = F,
+  bool.runDoublet = T,
+  doublet.method = "bcds",
+  bool.runCellClassify = T,
+  ct.templates = NULL,
+  coor.names = c("tSNE_1", "tSNE_2"),
+  bool.runMalignancy = T,
+  cnv.ref.data = NULL,
+  cnv.referAdjMat = NULL,
+  cutoff = 0.1,
+  p.value.cutoff = 0.5,
+  bool.intraTumor = T,
+  bool.runCellCycle = T,
+  bool.runStemness = T,
+  bool.runGeneSets = T,
+  geneSets = NULL,
+  geneSet.method = "average",
+  bool.runExprProgram = T,
+  nmf.rank = 50,
+  bool.runInteraction = T,
+  genReport = T
+)
 }
 \arguments{
 \item{dataPath}{A path containing the cell ranger processed data.
@@ -37,13 +70,21 @@ according to the QC of 'scStatistics'.}
 according to the QC of 'scStatistics'.}
 
 \item{anno.filter}{A vector indicating the types of genes to be filtered.
-Must be some of c("mitochondrial", "ribosome", "dissociation")(default).}
+Must be some of c("mitochondrial", "ribosome", "dissociation")(default) or NULL.}
 
 \item{nCell.min}{An integer number used to filter gene. The default is 3.
 Genes with the number of expressed cells less than this threshold will be filtered.}
 
-\item{bgPercent.max}{A float number used to filter gene. The default is 0.001.
+\item{bgPercent.max}{A float number used to filter gene. The default is 1 (no filtering).
 Genes with the background percentage larger than this threshold will be filtered.}
+
+\item{bool.rmContamination}{A logical value indicating whether to remove ambient RNA contamination based on 'SoupX'.}
+
+\item{contamination.fraction}{A float number between 0 and 1 indicating the estimated contamination fraction.
+The default is NULL and the result of scStatistics will be used.}
+
+\item{vars.add.meta}{A vector indicating the variables to be added to Seurat object's meta.data.
+The default is c("mito.percent", "ribo.percent", "diss.percent").}
 
 \item{vars.to.regress}{A vector indicating the variables to regress out in R package Seurat.
 The default is c("nUMI", "mito.percent", "ribo.percent").}
@@ -60,14 +101,24 @@ The default is c("nUMI", "mito.percent", "ribo.percent").}
 
 \item{bool.runDiffExpr}{A logical value indicating whether to perform differential expressed analysis.}
 
-\item{n.markers}{A integer indicating the number of differential expressed genes showed in the plot. The defalut is 5.}
+\item{n.markers}{An integer indicating the number of differential expressed genes showed in the plot. The defalut is 5.}
 
 \item{species}{A character string indicating what species the sample belong to.
 Only "human"(default) or "mouse" are allowed.}
 
+\item{genome}{A character string indicating the version of the reference gene annotation information.
+This information is mainly used to infer CNV profile and estimate malignancy.
+Only 'hg19' (defalut) or 'hg38' are allowed for "human" species, and only "mm10" is allowed for "mouse" species.}
+
 \item{hg.mm.mix}{A logical value indicating whether the sample is a mix of
 human cells and mouse cells(such as PDX sample).
 If TRUE, the arguments 'hg.mm.thres' and 'mix.anno' should be set to corresponding values.}
+
+\item{bool.runDoublet}{A logical value indicating whether to estimate doublet scores.}
+
+\item{doublet.method}{The method to estimate doublet score. The default is "cxds".
+"cxds"(co-expression based doublet scoring) and "bcds"(binary classification based doublet scoring) are allowed.
+These methods are from R package "scds".}
 
 \item{bool.runCellClassify}{A logical value indicating whether to predict the usual cell type. The default is TRUE.}
 
@@ -77,6 +128,13 @@ The default is NULL and the templates prepared in this package will be used.}
 \item{coor.names}{A vector indicating the names of two-dimension coordinate used in visualization.}
 
 \item{bool.runMalignancy}{A logical value indicating whether to estimate malignancy.}
+
+\item{cnv.ref.data}{An expression matrix of gene by cell, which is used as the normal reference during estimating malignancy.
+The default is NULL, and an immune cells or bone marrow cells expression matrix will be used for human or mouse species, respectively.}
+
+\item{cnv.referAdjMat}{An adjacent matrix for the normal reference data.
+The larger the value, the closer the cell pair is.
+The default is NULL, and a SNN matrix of the default ref.data will be used.}
 
 \item{cutoff}{A threshold used in the CNV inference.}
 
@@ -104,7 +162,11 @@ The default is NULL and the templates prepared in this package will be used.}
 A results list with all useful objects used in the function.
 }
 \description{
-Use Seurat package to perform data normalization,
-highly variable genes identification, dimensionality reduction, clustering and differential expression analysis.
-Predict cell type. Infer CNV.
+According to the results of 'runScStatistics', perform cell and gene quality control.
+Using the R package Seurat to perform basic operations (normalization, log-transformation,
+highly variable genes identification, removing unwanted variance, scaling, centering,
+dimension reduction, clustering, and differential expression analy-sis).
+Perform some cancer-specific analyses: cancer micro-environmental cell type classification,
+cell malignancy estimation, cell cycle analysis, cell stemness analysis,
+gene set signature analysis, expression programs identification, and so on.
 }

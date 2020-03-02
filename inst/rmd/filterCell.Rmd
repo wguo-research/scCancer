@@ -1,7 +1,7 @@
 
 
 * **Cell QC.** According to the thresholds in [cell.QC.thres.txt](./cell.QC.thres.txt) (as shown below), 
-we get ` `r dim(results$cell.manifest)[1]` ` cells.
+we get ` `r dim(results$cell.annotation)[1]` ` cells.
 
 <center>
 ```{r thresTable, echo=F, warning=F}

@@ -7,16 +7,18 @@ The input for number of identified programs (the rank in NMF) is ` `r results$nm
 
 Following is the heatmap for identified cells' expression programs.
 
-```{r exprProgramplot, echo=F, message=F, warning=F, dpi=800, fig.width=10, fig.height=results$exprProgPlot.height}
+```{r exprProgramplot, echo=F, message=F, warning=F, dpi=500, fig.width=10, fig.height=results$exprProgPlot.height}
 results$exprProgram.plot
 ```
 <p align="right">(Hi-res image: <a href="./figures/exprProgram-heatmap.png">view</a>)</p>
 
-```{r echo=F}
-h.ii <- h.ii + 1
-```
 
 After this step, `scCancer` saved following results files to the folder '[expr.programs](./expr.programs/)':
  * The left matrix `W` (genes * programs): [W-gene-program.txt](./expr.programs/W-gene-program.txt).
  * The right matrix `H` (programs * cells): [H-program-cell.txt](./expr.programs/H-program-cell.txt).
  * The relative genes of each programs: [program.gene.value.txt](./expr.programs/program.gene.value.txt).
+ 
+ 
+```{r echo=F}
+h.ii <- h.ii + 1
+```

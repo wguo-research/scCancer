@@ -4,18 +4,19 @@
 
 The `scCancer` package focuses on processing and analyzing droplet-based scRNA-seq data for cancer research. Except basic data processing steps, this package takes several special considerations for cancer-specific features.
 
-The workflow of  `scCancer` mainly consists of two parts: `scStatistics` and `scAnnotation`.
-* The `scStatistics` performs basic statistical analysis of raw data and quality control.
-* The `scAnnotation` performs functional data analyses and visualizations, such as low dimensional representation, clustering, cell type classification, malignancy estimation, cellular phenotype scoring, gene signature analysis, etc.
+The workflow of  `scCancer` mainly consists of three parts: `scStatistics`, `scAnnotation`, and `scCombination`.
+* The `scStatistics` performs basic statistical analyses of raw data and quality control.
+* The `scAnnotation` performs functional data analyses and visualizations, such as low dimensional representation, clustering, cell type classification, cell malignancy estimation, cellular phenotype analyses, gene signature analyses, cell-cell interaction analyses, etc.
+* The `scCombination` perform multiple samples combination, batch effect correction and analyses visualization.
 
 After these analyses, user-friendly graphic reports will be generated.
 
 <img src="http://lifeome.net/software/sccancer/scCancer-workflow.png" width="70%" alt="scCancer-workflow" align=center>
 
-## System Requirements
 
-* **Memery**:  >= 32G  (for a data with ~10000 cells)
-* **R version**: >= 3.5.0 
+## System Requirements
+* R version: >= 3.5.0
+
 
 ## Installation
 
@@ -31,6 +32,16 @@ library(devtools)
 devtools::install_github("wguo-research/scCancer")
 ```
 
+Hint: A dependent package `NNLM` was removed from the CRAN repository recently, so an error about it may be reported during the installation. 
+If so, you can install a formerly available version manually from its [archive](https://cran.r-project.org/src/contrib/Archive/NNLM/).
+
+
+Besides, if you encounter errors saying package `SoupX` is unavalibale, you can refer to its [GitHub](https://github.com/constantAmateur/SoupX) and install it via
+```R
+devtools::install_github("constantAmateur/SoupX")
+```
+
+
 ## Usage
 
 The vignette of `scCancer` can be found in the project [wiki]( https://github.com/wguo-research/scCancer/wiki) or vignette [page](http://lifeome.net/software/sccancer/scCancer-vignette.html).
@@ -39,6 +50,10 @@ We also provide an [example data](http://lifeome.net/software/sccancer/KC-exampl
 
 * [`report-scStat.html`](http://lifeome.net/software/sccancer/KC-example-results/report-scStat.html)
 * [`report-scAnno.html`](http://lifeome.net/software/sccancer/KC-example-results/report-scAnno.html)
+
+For multi-datasets, following is a generated report for three kidney cancer samples integration analysis.
+
+* [report-scAnnoComb.html](http://lifeome.net/software/sccancer/KC123-report-scAnnoComb.html)
 
 
 ## Citation

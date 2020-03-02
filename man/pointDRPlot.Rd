@@ -4,9 +4,18 @@
 \alias{pointDRPlot}
 \title{pointDRPlot}
 \usage{
-pointDRPlot(cell.annotation, value, sel.clusters = NULL,
-  coor.names = c("tSNE_1", "tSNE_2"), colors = NULL, discrete = T,
-  limit.quantile = 0, legend.position = "right", legend.title = NULL)
+pointDRPlot(
+  cell.annotation,
+  value,
+  sel.clusters = NULL,
+  coor.names = c("tSNE_1", "tSNE_2"),
+  colors = NULL,
+  discrete = T,
+  limit.quantile = 0,
+  point.type = 1,
+  legend.position = "right",
+  legend.title = NULL
+)
 }
 \arguments{
 \item{cell.annotation}{A data.frame of cells' annotation containing the cells' coordinates and index to be colored.}
@@ -22,6 +31,8 @@ pointDRPlot(cell.annotation, value, sel.clusters = NULL,
 \item{discrete}{A logical value indicating whether the value column is discrete or not.}
 
 \item{limit.quantile}{A quantile threshold to limit the data and reduce the influence of outliers.}
+
+\item{point.type}{A number indicating the shape type of points. "1" (default) means the point has a lightgrey border, and "2" means not.}
 
 \item{legend.position}{The position of legends ("none", "left", "right", "bottom", "top", or two-element numeric vector).}
 

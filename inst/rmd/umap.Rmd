@@ -1,0 +1,7 @@
+
+Here is the UMAP plot colored by cell clusters.
+
+```{r clusterPlotUmap, echo=F, message=F, warning=F, dpi=500, fig.width=5, fig.height=4, fig.align="center", out.width='80%'}
+results$seurat.plots$p.cluster.umap
+```
+<p align="right">(Hi-res image: <a href="./figures/cluster-point-umap.png">view</a>)</p>

@@ -1,0 +1,2 @@
+
+* **Ambient RNAs contamination removing.** Taking advantage of the algorithm of [`SoupX`](https://github.com/constantAmateur/SoupX), we use the contamination fraction ` `r results$contamination.fraction * 100`% ` to reduce the ambient RNAs' influence.

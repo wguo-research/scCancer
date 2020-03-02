@@ -1,60 +1,80 @@
 filterCell <- function(cell.manifest, filter.thres){
     rownames(filter.thres) <- filter.thres$Index
     ix.cr <- which(cell.manifest$droplet.type == "cell")
-    ix.thres <- getCellix(cell.manifest, filter.thres,
-                          arg = c("nUMI", "nGene", "mito.percent", "ribo.percent", "diss.percent"))
-    cell.manifest <- cell.manifest[intersect(ix.cr, ix.thres), ]
-    rownames(cell.manifest) <- cell.manifest$barcodes
-
-    return(cell.manifest)
+    ix.thres <- getCellix(
+        cell.manifest, filter.thres,
+        arg = c("nUMI", "nGene", "mito.percent", "ribo.percent", "diss.percent")
+    )
+    return(cell.manifest$barcodes[intersect(ix.cr, ix.thres)])
 }
-
 
 
 
 filterGene <- function(gene.manifest,
                        anno.filter = c("mitochondrial", "ribosome", "dissociation"),
                        nCell.min = 3,
-                       bgPercent.max = 0.1,
-                       savePath = NULL){
-    if(!is.null(anno.filter)){
-        gene.manifest.left <- subset(gene.manifest, !(Annotation %in% anno.filter))
-    }else{
-        gene.manifest.left <- gene.manifest
-    }
-    gene.manifest.left <- subset(gene.manifest.left, nCell >= nCell.min)
-    if("bg.percent" %in% colnames(gene.manifest.left)){
-        gene.manifest.left <- subset(gene.manifest.left, bg.percent <= bgPercent.max)
-    }else{
-        cat("- Warning in 'filterGene': Can not filter gene by 'bg.percent' due to the lack of background distribution.\n")
-    }
-    gene.manifest.filter <- subset(gene.manifest, !(EnsemblID %in% gene.manifest.left$EnsemblID))
+                       bgPercent.max = 1){
+    ix.type <- which(!(gene.manifest$Annotation %in% anno.filter))
+    ix.nCell <- which(gene.manifest$nCell >= nCell.min)
+    ix <- intersect(ix.type, ix.nCell)
 
-    if(!is.null(savePath)){
-        write.table(gene.manifest.filter, file = file.path(savePath, "gene.manifest.filter.txt"),
-                    quote = F, sep = "\t", row.names = F)
+    if("bg.percent" %in% colnames(gene.manifest)){
+        ix.bg <- which(gene.manifest$bg.percent <= bgPercent.max)
+        ix <- intersect(ix, ix.bg)
+    }else{
+        if(bgPercent.max < 1){
+            cat("- Warning in 'filterGene': Can not filter gene by 'bg.percent' due to the lack of background distribution.\n")
+        }
     }
-    return(gene.manifest.left)
+    return(gene.manifest$Symbol[ix])
 }
 
 
 
+rmContamination <- function(expr.data, cell.manifest, contamination.fraction){
+    bg.bars <- subset(cell.manifest, nUMI >= 1 & nUMI <= 10)$barcodes
+    bg.sum <- Matrix::rowSums(expr.data[, bg.bars])
+    bg.percent <- bg.sum / sum(bg.sum)
+    soupProfile <- data.frame(row.names = rownames(expr.data),
+                         est = bg.percent,
+                         counts = bg.sum)
 
-#' getFilterData
+    cell.manifest <- subset(cell.manifest, droplet.type == "cell")
+    sc <- list(toc = expr.data[, cell.manifest$barcodes],
+               metaData = data.frame(row.names = cell.manifest$barcodes,
+                                     nUMIs = cell.manifest$nUMI,
+                                     rho = contamination.fraction),
+               soupProfile = soupProfile)
+    class(sc) = c("list", "SoupChannel")
+    out = adjustCounts(sc, roundToInt = TRUE)
+
+    return(out)
+}
+
+
+
+#' prepareSeurat
 #'
 #' According to the QC results of scStatistics, filter cells and genes.
+#' Prepare a Seurat object.
 #'
 #' @inheritParams runScAnnotation
 #'
-#' @return A list containing expr.data, cell.manifest, gene.manifest, filter.thres.
+#' @return A list of Seurat object and gene.manifest.
+#' The Seurat object is after log-normalization, highly variable genes identification, scaling data.
 #' @export
 #'
-#' @examples
-getFilterData <- function(dataPath, statPath, savePath = NULL,
-                          bool.filter.cell = T, bool.filter.gene = T,
+prepareSeurat <- function(dataPath, statPath, savePath,
+                          sampleName = "sc",
+                          bool.filter.cell = T,
+                          bool.filter.gene = T,
                           anno.filter = c("mitochondrial", "ribosome", "dissociation"),
-                          nCell.min = 3, bgPercent.max = 0.1,
-                          hg.mm.mix = F){
+                          nCell.min = 3, bgPercent.max = 1,
+                          hg.mm.mix = F,
+                          bool.rmContamination = T,
+                          contamination.fraction = NULL,
+                          vars.add.meta = c("mito.percent", "ribo.percent", "diss.percent"),
+                          vars.to.regress = c("nUMI", "mito.percent", "ribo.percent")){
     raw.data = T
     data.path <- get10Xpath(dataPath, raw.data = raw.data)
     if(is.null(data.path)){
@@ -63,63 +83,109 @@ getFilterData <- function(dataPath, statPath, savePath = NULL,
         if(is.null(data.path)){
             stop("Cannot find the raw data or filtered data.\n")
         }else{
-            cat("- Warning in 'getFilterData': Cannot find the raw data, and use the filtered data instead.\n")
+            bool.rmContamination <- F
+            cat("- Warning in 'prepareSeurat': Cannot find the raw data, and use the filtered data instead.\n")
         }
     }
-    expr.data <- Read10Xdata(data.dir = data.path)
-    gene.manifest <- read.table(file.path(statPath, 'geneManifest.txt'), header = T, sep = "\t")
-    cell.manifest <- read.table(file.path(statPath, 'cellManifest-all.txt'), header = T)
-    filter.thres <- read.table(file.path(statPath, 'cell.QC.thres.txt'), header = T)
+
+    message("[", Sys.time(), "] -----: data preparation")
+    expr.data <- Read10Xdata(data.dir = data.path, only.expr = T)
+    rownames(expr.data) <- gsub("_", "-", rownames(expr.data))
+
+    gene.manifest <- read.table(file.path(statPath, 'geneManifest.txt'),
+                                header = T, sep = "\t", stringsAsFactors = F)
+    rownames(gene.manifest) <- gene.manifest$Symbol
+
+    cell.manifest <- read.table(file.path(statPath, 'cellManifest-all.txt'),
+                                header = T, stringsAsFactors = F)
+    rownames(cell.manifest) <- cell.manifest$barcodes
+
+    filter.thres <- read.table(file.path(statPath, 'cell.QC.thres.txt'),
+                               header = T, stringsAsFactors = F)
 
     if(hg.mm.mix){
         rownames(expr.data) <- substr(rownames(expr.data), 6, 60)
     }
 
+    if(bool.rmContamination & is.null(contamination.fraction)){
+        if(file.exists(file.path(statPath, 'ambientRNA-SoupX.txt'))){
+            soupX.file <- readLines(file.path(statPath, 'ambientRNA-SoupX.txt'))
+            contamination.fraction <- as.numeric(soupX.file[length(soupX.file)])
+        }else{
+            bool.rmContamination <- F
+            cat("- Warning in removing ambient RNAs contamination: Cannot find the estimated contamination fraction and skip this step.\n")
+        }
+    }
+
+    if(bool.rmContamination){
+        message("[", Sys.time(), "] -----: contamination removing")
+        expr.data <- rmContamination(expr.data, cell.manifest, contamination.fraction)
+    }
+
     if(bool.filter.cell){
-        cell.manifest <- filterCell(cell.manifest, filter.thres = filter.thres)
+        cells.select <- filterCell(cell.manifest,
+                                   filter.thres = filter.thres)
+    }else{
+        cells.select <- subset(cell.manifest, droplet.type == "cell")$barcodes
     }
     if(bool.filter.gene){
-        gene.manifest <- filterGene(gene.manifest,
-                                    anno.filter = anno.filter,
-                                    nCell.min = nCell.min,
-                                    bgPercent.max = bgPercent.max,
-                                    savePath = savePath)
+        genes.select <- filterGene(gene.manifest,
+                                   anno.filter = anno.filter,
+                                   nCell.min = nCell.min,
+                                   bgPercent.max = bgPercent.max)
+    }else{
+        genes.select <- gene.manifest$Symbol
     }
-
-    expr.data <- expr.data[gene.manifest$Symbol, rownames(cell.manifest)]
-
-    exprList <- list(expr.data = expr.data,
-                     cell.manifest = cell.manifest,
-                     gene.manifest = gene.manifest,
-                     filter.thres = filter.thres)
-    return(exprList)
-}
+    expr.data <- expr.data[genes.select, cells.select]
 
 
-
-prepareSeurat <- function(expr.data, cell.manifest, label = "sc",
-                          vars.to.regress = c("nUMI", "mito.percent", "ribo.percent")){
+    message("[", Sys.time(), "] -----: Seurat object creation")
     expr = CreateSeuratObject(counts = expr.data,
                               min.cells = 0,
                               min.features = 0,
-                              project = label)
+                              project = sampleName)
 
-    metaVar <- c("mito.percent", "ribo.percent", "diss.percent")
-    for(mv in metaVar){
-        tmp <- cell.manifest[[mv]]
-        names(tmp) <- rownames(cell.manifest)
-        expr[[mv]] <- tmp
+    for(mv in vars.add.meta){
+        if(!(mv %in% colnames(cell.manifest))){
+            cat("- Warning in 'prepareSeurat': the", mv, " column is not in cell.manifest.\n")
+        }else if(mv %in% colnames(expr@meta.data)){
+            cat("- Warning in 'prepareSeurat': the", mv, " column has been in the Seurat object meta.data.\n")
+        }else{
+            tmp <- cell.manifest[cells.select, mv]
+            names(tmp) <- cells.select
+            expr[[mv]] <- tmp
+        }
     }
 
     expr <- NormalizeData(object = expr,
                           normalization.method = "LogNormalize",
-                          scale.factor = 10000)
+                          scale.factor = 10000,
+                          verbose = F)
 
-    message("[", Sys.time(), "] -----: scale data")
+    message("[", Sys.time(), "] -----: highly variable genes")
+    expr <- FindVariableFeatures(expr, selection.method = "vst", nfeatures = 2000, verbose = F)
+
+    message("[", Sys.time(), "] -----: data scaling")
     expr <- ScaleData(object = expr,
-                      vars.to.regress = vars.to.regress)
+                      vars.to.regress = vars.to.regress,
+                      verbose = F)
 
-    return(expr)
+    gene.select.type <- rep("filter", dim(gene.manifest)[1])
+    names(gene.select.type) <- gene.manifest$Symbol
+    gene.select.type[genes.select] <- "keep"
+    names(gene.select.type) <- gsub("_", "-", names(gene.select.type))
+    gene.select.type[VariableFeatures(expr)] <- "hvg"
+    names(gene.select.type) <- gene.manifest$Symbol
+    gene.manifest$Select <- gene.select.type
+
+
+    write.table(gene.manifest, file = file.path(savePath, "geneManifest.txt"),
+                quote = F, sep = "\t", row.names = F)
+
+    return(list(expr = expr,
+                gene.manifest = gene.manifest,
+                bool.rmContamination = bool.rmContamination,
+                contamination.fraction = contamination.fraction))
 }
 
 
@@ -129,16 +195,14 @@ prepareSeurat <- function(expr.data, cell.manifest, label = "sc",
 #'
 #' Perform usual Seurat step and cell type prediction.
 #'
-#' @param exprList A list containing expr.data, cell.manifest, gene.manifest and filter.thres.
-#' It should be the return value of function 'getFilterData' generally.
+#' @param expr A Seurat object return by prepareSeurat.
 #' @inheritParams runScAnnotation
 #'
 #' @return A list containing a Seurat object, differential expressed genes and annotation information for cells.
 #' @export
 #'
-#' @examples
-runSeurat <- function(exprList, savePath, sampleName = "sc",
-                      vars.to.regress = c("nUMI", "mito.percent", "ribo.percent"),
+runSeurat <- function(expr,
+                      savePath,
                       pc.use = 30, resolution = 0.8,
                       clusterStashName = "default",
                       bool.runDiffExpr = T){
@@ -147,18 +211,8 @@ runSeurat <- function(exprList, savePath, sampleName = "sc",
         dir.create(file.path(savePath), recursive = T)
     }
 
-    expr.data <- exprList$expr.data
-    cell.manifest <- exprList$cell.manifest
-
-    message("[", Sys.time(), "] -----: Seurat object preparation")
-    expr <- prepareSeurat(expr.data, cell.manifest, label = sampleName,
-                          vars.to.regress = vars.to.regress)
-
-    message("[", Sys.time(), "] -----: highly variable genes")
-    expr <- FindVariableFeatures(expr, selection.method = "vst", nfeatures = 2000)
-
     message("[", Sys.time(), "] -----: PCA")
-    expr <- RunPCA(expr, features = VariableFeatures(expr), verbose = F)
+    expr <- RunPCA(expr, verbose = F)
 
     message("[", Sys.time(), "] -----: clustering")
     expr <- FindNeighbors(expr, dims = 1:pc.use, verbose = F)
@@ -167,6 +221,14 @@ runSeurat <- function(exprList, savePath, sampleName = "sc",
 
     message("[", Sys.time(), "] -----: tSNE")
     expr <- RunTSNE(object = expr, dims = 1:pc.use)
+
+    message("[", Sys.time(), "] -----: UMAP")
+    suppressWarnings(
+        tryCatch(expr <- RunUMAP(expr, dims = 1:pc.use, verbose = F),
+                 error = function(err) {
+                     cat("Error in 'RunUMAP': Please use 'pip install umap-learn' to install UMAP firstly.\n")}
+        )
+    )
 
     if(bool.runDiffExpr){
         message("[", Sys.time(), "] -----: differential expression analysis")
@@ -184,9 +246,6 @@ runSeurat <- function(exprList, savePath, sampleName = "sc",
         diff.expr.genes$cluster <- as.numeric(diff.expr.genes$cluster)
         nCluster <- length(unique(diff.expr.genes$cluster))
         for(ci in 1:nCluster){
-            # write.table(subset(diff.expr.genes, cluster == ci),
-            #             file = file.path(savePath, "diff.expr.genes", paste0("cluster", ci ,".txt")),
-            #             quote = F, sep = "\t", row.names = F)
             cur.diff.genes <- subset(diff.expr.genes, cluster == ci)
             cur.diff.genes <- cur.diff.genes[order(cur.diff.genes$avg_logFC, decreasing = T), ]
             write.csv(cur.diff.genes,
@@ -208,16 +267,17 @@ runSeurat <- function(exprList, savePath, sampleName = "sc",
 
     cell.annotation <- data.frame(barcodes = colnames(x = expr), stringsAsFactors = F)
     cell.annotation <- cbind(cell.annotation, expr@reductions$tsne@cell.embeddings)
+    if("umap" %in% names(expr@reductions)){
+        cell.annotation <- cbind(cell.annotation, expr@reductions$umap@cell.embeddings)
+    }
     # cell.annotation$Cluster <- factor(expr@meta.data[[clusterStashName]],
     #                                   levels = 0:(length(unique(expr@meta.data[[clusterStashName]]))-1))
     cell.annotation$Cluster <- factor(expr@meta.data[[clusterStashName]])
-
 
     return(list(expr = expr,
                 diff.expr.genes = diff.expr.genes,
                 cell.annotation = cell.annotation))
 }
-
 
 
 
@@ -238,7 +298,7 @@ singleGenePlot <- function(expr.data, gene,
     if(ju.zero){
         new.label <- paste0(gene, " (0/", dim(expr.data)[2], ")")
         p <- ggplot(coor.df, aes(x = coor.df[, coor.names[1]], y = coor.df[, coor.names[2]])) +
-            geom_point(shape = 21, size = 1, stroke = 0.25, color = "grey", fill = "white") +
+            geom_point(shape = 21, size = 0.8, stroke = 0.2, color = "grey", fill = "white") +
             annotate("text", x = minx, y = miny, label = new.label, hjust = 0, vjust = 0,
                      size = font.size, fontface = 'italic') +
             theme_classic()
@@ -247,7 +307,7 @@ singleGenePlot <- function(expr.data, gene,
         new.label <- paste0(gene, " (", sum(expr.data[gene, ] > 0), "/", dim(expr.data)[2], ")")
         p <- ggplot(coor.df, aes(x = coor.df[, coor.names[1]], y = coor.df[, coor.names[2]],
                                  fill = cur.value)) +
-            geom_point(shape = 21, size = 1, stroke = 0.25, color = "grey") +
+            geom_point(shape = 21, size = 0.8, stroke = 0.2, color = "grey") +
             scale_fill_gradientn(colors = c("white", color),
                                  guide = guide_colorbar(title = gene)) +
             annotate("text", x = minx, y = miny, label = new.label, hjust = 0, vjust = 0,
@@ -272,10 +332,25 @@ singleGenePlot <- function(expr.data, gene,
 
 
 
+#' markerPlot
+#'
+#' Generate plots of interested genes' expression profile.
+#'
+#' @param expr.data A matrix of expression (gene by cell)
+#' @param coor.df A data.frame which contains cells' 2D coordinates.
+#' @param features A vector of genes to plot.
+#' @param add A logical value indicating whether to present the default markers.
+#' @param font.size The size of labels.
+#' @param color The color of point.
+#' @inheritParams runScAnnotation
+#'
+#' @return A list of ggplot obejects for each maker genes.
+#' @export
+#'
 markerPlot <- function(expr.data, coor.df, coor.names = c("tSNE_1", "tSNE_2"),
                        features = NULL, add = T,
                        species = "human",
-                       font.size = 8, color = "blue"){
+                       font.size = 4, color = "blue"){
     feature.def <- getDefaultMarkers(species = species)
     feature.def <- unlist(feature.def)
 
@@ -291,7 +366,6 @@ markerPlot <- function(expr.data, coor.df, coor.names = c("tSNE_1", "tSNE_2"),
                                   coor.df = coor.df, coor.names = coor.names,
                                   font.size = font.size, color = "blue")
     }
-
     return(ps)
 }
 
@@ -307,6 +381,7 @@ markerPlot <- function(expr.data, coor.df, coor.names = c("tSNE_1", "tSNE_2"),
 #' @param colors An array of colors used to show the gredients or type of points. If NULL, the default colors will be used.
 #' @param discrete A logical value indicating whether the value column is discrete or not.
 #' @param limit.quantile A quantile threshold to limit the data and reduce the influence of outliers.
+#' @param point.type A number indicating the shape type of points. "1" (default) means the point has a lightgrey border, and "2" means not.
 #' @param legend.position The position of legends ("none", "left", "right", "bottom", "top", or two-element numeric vector).
 #' @param legend.title The title of legends.
 #' @inheritParams runScAnnotation
@@ -314,19 +389,31 @@ markerPlot <- function(expr.data, coor.df, coor.names = c("tSNE_1", "tSNE_2"),
 #' @return A ggplot object for the scatter plot.
 #' @export
 #'
-#' @examples
 pointDRPlot <- function(cell.annotation, value,
                         sel.clusters = NULL,
                         coor.names = c("tSNE_1", "tSNE_2"),
-                        colors = NULL, discrete = T,
+                        colors = NULL,
+                        discrete = T,
                         limit.quantile = 0,
+                        point.type = 1,
                         legend.position = "right",
                         legend.title = NULL){
+    if(!(all(coor.names %in% colnames(cell.annotation)))){
+        stop("Error in 'pointDRPlot': 'coor.names' ", coor.names, " is not in colnames(cell.annotation).\n")
+    }
+    if(!(point.type %in% c(1, 2))){
+        stop("Error in 'pointDRPlot': 'point.type' ", point.type, " is not allowed.\n")
+    }
+
     if(is.null(legend.title)){
         legend.title <- value
     }
     if(is.null(colors)){
-        colors <- getDefaultColors(length(unique(cell.annotation[[value]])))
+        if(discrete){
+            colors <- getDefaultColors(length(unique(cell.annotation[[value]])))
+        }else{
+            colors <- c("white", "red")
+        }
     }
 
     ratio <- diff(range(cell.annotation[, coor.names[1]])) / diff(range(cell.annotation[, coor.names[2]]))
@@ -343,65 +430,101 @@ pointDRPlot <- function(cell.annotation, value,
     if(all.equal(coor.label, c("tSNE_1", "tSNE_2")) == TRUE){
         coor.label[1] <- "t-SNE 1"
         coor.label[2] <- "t-SNE 2"
+    }else if(all.equal(coor.label, c("UMAP_1", "UMAP_2")) == TRUE){
+        coor.label[1] <- "UMAP 1"
+        coor.label[2] <- "UMAP 2"
     }
 
     if(!is.null(sel.clusters)){
         sel.cell <- cell.annotation$Cluster %in% sel.clusters
-        p <- ggplot() +
-            geom_point(cell.annotation[!sel.cell, ],
-                       mapping = aes(x = cell.annotation[!sel.cell, coor.names[1]],
-                                     y = cell.annotation[!sel.cell, coor.names[2]]),
-                       fill = "white",
-                       shape = 21, size = 1, stroke = 0.25, color = "white")
+        if(point.type == 1){
+            p <- ggplot() +
+                geom_point(cell.annotation[!sel.cell, ],
+                           mapping = aes(x = cell.annotation[!sel.cell, coor.names[1]],
+                                         y = cell.annotation[!sel.cell, coor.names[2]]),
+                           fill = "white",
+                           shape = 21, size = 0.8, stroke = 0.2, color = "white")
+        }else if(point.type == 2){
+            p <- ggplot() +
+                geom_point(cell.annotation[!sel.cell, ],
+                           mapping = aes(x = cell.annotation[sel.cell, coor.names[1]],
+                                         y = cell.annotation[sel.cell, coor.names[2]],
+                                         color = "white"),
+                           shape = 16, size = 0.3)
+        }
     }else{
         sel.cell <- rep(TRUE, dim(cell.annotation)[1])
         p <- ggplot()
     }
 
-    p <- p +
-        geom_point(cell.annotation[sel.cell, ],
-                   mapping = aes(x = cell.annotation[sel.cell, coor.names[1]],
-                                 y = cell.annotation[sel.cell, coor.names[2]],
-                                 fill = fill.value[sel.cell]),
-                   shape = 21, size = 1, stroke = 0.25, color = "lightgrey") +
-        coord_fixed(ratio = ratio) +
-        ggplot_config(base.size = 6) +
-        labs(x = coor.label[1], y = coor.label[2]) +
-        guides(fill = guide_legend(override.aes = list(size = 3),
-                                   keywidth = 0.1,
-                                   keyheight = 0.15,
-                                   default.unit = "inch",
-                                   title = legend.title)) +
-        theme(legend.position = legend.position)
+    if(point.type == 1){
+        p <- p +
+            geom_point(cell.annotation[sel.cell, ],
+                       mapping = aes(x = cell.annotation[sel.cell, coor.names[1]],
+                                     y = cell.annotation[sel.cell, coor.names[2]],
+                                     fill = fill.value[sel.cell]),
+                       shape = 21, size = 0.8, stroke = 0.2, color = "lightgrey") +
+            coord_fixed(ratio = ratio) +
+            ggplot_config(base.size = 6) +
+            labs(x = coor.label[1], y = coor.label[2]) +
+            labs(fill = legend.title) +
+            theme(legend.position = legend.position)
 
-    # p <- ggplot(cell.annotation, aes(x = cell.annotation[, coor.names[1]],
-    #                                  y = cell.annotation[, coor.names[2]],
-    #                                  fill = fill.value)) +
-    #     geom_point(shape = 21, size = 1, stroke = 0.25, color = "lightgrey") +
-    #     coord_fixed(ratio = ratio) +
-    #     ggplot_config(base.size = 6) +
-    #     labs(x = coor.label[1], y = coor.label[2]) +
-    #     guides(fill = guide_legend(override.aes = list(size = 3),
-    #                                keywidth = 0.1,
-    #                                keyheight = 0.15,
-    #                                default.unit = "inch",
-    #                                title = legend.title)) +
-    #     theme(legend.position = legend.position)
+        if(discrete){
+            p <- p + scale_fill_manual(values = colors,
+                                       guide = guide_legend(override.aes = list(size = 3),
+                                                            keywidth = 0.1,
+                                                            keyheight = 0.15,
+                                                            default.unit = "inch"))
+        }else{
+            p <- p + scale_fill_gradientn(colors = colors)
+        }
+    }else if(point.type == 2){
+        p <- p + geom_point(cell.annotation[sel.cell, ],
+                       mapping = aes(x = cell.annotation[sel.cell, coor.names[1]],
+                                     y = cell.annotation[sel.cell, coor.names[2]],
+                                     color = fill.value[sel.cell]),
+                       shape = 16, size = 0.3) +
+            coord_fixed(ratio = ratio) +
+            ggplot_config(base.size = 6) +
+            labs(x = coor.label[1], y = coor.label[2]) +
+            labs(color = legend.title) +
+            theme(legend.position = legend.position)
 
-    if(discrete){
-        p <- p + scale_fill_manual(values = colors)
-    }else{
-        p <- p + scale_fill_gradientn(colors = colors)
+        if(discrete){
+            p <- p + scale_color_manual(values = colors,
+                                        guide = guide_legend(override.aes = list(size = 3),
+                                                             keywidth = 0.1,
+                                                             keyheight = 0.15,
+                                                             default.unit = "inch"))
+        }else{
+            p <- p + scale_color_gradientn(colors = colors)
+        }
     }
-
     return(p)
 }
 
 
 
-clusterBarPlot <- function(cell.annotation, cell.colors, sel.col = "Cell.Type", legend.title = NULL){
+#' clusterBarPlot
+#'
+#' @param cell.annotation A data.frame of cells' annotation containing the cells' Cluster and other information to be colored.
+#' @param sel.col The column name of cell.annotation, which indicating the type of cells.
+#' @param cell.colors An array of colors used to show the cells' type. If NULL, the default colors will be used.
+#' @param legend.title The title of legends. If NULL, the value of "sel.col" will be used.
+#' @param legend.position The position of legends ("none", "left", "right", "bottom", "top", or two-element numeric vector).
+#' @param legend.ncol The number of column of legends.
+#'
+#' @return A bar plot.
+#' @export
+#'
+clusterBarPlot <- function(cell.annotation, sel.col = "Cell.Type", cell.colors = NULL,
+                           legend.title = NULL, legend.position = "bottom", legend.ncol = NULL){
     if(is.null(legend.title)){
         legend.title <- sel.col
+    }
+    if(is.null(cell.colors)){
+        cell.colors <- getDefaultColors(length(unique(cell.annotation[[sel.col]])))
     }
 
     bar.df <- melt(table(cell.annotation[c(sel.col, "Cluster")]))
@@ -409,14 +532,21 @@ clusterBarPlot <- function(cell.annotation, cell.colors, sel.col = "Cell.Type", 
     #                         levels = 0:(length(unique(bar.df$Cluster))-1))
     bar.df$Cluster = factor(bar.df$Cluster)
 
+    if(legend.position == "bottom" & is.null(legend.ncol)){
+        legend.ncol <- 3
+    }
     p <- ggplot(bar.df, aes(x = Cluster, y = value, fill = bar.df[[sel.col]])) +
         geom_bar(stat = "identity") +
         ggplot_config(base.size = 6) +
         scale_fill_manual(values = cell.colors) +
         labs(y = "Number of cells") +
-        guides(fill = guide_legend(override.aes = list(size=1), title = legend.title))
+        guides(fill = guide_legend(override.aes = list(size=1),
+                                   title = legend.title, ncol = legend.ncol)) +
+        theme(legend.position = legend.position)
+
     return(p)
 }
+
 
 
 
@@ -461,19 +591,20 @@ preDEheatmap <- function(expr, cell.annotation, genes = NULL, cells = NULL,
 #'
 #' Construct and save plots of Seurat analysis.
 #'
-#' @param expr A Seurat object return by function 'runSeurat'.
-#' @param cell.annotation A data.frame of cells' annotation return by function 'runSeurat'.
-#' @param diff.expr.genes A data.frame of differential expressed genes return by function 'runSeurat'.
+#' @param expr A Seurat object.
+#' @param cell.annotation A data.frame of cells' annotation.
+#' @param bool.plotHVG A logical value indicating Whehter to plot highly variable genes.
+#' @param diff.expr.genes A data.frame of differential expressed genes.
 #' @inheritParams runScAnnotation
 #'
 #' @return A list of all plots generated by Seurat analyses.
 #' @export
 #'
-#' @examples
 plotSeurat <- function(expr,
                        cell.annotation = cell.annotation,
                        show.features = NULL, bool.add.features = T,
                        coor.names = c("tSNE_1", "tSNE_2"),
+                       bool.plotHVG = T,
                        bool.runDiffExpr = T,
                        diff.expr.genes = NULL, n.markers = 5,
                        species = "human",
@@ -488,13 +619,15 @@ plotSeurat <- function(expr,
     p.results <- list()
 
     # message(sprintf('------p.hvg------'))
-    top10 <- head(VariableFeatures(expr), 10)
-    suppressWarnings(
-        plot1 <- VariableFeaturePlot(expr, cols = c("grey", "#ec7d89"))
-    )
-    suppressWarnings(
-        p.results[["p.hvg"]] <- LabelPoints(plot = plot1, points = top10, repel = TRUE) + NoLegend()
-    )
+    if(bool.plotHVG){
+        top10 <- head(VariableFeatures(expr), 10)
+        suppressWarnings(
+            plot1 <- VariableFeaturePlot(expr, cols = c("grey", "#ec7d89"))
+        )
+        suppressWarnings(
+            p.results[["p.hvg"]] <- LabelPoints(plot = plot1, points = top10, repel = TRUE) + NoLegend()
+        )
+    }
 
 
     # message(sprintf('------p.markers.all------'))
@@ -512,18 +645,28 @@ plotSeurat <- function(expr,
 
 
     # message(sprintf('------p.cluster------'))
-    def.colors <- getDefaultColors()
     clusters <- unique(cell.annotation$Cluster)
     clusters <- sort(clusters)
+
+    def.colors <- getDefaultColors(n = length(clusters))
     cluster.colors <- c()
     for(i in 1:length(clusters)){
         cluster.colors[as.character(clusters[i])] = def.colors[i]
     }
 
-    p.results[["p.cluster"]] <- pointDRPlot(cell.annotation, value = "Cluster",
-                                            coor.names = coor.names,
-                                            colors = cluster.colors,
-                                            legend.title = "Cluster")
+    p.results[["p.cluster.tsne"]] <- pointDRPlot(cell.annotation, value = "Cluster",
+                                                 coor.names = c("tSNE_1", "tSNE_2"),
+                                                 colors = cluster.colors,
+                                                 legend.title = "Cluster")
+
+    if(all(c("UMAP_1", "UMAP_2") %in% colnames(cell.annotation))){
+        p.results[["p.cluster.umap"]] <- pointDRPlot(cell.annotation, value = "Cluster",
+                                                     coor.names = c("UMAP_1", "UMAP_2"),
+                                                     colors = cluster.colors,
+                                                     legend.title = "Cluster")
+    }else{
+        p.results[["p.cluster.umap"]] <- NULL
+    }
 
 
     if(bool.runDiffExpr && !(is.null(diff.expr.genes))){
@@ -547,33 +690,38 @@ plotSeurat <- function(expr,
                      fontsize = 7,
                      gaps_col = de.pre$gaps_col,
                      cluster_rows = F, cluster_cols = F,
-                     show_colnames = F, legend = F,
+                     show_colnames = F,
+                     # legend = F,
                      silent = T)
     }
 
     # message(sprintf('------save images------'))
     ggsave(filename = file.path(savePath, "figures/hvg.png"), p.results[["p.hvg"]],
-           width = 8, height = 4, dpi = 800)
+           width = 8, height = 4, dpi = 500)
 
     for(gene in names(p.results[["ps.markers"]])){
         ggsave(filename = paste0(savePath, "/figures/singleMarkerPlot/", gene, ".png"),
-               p.results[["ps.markers"]][[gene]], width = 2, height = 2, dpi = 800)
+               p.results[["ps.markers"]][[gene]], width = 2, height = 2, dpi = 500)
     }
 
     if(length(p.results[["ps.markers"]]) > 0){
         markersPlot.height <- 2 * ceiling(length(p.results[["ps.markers"]]) / 4)
         ggsave(filename = file.path(savePath, "figures/markers-all.png"),
-               p.results[["p.markers.all"]], width = 8, height = markersPlot.height, dpi = 800)
+               p.results[["p.markers.all"]], width = 8, height = markersPlot.height, dpi = 500)
     }
 
-    ggsave(filename = file.path(savePath, "figures/cluster-point.png"),
-           p.results[["p.cluster"]], width = 6, height = 5, dpi = 800)
+    ggsave(filename = file.path(savePath, "figures/cluster-point-tsne.png"),
+           p.results[["p.cluster.tsne"]], width = 6, height = 5, dpi = 500)
 
+    if(!is.null(p.results[["p.cluster.umap"]])){
+        ggsave(filename = file.path(savePath, "figures/cluster-point-umap.png"),
+               p.results[["p.cluster.umap"]], width = 6, height = 5, dpi = 500)
+    }
 
     if(bool.runDiffExpr && !(is.null(diff.expr.genes))){
         DEplot.height <- 0.5 + 0.1 * n.markers * length(unique(cell.annotation$Cluster))
         ggsave(filename = file.path(savePath, "figures/DE-heatmap.png"),
-               p.results[["p.de.heatmap"]], width = 8, height = DEplot.height, dpi = 800)
+               p.results[["p.de.heatmap"]], width = 8, height = DEplot.height, dpi = 500)
     }
 
     # saveRDS(cell.annotation, file = file.path(savePath, "cell.annotation.RDS"))
@@ -581,6 +729,44 @@ plotSeurat <- function(expr,
     return(p.results)
 }
 
+
+
+#' runDoublet
+#'
+#' @param expr A seurat object.
+#' @param method The method to estimate doublet score. The default is "cxds".
+#' @param pc.use An integer number indicating the number of PCs to use as input features. The default is 30.
+#'
+#' @return  An array of doublet scores.
+#' @export
+#'
+#' @importFrom scds cxds bcds
+#' @importFrom SingleCellExperiment SingleCellExperiment
+#'
+runDoublet <- function(expr, method = "cxds", pc.use = 30){
+    if(method == "cxds"){
+        expr <- SingleCellExperiment(
+            assays = list(counts = GetAssayData(expr, slot = "counts")))
+        expr <- cxds(expr)
+        doublet.score <- expr$cxds_score
+    }else if(method == "bcds"){
+        expr <- SingleCellExperiment(
+            assays = list(counts = GetAssayData(expr, slot = "counts")))
+        expr <- bcds(expr)
+        doublet.score <- expr$bcds_score
+    # }else if(method == "DoubletFinder"){
+    #     cluster.results <- expr@meta.data$default
+    #     homotypic.prop <- modelHomotypic(cluster.results)
+    #     nExp_poi.adj <- round(nExp_poi * (1 - homotypic.prop))
+    #     expr <- doubletFinder_v3(expr, PCs = 1:pc.use,
+    #                              pN = 0.25, pK = 0.09,
+    #                              nExp = nExp_poi,
+    #                              reuse.pANN = FALSE, sct = FALSE)
+    #     doublet.score <- expr@meta.data[, paste0("pANN_0.25_0.09_", nExp)]
+    }
+    names(doublet.score) <- colnames(expr)
+    return(doublet.score)
+}
 
 
 
@@ -622,7 +808,7 @@ predCellType <- function(X.test, ct.templates = NULL, species = "human"){
     type.pred <- colnames(cor.df)[unlist(apply(cor.df, 1, which.max))]
     # type.pred[rowSums(cor.df > 0.25) == 0] <- "Unknown"
 
-    thres <- apply(cor.df, 2, quantile, probs = 0.1)
+    thres <- apply(cor.df, 2, quantile, probs = 0.05)
     type.pred[rowSums(t(t(cor.df) > thres)) == 0] <- "Unknown"
     type.pred[rowSums(cor.df > 0.1) == 0] <- "Unknown"
 
@@ -643,38 +829,49 @@ predCellType <- function(X.test, ct.templates = NULL, species = "human"){
 #'
 #' Use a one-class logistic regression (OCLR) model to predict cancer microenvironment cell types.
 #'
-#' @param expr A Seurat object return by function 'runSeurat'.
-#' @param cell.annotation A data.frame of cells' annotation return by function 'runSeurat'.
+#' @param expr A Seurat object.
+#' @param cell.annotation A data.frame of cells' annotation.
 #' @inheritParams runScAnnotation
 #'
 #' @return A list of updated Seurat object, cell.annotation, and the plots for cell type annotation.
 #' @export
 #'
-#' @examples
 runCellClassify <- function(expr, cell.annotation, coor.names = c("tSNE_1", "tSNE_2"),
                             savePath, ct.templates = NULL, species = "human"){
-    t.results <- predCellType(X.test = GetAssayData(expr), ct.templates = ct.templates, species = species)
+    if(!("Cell.Type" %in% names(cell.annotation))){
+        message("[", Sys.time(), "] -----: TME cell types annotation")
+        t.results <- predCellType(X.test = expr@assays$RNA@data,
+                                  ct.templates = ct.templates, species = species)
 
-    expr[["Cell.Type"]] <- t.results$type.pred
+        expr[["Cell.Type"]] <- t.results$type.pred
+        for(score in names(t.results$cor.df)){
+            expr[[score]] <- t.results$cor.df[[score]]
+        }
 
-    cell.annotation$Cell.Type <- t.results$type.pred
-    cell.annotation <- cbind(cell.annotation, t.results$cor.df)
-
-    cell.colors <- c(
-        "T.cells.CD4" = "#07a2a4",
-        "T.cells.CD8" = "#9a7fd1",
-        "B.cells" = "#588dd5",
-        "NK.cells" = "#f5994e",
-        "Myeloid.cells" = "#c05050",
-        "Endothelial" = "#59678c",
-        "Fibroblast" = "#c9ab00",
-        "Epithelial" = "#7eb00a",
-        "Unknown" = "grey")
-    cti = 1
-    for(ct in setdiff(cell.annotation$Cell.Type, names(cell.colors))){
-        cell.colors[ct] <- getDefaultColors()[cti]
-        cti = cti + 1
+        cell.annotation$Cell.Type <- t.results$type.pred
+        cell.annotation <- cbind(cell.annotation, t.results$cor.df)
+    }else{
+        message("[", Sys.time(), "] -----: TME cell types combination")
     }
+
+    # cell.colors <- c(
+    #     "T.cells.CD4" = "#07a2a4",
+    #     "T.cells.CD8" = "#9a7fd1",
+    #     "B.cells" = "#588dd5",
+    #     "NK.cells" = "#f5994e",
+    #     "Myeloid.cells" = "#c05050",
+    #     "Endothelial" = "#59678c",
+    #     "Fibroblast" = "#c9ab00",
+    #     "Epithelial" = "#7eb00a",
+    #     "Unknown" = "grey")
+    # cti = 1
+    # new.types <- setdiff(cell.annotation$Cell.Type, names(cell.colors))
+    # for(ct in new.types){
+    #     cell.colors[ct] <- getDefaultColors(n = length(new.types), type = 3)[cti]
+    #     cti = cti + 1
+    # }
+
+    cell.colors <- getCellTypeColor(cell.types = unique(cell.annotation$Cell.Type))
 
     # message(sprintf('------p.type------'))
     p.type <- pointDRPlot(cell.annotation, value = "Cell.Type",
@@ -689,9 +886,9 @@ runCellClassify <- function(expr, cell.annotation, coor.names = c("tSNE_1", "tSN
                             legend.title = "Cell type")
 
     ggsave(filename = file.path(savePath, "figures/cellType-point.png"),
-           p.type, width = 5.2, height = 4, dpi = 800)
+           p.type, width = 5.2, height = 4, dpi = 500)
     ggsave(filename = file.path(savePath, "figures/cellType-bar.png"),
-           p.bar, width = 6, height = 3, dpi = 800)
+           p.bar, width = 6, height = 4, dpi = 500)
 
     return(list(expr = expr,
                 cell.annotation = cell.annotation,
@@ -712,8 +909,7 @@ runCellClassify <- function(expr, cell.annotation, coor.names = c("tSNE_1", "tSN
 #' @return A list of identified tumor clusters. If no clusters are found, return NULL.
 #' @export
 #'
-#' @examples
-getTumorCluster <- function(cell.annotation, epi.thres = 0.6, malign.thres = 0.9){
+getTumorCluster <- function(cell.annotation, epi.thres = 0.6, malign.thres = 0.8){
     bool.sel <- F
     epithe.clusters <- c()
     if("Cell.Type" %in% names(cell.annotation)){
@@ -761,10 +957,9 @@ getTumorCluster <- function(cell.annotation, epi.thres = 0.6, malign.thres = 0.9
 #' @param expr A Seurat object.
 #' @inheritParams runScAnnotation
 #'
-#' @return A array of cell cycle scores.
+#' @return An array of cell cycle scores.
 #' @export
 #'
-#' @examples
 runCellCycle <- function(expr, species = "human"){
     message("[", Sys.time(), "] -----: cell cycle score estimation")
     cellCycle.genes <- read.table(system.file("txt", "cellCycle-genes.txt", package = "scCancer"),
@@ -773,7 +968,8 @@ runCellCycle <- function(expr, species = "human"){
         cellCycle.genes <- getMouseGene(cellCycle.genes)
     }
     suppressWarnings(
-        expr <- AddModuleScore(expr, features = list(cellCycle.genes), name = "cellCycle")
+        expr <- AddModuleScore(expr, features = list(cellCycle.genes),
+                               assay = "RNA", name = "cellCycle")
     )
     return(expr[["cellCycle1"]]$cellCycle1)
 }
@@ -788,10 +984,9 @@ runCellCycle <- function(expr, species = "human"){
 #' @param stem.sig An array of stemness signature. The default is NULL, and a prepared signature will be used.
 #' @inheritParams runScAnnotation
 #'
-#' @return A array of cell stemness scores.
+#' @return An array of cell stemness scores.
 #' @export
 #'
-#' @examples
 runStemness <- function(X, stem.sig = NULL, species = "human"){
     message("[", Sys.time(), "] -----: stemness score calculation")
     if(is.null(stem.sig)){
@@ -819,6 +1014,29 @@ runStemness <- function(X, stem.sig = NULL, species = "human"){
 
 
 
+#' getDefaultGeneSets
+#'
+#' @inheritParams runScAnnotation
+#'
+#' @return A list of gene sets (50 hallmark gene sets).
+#' @export
+#'
+getDefaultGeneSets <- function(species = "human"){
+    geneSets <- readLines(system.file("txt", "hallmark-pathways.txt", package = "scCancer"))
+    geneSets <- strsplit(geneSets, "\t")
+    geneSets <- as.data.frame(geneSets, stringsAsFactors = F)
+    colnames(geneSets) <- geneSets[1, ]
+    geneSets <- as.list(geneSets[2, ])
+    geneSets <- sapply(geneSets, function(x) strsplit(x, ", "))
+    if(species == "mouse"){
+        for(set.name in names(geneSets)){
+            geneSets[[set.name]] <- getMouseGene(geneSets[[set.name]])
+        }
+    }
+    return(geneSets)
+}
+
+
 
 #' runGeneSets
 #'
@@ -833,30 +1051,16 @@ runStemness <- function(X, stem.sig = NULL, species = "human"){
 #'
 #' @importFrom GSVA gsva
 #'
-#' @examples
-runGeneSets <- function(expr, geneSets = NULL, method = "average", species = "human"){
+runGeneSets <- function(expr, geneSets, method = "average"){
     message("[", Sys.time(), "] -----: gene set signatures analysis")
-    if(is.null(geneSets)){
-        geneSets <- readLines(system.file("txt", "hallmark-pathways.txt", package = "scCancer"))
-        geneSets <- strsplit(geneSets, "\t")
-        geneSets <- as.data.frame(geneSets, stringsAsFactors = F)
-        colnames(geneSets) <- geneSets[1, ]
-        geneSets <- as.list(geneSets[2, ])
-        geneSets <- sapply(geneSets, function(x) strsplit(x, ", "))
-        if(species == "mouse"){
-            for(set.name in names(geneSets)){
-                geneSets[[set.name]] <- getMouseGene(geneSets[[set.name]])
-            }
-        }
-    }else{
-        if(class(geneSets) != "list"){
-            cat("- Warning in 'runGeneSets': The 'geneSets' should be a list of several gene sets.\n")
-            return(NULL)
-        }
+    if(class(geneSets) != "list"){
+        cat("- Warning in 'runGeneSets': The 'geneSets' should be a list of several gene sets.\n")
+        return(NULL)
     }
     if(method == "average"){
         suppressWarnings(
-            expr <- AddModuleScore(expr, features = geneSets, name = "geneSets")
+            expr <- AddModuleScore(expr, features = geneSets,
+                                   assay = "RNA", name = "geneSets")
         )
         t.scores <- expr[[paste0("geneSets", 1:length(geneSets))]]
         t.scores <- scale(t.scores)
@@ -886,7 +1090,6 @@ runGeneSets <- function(expr, geneSets = NULL, method = "average", species = "hu
 #' @return A heatmap for gene set signature scores.
 #' @export
 #'
-#' @examples
 plotGeneSet <- function(cell.annotation, prefix = "GS__", bool.limit = T, savePath = NULL){
     gs.name <- colnames(cell.annotation)
     gs.name <- grep(paste0("^", prefix), gs.name, value = TRUE)
@@ -911,13 +1114,13 @@ plotGeneSet <- function(cell.annotation, prefix = "GS__", bool.limit = T, savePa
                   annotation_col = cluster.info,
                   annotation_colors = cluster.colors,
                   gaps_col = cluster.pos,
-                  legend = F,
+                  # legend = F,
                   silent = T)
 
     if(!is.null(savePath)){
         geneSetPlot.height <- 0.5 + 0.11 * length(gs.name)
         ggsave(filename = file.path(savePath, "figures/geneSet-heatmap.png"),
-               p, width = 10, height = geneSetPlot.height, dpi = 1000)
+               p, width = 10, height = geneSetPlot.height, dpi = 500)
     }
 
     return(p)
@@ -940,7 +1143,6 @@ plotGeneSet <- function(cell.annotation, prefix = "GS__", bool.limit = T, savePa
 #'
 #' @importFrom methods as
 #'
-#' @examples
 runExprProgram <- function(expr, rank = 50, sel.clusters = NULL, clusterStashName = "default", savePath = NULL){
     message("[", Sys.time(), "] -----: expression programs analysis")
 
@@ -960,7 +1162,7 @@ runExprProgram <- function(expr, rank = 50, sel.clusters = NULL, clusterStashNam
     data@x <- data@x - ave.data[data@i + 1]
     data@x[data@x < 0] <- 0
 
-    nmf.results <- nnmf(as.matrix(data), k = rank)
+    nmf.results <- nnmf(as.matrix(data), k = rank, verbose = 0)
 
     W <- nmf.results$W
     colnames(W) <- paste0("p", 1:dim(W)[2])
@@ -1024,7 +1226,6 @@ runExprProgram <- function(expr, rank = 50, sel.clusters = NULL, clusterStashNam
 #' @export
 #' @importFrom NNLM nnmf
 #'
-#' @examples
 plotExprProgram <- function(H, cell.annotation, bool.limit = T, sel.clusters = NULL, savePath = NULL){
     if(bool.limit){
         up.bound <- quantile(as.matrix(H), 0.995)
@@ -1051,7 +1252,7 @@ plotExprProgram <- function(H, cell.annotation, bool.limit = T, sel.clusters = N
     if(!is.null(savePath)){
         exprProgPlot.height <- 0.5 + 0.11 * dim(H)[1]
         ggsave(filename = file.path(savePath, "figures/exprProgram-heatmap.png"),
-               p, width = 10, height = exprProgPlot.height, dpi = 1000)
+               p, width = 10, height = exprProgPlot.height, dpi = 500)
     }
 
     # clusters <- unique(cell.annotation$Cluster)
@@ -1085,11 +1286,180 @@ plotExprProgram <- function(H, cell.annotation, bool.limit = T, sel.clusters = N
 
 
 
+
+#' runCellInteraction
+#'
+#' @inheritParams runScAnnotation
+#'
+#' @return A data frame whicha contains the cell sets ligand-receptor pairs and their scores.
+#' @export
+#'
+runCellInteraction <- function(expr, cellSetName = "default", species = "human", savePath = NULL){
+    message("[", Sys.time(), "] -----: cell interaction analysis")
+
+    pairsLigRec <- read.table(system.file("txt", "PairsLigRec.txt", package = "scCancer"),
+                              sep = "\t", header = T,stringsAsFactors = F)
+    if(species == "mouse"){
+        hg.mm.Genes <- read.table(system.file("txt", "hg-mm-HomologyGenes.txt", package = "scCancer"),
+                                  header = T, stringsAsFactors = F)
+
+        hg.num <- table(hg.mm.Genes$hgGenes)
+        hg.mm.Genes <- subset(hg.mm.Genes, !(hgGenes %in% names(hg.num)[hg.num > 1]))
+        rownames(hg.mm.Genes) <- hg.mm.Genes$hgGenes
+
+        ju.in <- pairsLigRec$Ligand %in% hg.mm.Genes$hgGenes & pairsLigRec$Receptor %in% hg.mm.Genes$hgGenes
+        pairsLigRec <- pairsLigRec[ju.in, ]
+
+        new.pairs <- list()
+        new.pairs$Ligand <- hg.mm.Genes[pairsLigRec$Ligand, "mmGenes"]
+        new.pairs$Receptor <- hg.mm.Genes[pairsLigRec$Receptor, "mmGenes"]
+        new.pairs$Pair.Name <- paste0(new.pairs$Ligand, "_", new.pairs$Receptor)
+        pairsLigRec <- data.frame(new.pairs)
+        rm(new.pairs)
+    }
+    ju.pairs <- (pairsLigRec$Ligand %in% rownames(expr)) & (pairsLigRec$Receptor %in% rownames(expr))
+    pairsLigRec <- pairsLigRec[ju.pairs, ]
+    all.genes <- unique(c(pairsLigRec$Ligand, pairsLigRec$Receptor))
+
+    cellSets <- unique(expr@meta.data[[cellSetName]])
+    set.mean <- lapply(cellSets, FUN = function(x){
+        return(Matrix::rowMeans(GetAssayData(expr, slot = "counts")[all.genes, colnames(expr)[expr[[cellSetName]] == x]]))
+    })
+    names(set.mean) <- paste0("S.", cellSets)
+    set.mean <- data.frame(set.mean)
+
+    set.rate <- lapply(cellSets, FUN = function(x){
+        return(Matrix::rowMeans(GetAssayData(expr, slot = "counts")[all.genes, colnames(expr)[expr[[cellSetName]] == x]] > 0))
+    })
+    names(set.rate) <- paste0("S.", cellSets)
+    set.rate <- data.frame(set.rate)
+
+    final.pairs <- data.frame("Ligand" = c(), "Receptor" = c(),
+                              "Ligand.CellSet" = c(), "Receptor.CellSet" = c(), "Score" = c())
+    stat.df <- data.frame("Ligand.CellSet" = c(), "Receptor.CellSet" = c(),
+                          "Num" = c(), "Sum" = c())
+    for(i in cellSets){
+        for(j in cellSets){
+            if(i != j){
+                cur.pairs <- data.frame(Ligand = pairsLigRec$Ligand,
+                                        Receptor = pairsLigRec$Receptor,
+                                        Ligand.CellSet = paste0("S.", i),
+                                        Receptor.CellSet = paste0("S.", j),
+                                        Score = set.mean[pairsLigRec$Ligand, paste0("S.", i)] *
+                                            set.mean[pairsLigRec$Receptor, paste0("S.", j)],
+                                        Detect.rate = set.rate[pairsLigRec$Ligand, paste0("S.", i)] *
+                                            set.rate[pairsLigRec$Receptor, paste0("S.", j)])
+                cur.pairs <- subset(cur.pairs, Score > 0)
+                final.pairs <- rbind(final.pairs, cur.pairs)
+
+                ju.stat <- cur.pairs$Score > 1 & cur.pairs$Detect.rate > 0.25
+                cur.stat <- data.frame("Ligand.CellSet" = c(i),
+                                       "Receptor.CellSet" = c(j),
+                                       "Num" = c(sum(ju.stat)),
+                                       "Sum" = c(sum(cur.pairs$Score[ju.stat])))
+                stat.df <- rbind(stat.df, cur.stat)
+            }
+        }
+    }
+
+    final.pairs <- final.pairs[order(final.pairs$Score, decreasing = T), ]
+    rownames(final.pairs) <- NULL
+    colnames(stat.df) <- c("Ligand.CellSet", "Receptor.CellSet", "Num", "Sum")
+    # stat.df <- subset(stat.df, Num > 0)
+
+    if(dim(stat.df)[1] > 0){
+        if(setequal(cellSets, 1:length(cellSets))){
+            stat.df$Ligand.CellSet <- factor(paste0("S.", stat.df$Ligand.CellSet), levels = paste0("S.", 1:length(cellSets)))
+            stat.df$Receptor.CellSet <- factor(paste0("S.", stat.df$Receptor.CellSet), levels = paste0("S.", 1:length(cellSets)))
+        }
+    }
+
+    if(!is.null(savePath)){
+        write.table(final.pairs, file = file.path(savePath, "InteractionScore.txt"),
+                    quote = F, sep = "\t", row.names = F)
+    }
+    return(list(interaction.score = final.pairs,
+                stat.df = stat.df))
+}
+
+
+
+#' plotCellInteraction
+#'
+#' @param stat.df A data.frame of cell sets interaction result.
+#' @param cell.annotation  A data.frame of cells' annotation containing the cells' cluster and type.
+#'
+#' @return A plot showing the result of cell interaction.
+#' @export
+#'
+#' @importFrom gridExtra grid.arrange
+#'
+#' @examples
+plotCellInteraction <- function(stat.df, cell.annotation){
+    p.inter <- ggplot(stat.df, aes(x = Ligand.CellSet, y = Receptor.CellSet,
+                                             size = Num, color = Sum)) +
+        geom_point() +
+        coord_fixed() +
+        scale_color_gradientn(colors = colorRampPalette(c("#FAFBFD", "#2e68b7"))(50)) +
+        theme_light() +
+        theme(axis.title.x = element_text(size = 13, vjust = -0.1),
+              axis.title.y = element_text(size = 13, vjust = 1.5),
+              axis.text.x = element_text(size = 11, angle = 90, vjust = 0.5),
+              axis.text.y = element_text(size = 11),
+              axis.ticks = element_line(color = "black"),
+              panel.border = element_rect(color = "black"))
+    p.inter.leg <- cowplot::get_legend(p.inter)
+    p.inter <- p.inter + theme(legend.position = "none")
+
+    sel.col = "Cell.Type"
+    cell.colors <- getCellTypeColor(cell.types = unique(cell.annotation[[sel.col]]))
+
+    bar.num <- table(cell.annotation[c(sel.col, "Cluster")])
+    bar.num <- t(t(bar.num) / colSums(bar.num))
+    bar.df <- melt(bar.num)
+    bar.df$Cluster = factor(bar.df$Cluster)
+
+    p.type <- ggplot(bar.df, aes(x = Cluster, y = value, fill = bar.df[[sel.col]])) +
+        geom_bar(stat = "identity") +
+        coord_equal(length(unique(bar.df$Cluster)) / 5) +
+        scale_fill_manual(values = cell.colors) +
+        labs(y = "Type fraction", x = NULL) +
+        guides(fill = guide_legend(override.aes = list(size = 1), title = sel.col)) +
+        scale_x_discrete(position = "top") +
+        theme_classic() +
+        theme(axis.title.x = element_text(size = 13, vjust = -0.1),
+              axis.title.y = element_text(size = 13, vjust = 1.5),
+              axis.text.y = element_text(size = 11),
+              axis.text.x = element_blank(),
+              panel.background = element_rect(colour = "black"),
+              axis.line = element_line(color = "black"))
+    p.type.leg <- cowplot::get_legend(p.type)
+    p.type <- p.type + theme(legend.position = "none")
+
+    p.iMain <- rbind(ggplotGrob(p.inter), ggplotGrob(p.type), size = "last")
+    # p.ic <- plot_grid(p.iMain, p.inter.leg, p.type.leg, ncol = 3, rel_widths = c(6, 1, 1))
+    # ggsave(filename = "../iii.png",
+    #        p.ic, width = 7, height = 6.5, dpi = 500)
+
+    p.ic <- grid.arrange(
+        grobs = list(p.iMain, p.inter.leg, p.type.leg),
+        widths = c(4.5, 1),
+        layout_matrix = rbind(c(1, 2), c(1, 3)))
+    return(p.ic)
+}
+
+
+
+
 #' runScAnnotation
 #'
-#' Use Seurat package to perform data normalization,
-#' highly variable genes identification, dimensionality reduction, clustering and differential expression analysis.
-#' Predict cell type. Infer CNV.
+#' According to the results of 'runScStatistics', perform cell and gene quality control.
+#' Using the R package Seurat to perform basic operations (normalization, log-transformation,
+#' highly variable genes identification, removing unwanted variance, scaling, centering,
+#' dimension reduction, clustering, and differential expression analy-sis).
+#' Perform some cancer-specific analyses: cancer micro-environmental cell type classification,
+#' cell malignancy estimation, cell cycle analysis, cell stemness analysis,
+#' gene set signature analysis, expression programs identification, and so on.
 #'
 #' @param dataPath A path containing the cell ranger processed data.
 #' Under this path, folders 'filtered_feature_bc_matrix' and 'raw_feature_bc_matrix' exist generally.
@@ -1102,11 +1472,16 @@ plotExprProgram <- function(H, cell.annotation, bool.limit = T, sel.clusters = N
 #' @param bool.filter.gene A logical value indicating whether to filter the genes
 #' according to the QC of 'scStatistics'.
 #' @param anno.filter A vector indicating the types of genes to be filtered.
-#' Must be some of c("mitochondrial", "ribosome", "dissociation")(default).
+#' Must be some of c("mitochondrial", "ribosome", "dissociation")(default) or NULL.
 #' @param nCell.min An integer number used to filter gene. The default is 3.
 #' Genes with the number of expressed cells less than this threshold will be filtered.
-#' @param bgPercent.max A float number used to filter gene. The default is 0.001.
+#' @param bgPercent.max A float number used to filter gene. The default is 1 (no filtering).
 #' Genes with the background percentage larger than this threshold will be filtered.
+#' @param bool.rmContamination A logical value indicating whether to remove ambient RNA contamination based on 'SoupX'.
+#' @param contamination.fraction A float number between 0 and 1 indicating the estimated contamination fraction.
+#' The default is NULL and the result of scStatistics will be used.
+#' @param vars.add.meta A vector indicating the variables to be added to Seurat object's meta.data.
+#' The default is c("mito.percent", "ribo.percent", "diss.percent").
 #' @param vars.to.regress A vector indicating the variables to regress out in R package Seurat.
 #' The default is c("nUMI", "mito.percent", "ribo.percent").
 #' @param pc.use An integer number indicating the number of PCs to use as input features. The default is 30.
@@ -1115,17 +1490,29 @@ plotExprProgram <- function(H, cell.annotation, bool.limit = T, sel.clusters = N
 #' @param show.features A list or vector for genes to be plotted in 'markerPlot'.
 #' @param bool.add.features A logical value indicating whether to add default features to 'show.features' or not.
 #' @param bool.runDiffExpr A logical value indicating whether to perform differential expressed analysis.
-#' @param n.markers A integer indicating the number of differential expressed genes showed in the plot. The defalut is 5.
+#' @param n.markers An integer indicating the number of differential expressed genes showed in the plot. The defalut is 5.
 #' @param species A character string indicating what species the sample belong to.
 #' Only "human"(default) or "mouse" are allowed.
+#' @param genome A character string indicating the version of the reference gene annotation information.
+#' This information is mainly used to infer CNV profile and estimate malignancy.
+#' Only 'hg19' (defalut) or 'hg38' are allowed for "human" species, and only "mm10" is allowed for "mouse" species.
 #' @param hg.mm.mix  A logical value indicating whether the sample is a mix of
 #' human cells and mouse cells(such as PDX sample).
 #' If TRUE, the arguments 'hg.mm.thres' and 'mix.anno' should be set to corresponding values.
+#' @param bool.runDoublet A logical value indicating whether to estimate doublet scores.
+#' @param doublet.method The method to estimate doublet score. The default is "cxds".
+#' "cxds"(co-expression based doublet scoring) and "bcds"(binary classification based doublet scoring) are allowed.
+#' These methods are from R package "scds".
 #' @param bool.runCellClassify A logical value indicating whether to predict the usual cell type. The default is TRUE.
 #' @param ct.templates A list of vectors of several cell type templates.
 #' The default is NULL and the templates prepared in this package will be used.
 #' @param coor.names A vector indicating the names of two-dimension coordinate used in visualization.
 #' @param bool.runMalignancy A logical value indicating whether to estimate malignancy.
+#' @param cnv.ref.data An expression matrix of gene by cell, which is used as the normal reference during estimating malignancy.
+#' The default is NULL, and an immune cells or bone marrow cells expression matrix will be used for human or mouse species, respectively.
+#' @param cnv.referAdjMat An adjacent matrix for the normal reference data.
+#' The larger the value, the closer the cell pair is.
+#' The default is NULL, and a SNN matrix of the default ref.data will be used.
 #' @param cutoff A threshold used in the CNV inference.
 #' @param bool.intraTumor A logical value indicating whether to identify tumor clusters and perform following analyses.
 #' @param p.value.cutoff A threshold to decide weather the bimodality distribution of malignancy score is significant.
@@ -1146,13 +1533,16 @@ plotExprProgram <- function(H, cell.annotation, bool.limit = T, sel.clusters = N
 #' @importFrom pheatmap pheatmap
 #' @importFrom stringr str_c
 #'
-#' @examples
 runScAnnotation <- function(dataPath, statPath, savePath = NULL,
                             authorName = NULL,
                             sampleName = "sc",
-                            bool.filter.cell = T, bool.filter.gene = T,
+                            bool.filter.cell = T,
+                            bool.filter.gene = T,
                             anno.filter = c("mitochondrial", "ribosome", "dissociation"),
-                            nCell.min = 3, bgPercent.max = 0.001,
+                            nCell.min = 3, bgPercent.max = 1,
+                            bool.rmContamination = F,
+                            contamination.fraction = NULL,
+                            vars.add.meta = c("mito.percent", "ribo.percent", "diss.percent"),
                             vars.to.regress = c("nUMI", "mito.percent", "ribo.percent"),
                             pc.use = 30,
                             resolution = 0.8,
@@ -1161,11 +1551,16 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
                             bool.runDiffExpr = T,
                             n.markers = 5,
                             species = "human",
+                            genome = "hg19",
                             hg.mm.mix = F,
+                            bool.runDoublet = T,
+                            doublet.method = "bcds",
                             bool.runCellClassify = T,
                             ct.templates = NULL,
                             coor.names = c("tSNE_1", "tSNE_2"),
                             bool.runMalignancy = T,
+                            cnv.ref.data = NULL,
+                            cnv.referAdjMat = NULL,
                             cutoff = 0.1,
                             p.value.cutoff = 0.5,
                             bool.intraTumor = T,
@@ -1176,14 +1571,25 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
                             geneSet.method = "average",
                             bool.runExprProgram = T,
                             nmf.rank = 50,
+                            bool.runInteraction = T,
                             genReport = T){
 
     message("[", Sys.time(), "] START: RUN scAnnotation")
     results <- as.list(environment())
+    checkAnnoArguments(results)
 
     if(is.null(savePath)){
         savePath <- sataPath
     }
+
+    if(species == "mouse" & genome == "hg19"){
+        genome <- "mm10"
+    }
+
+    if(!dir.exists(file.path(savePath, "figures/"))){
+        dir.create(file.path(savePath, "figures/"), recursive = T)
+    }
+
     suppressWarnings( dataPath <- normalizePath(dataPath, "/") )
     suppressWarnings( statPath <- normalizePath(statPath, "/") )
     suppressWarnings( savePath <- normalizePath(savePath, "/") )
@@ -1191,31 +1597,38 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
     results[["statPath"]] <- statPath
     results[["savePath"]] <- savePath
 
-    if(!dir.exists(file.path(savePath, "figures/"))){
-        dir.create(file.path(savePath, "figures/"), recursive = T)
-    }
 
     ## --------- filter data ---------
-    message("[", Sys.time(), "] -----: cells and genes filtering")
-    exprList <- getFilterData(dataPath = dataPath,
-                              statPath = statPath,
-                              savePath = savePath,
-                              bool.filter.cell = bool.filter.cell,
-                              bool.filter.gene = bool.filter.gene,
-                              anno.filter = anno.filter,
-                              nCell.min = nCell.min,
-                              bgPercent.max = bgPercent.max,
-                              hg.mm.mix = hg.mm.mix)
-    results[["cell.manifest"]] = exprList$cell.manifest
-    results[["gene.manifest"]] = exprList$gene.manifest
-    results[["filter.thres"]] = exprList$filter.thres
+    t.results <- prepareSeurat(
+        dataPath = dataPath,
+        statPath = statPath,
+        savePath = savePath,
+        sampleName = sampleName,
+        bool.filter.cell = bool.filter.cell,
+        bool.filter.gene = bool.filter.gene,
+        anno.filter = anno.filter,
+        nCell.min = nCell.min,
+        bgPercent.max = bgPercent.max,
+        hg.mm.mix = hg.mm.mix,
+        bool.rmContamination = bool.rmContamination,
+        contamination.fraction = contamination.fraction,
+        vars.add.meta = vars.add.meta,
+        vars.to.regress = vars.to.regress
+    )
+    expr <- t.results$expr
+    gene.manifest <- t.results$gene.manifest
+    results[["bool.rmContamination"]] = t.results$bool.rmContamination
+    results[["contamination.fraction"]] = t.results$contamination.fraction
+    rm(t.results)
+    gc()
+
+    results[["filter.thres"]] = read.table(file.path(statPath, 'cell.QC.thres.txt'),
+                                           header = T, stringsAsFactors = F)
 
     ## --------- seurat ---------
     t.results <- runSeurat(
-        exprList = exprList,
+        expr = expr,
         savePath = savePath,
-        sampleName = sampleName,
-        vars.to.regress = vars.to.regress,
         pc.use = pc.use,
         resolution = resolution,
         clusterStashName = clusterStashName,
@@ -1225,6 +1638,7 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
     cell.annotation = t.results$cell.annotation
     results[["diff.expr.genes"]] = t.results$diff.expr.genes
     rm(t.results)
+    gc()
 
 
     results[["seurat.plots"]] <- plotSeurat(
@@ -1246,16 +1660,45 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
     results[["markersPlot.height"]] <- 2 * ceiling(length(results[["seurat.plots"]]$ps.markers) / 4)
 
 
+    ## --------- doublet ---------
+    if(bool.runDoublet){
+        message("[", Sys.time(), "] -----: Doublet score estimation")
+        doubletScore <- runDoublet(expr, method = doublet.method, pc.use = pc.use)
+        expr[["doublet.score"]] <- doubletScore
+        cell.annotation$doublet.score <- doubletScore
+        results[["doublet.plot"]] <-
+            pointDRPlot(cell.annotation,
+                        value = "doublet.score",
+                        coor.names = coor.names,
+                        colors = c("white", "#214478"),
+                        discrete = F,
+                        legend.position = "right",
+                        legend.title = "Doublet\n score")
+
+        cell.annotation$nUMI <- Matrix::colSums(GetAssayData(expr, slot = "counts"))
+        results[["nUMI.plot"]] <-
+            pointDRPlot(cell.annotation,
+                        value = "nUMI",
+                        coor.names = coor.names,
+                        colors = c("white", "#447821"),
+                        discrete = F,
+                        legend.position = "right",
+                        legend.title = "nUMI")
+
+        ggsave(filename = file.path(savePath, "figures/doublet-point.png"),
+               results[["doublet.plot"]], width = 5, height = 4, dpi = 500)
+        ggsave(filename = file.path(savePath, "figures/nUMI-point.png"),
+               results[["nUMI.plot"]], width = 5, height = 4, dpi = 500)
+    }
+
 
     ## --------- cell type ---------
     if(bool.runCellClassify){
-        message("[", Sys.time(), "] -----: TME cell types annotation")
         t.results <- runCellClassify(expr, cell.annotation,
                                      coor.names = coor.names,
                                      savePath = savePath,
                                      ct.templates = ct.templates,
                                      species = species)
-
         expr <- t.results$expr
         cell.annotation <- t.results$cell.annotation
         results[["cellType.plot"]] <- t.results$p.results
@@ -1266,27 +1709,33 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
     ## --------- malignancy ---------
     if(bool.runMalignancy){
         message("[", Sys.time(), "] -----: cells malignancy annotation")
-        if(species != "human"){
-            cat("- Warning in 'runScAnnotation': To perform 'runMalignancy', the argument 'species' needs to be 'human'.\n")
-            results[["bool.runMalignancy"]] = FALSE
-        }else{
-            t.results <- runMalignancy(dataPath, statPath, savePath,
-                                       cell.annotation = cell.annotation,
-                                       expr = expr,
-                                       cutoff = cutoff, minCell = 3,
-                                       p.value.cutoff = p.value.cutoff,
-                                       coor.names = coor.names,
-                                       hg.mm.mix = hg.mm.mix)
-            expr <- t.results$expr
-            cell.annotation <- t.results$cell.annotation
-            results[["cnvList"]] <- t.results$cnvList
-            results[["referScore"]] <- t.results$referScore
-            results[["ju.exist.malign"]] <- t.results$ju.exist.malign
-            results[["malign.thres"]] <- t.results$malign.thres
-            results[["bimodal.pvalue"]] <- t.results$bimodal.pvalue
-            results[["malign.plot"]] <- t.results$p.results
-            rm(t.results)
-        }
+        # if(species != "human"){
+        #     cat("- Warning in 'runScAnnotation': To perform 'runMalignancy', the argument 'species' needs to be 'human'.\n")
+        #     results[["bool.runMalignancy"]] = FALSE
+        # }else{
+        #
+        # }
+        t.results <- runMalignancy(expr = expr,
+                                   gene.manifest = gene.manifest,
+                                   cell.annotation = cell.annotation,
+                                   savePath = savePath,
+                                   cutoff = cutoff, minCell = 3,
+                                   p.value.cutoff = p.value.cutoff,
+                                   coor.names = coor.names,
+                                   ref.data = cnv.ref.data,
+                                   referAdjMat = cnv.referAdjMat,
+                                   species = species,
+                                   genome = genome,
+                                   hg.mm.mix = hg.mm.mix)
+        expr <- t.results$expr
+        cell.annotation <- t.results$cell.annotation
+        results[["cnvList"]] <- t.results$cnvList
+        results[["referScore"]] <- t.results$referScore
+        results[["ju.exist.malign"]] <- t.results$ju.exist.malign
+        results[["malign.thres"]] <- t.results$malign.thres
+        # results[["bimodal.pvalue"]] <- t.results$bimodal.pvalue
+        results[["malign.plot"]] <- t.results$p.results
+        rm(t.results)
     }
 
 
@@ -1307,11 +1756,11 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
     }
 
 
-
     ## --------- cell cycle ---------
     if(bool.runCellCycle){
         CellCycle.score <- runCellCycle(expr, species = species)
         cell.annotation$CellCycle.score <- CellCycle.score
+        expr[["CellCycle.score"]] <- CellCycle.score
         results[["cellCycle.plot"]] <-
             pointDRPlot(cell.annotation,
                         sel.clusters = sel.clusters,
@@ -1319,10 +1768,10 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
                         coor.names = coor.names,
                         colors = c("white", "#009b45"),
                         discrete = F,
-                        legend.position = "bottom",
-                        legend.title = "Cell cycle score")
+                        legend.position = "right",
+                        legend.title = "Cell cycle\n score")
         ggsave(filename = file.path(savePath, "figures/cellCycle-point.png"),
-               results[["cellCycle.plot"]], width = 4, height = 4.1, dpi = 800)
+               results[["cellCycle.plot"]], width = 5, height = 4, dpi = 500)
     }
 
 
@@ -1330,6 +1779,7 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
     if(bool.runStemness){
         stem.scores <- runStemness(X = GetAssayData(object = expr, slot = "scale.data"), species = species)
         cell.annotation[["Stemness.score"]] <- stem.scores
+        expr[["Stemness.score"]] <- stem.scores
 
         results[["stemness.plot"]] <-
             pointDRPlot(cell.annotation,
@@ -1338,19 +1788,24 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
                         coor.names = coor.names,
                         colors = c("white", "#ff9000"),
                         discrete = F,
-                        legend.position = "bottom",
-                        legend.title = "Stemness")
+                        legend.position = "right",
+                        legend.title = "Stemness\n score")
         ggsave(filename = file.path(savePath, "figures/stemness-point.png"),
-               results[["stemness.plot"]], width = 4, height = 4.1, dpi = 800)
+               results[["stemness.plot"]], width = 5, height = 4, dpi = 500)
     }
 
 
     ## --------- gene sets ----------
     if(bool.runGeneSets){
-        t.scores <- runGeneSets(expr = expr, geneSets = geneSets, method = geneSet.method, species = species)
+        if(is.null(geneSets)){
+            geneSets <- getDefaultGeneSets(species = species)
+        }
+        t.scores <- runGeneSets(expr = expr, geneSets = geneSets, method = geneSet.method)
         if(!is.null(t.scores)){
             cell.annotation <- cbind(cell.annotation, t.scores)
-
+            for(gs in colnames(t.scores)){
+                expr[[gs]] <- t.scores[, gs]
+            }
             bool.limit <- T
             if(geneSet.method == "GSVA"){
                 bool.limit <- F
@@ -1380,6 +1835,31 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
         results[["exprProgPlot.height"]] <- 0.5 + 0.11 * dim(results[["exprProgram.results"]]$H)[1]
     }
 
+
+    ## ---------- cell interaction ----------
+    if(bool.runInteraction){
+        t.results <- runCellInteraction(expr, cellSetName = clusterStashName,
+                                        species = species, savePath = savePath)
+        results[["interaction.score"]] <- t.results$interaction.score
+
+        # results[["inter.plot"]] <-
+        #     ggplot(t.results$stat.df, aes(x = Ligand.CellSet, y = Receptor.CellSet, size = Num, color = Sum)) +
+        #     geom_point() +
+        #     coord_fixed() +
+        #     scale_color_gradientn(colors = colorRampPalette(c("#FAFBFD", "#2e68b7"))(50)) +
+        #     theme_light() +
+        #     theme(axis.title.x = element_text(size = 13, vjust = -0.1),
+        #           axis.title.y = element_text(size = 13, vjust = 1.5),
+        #           axis.text.x = element_text(size = 11, angle = 45, hjust = 1),
+        #           axis.text.y = element_text(size = 11),
+        #           panel.border = element_rect(color = "black"))
+
+        results[["inter.plot"]] <- plotCellInteraction(t.results$stat.df, cell.annotation)
+
+        ggsave(filename = file.path(savePath, "figures/interaction-score.png"),
+               results[["inter.plot"]], width = 7, height = 6.5, dpi = 500)
+    }
+
     results[["expr"]] <- expr
     results[["cell.annotation"]] <- cell.annotation
 
@@ -1401,6 +1881,8 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
                        file.path(savePath, 'report-scAnno.html'))
     }
 
+    message("[", Sys.time(), "] END: Finish scAnnotation\n\n")
+
     return(results)
 }
 
@@ -1415,11 +1897,16 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
 #' @return NULL
 #' @export
 #'
-#' @examples
 genAnnoReport <- function(results, savePath){
     message("[", Sys.time(), "] -----: report generating")
+
+    if(!dir.exists(savePath)){
+        dir.create(savePath, recursive = T)
+    }
+
     results[['savePath']] <- normalizePath(savePath, "/")
     savePath <- normalizePath(savePath, "/")
+
     if(!dir.exists(file.path(savePath, 'report-figures/'))){
         dir.create(file.path(savePath, 'report-figures/'), recursive = T)
     }

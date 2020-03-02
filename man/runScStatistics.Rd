@@ -4,10 +4,18 @@
 \alias{runScStatistics}
 \title{runScStatistics}
 \usage{
-runScStatistics(dataPath, savePath, authorName = NULL,
-  sampleName = "sc", species = "human", hg.mm.mix = F,
-  hg.mm.thres = 0.9, mix.anno = c(human = "hg19", mouse = "mm10"),
-  genReport = T)
+runScStatistics(
+  dataPath,
+  savePath,
+  authorName = NULL,
+  sampleName = "sc",
+  species = "human",
+  hg.mm.mix = F,
+  hg.mm.thres = 0.6,
+  mix.anno = c(human = "hg19", mouse = "mm10"),
+  bg.spec.genes = NULL,
+  genReport = T
+)
 }
 \arguments{
 \item{dataPath}{A path containing the cell ranger processed data.
@@ -26,12 +34,14 @@ Must be one of "human"(default) and "mouse".}
 human cells and mouse cells(such as PDX sample).
 If TRUE, the arguments 'hg.mm.thres' and 'mix.anno' should be set to corresponding values.}
 
-\item{hg.mm.thres}{A float-point threshold to identify human and mouse cells.
+\item{hg.mm.thres}{A float-point threshold within [0.5, 1] to identify human and mouse cells.
 Cells with UMI percentage of single species larger than the threshold are labeled human or mouse cells.
-The default is 0.9.}
+The default is 0.6.}
 
 \item{mix.anno}{A vector to indicate the prefix of genes from different species.
 The default is c("human" = "hg19", "mouse" = "mm10").}
+
+\item{bg.spec.genes}{A list of backgroud specific genes, which are used to remove ambient genes' influence.}
 
 \item{genReport}{A logical value indicating whether to generate a .html/.md report (suggest to set TRUE).}
 }

@@ -1,0 +1,30 @@
+
+
+### `r h.i`.`r h.ii` Cell interaction analysis
+In order to analyze the ligand-receptor interactions between the various cell types in cancer micro-environment, 
+we use a ligand-receptor database [`FANTOM5`](http://fantom.gsc.riken.jp/data/), and estimate the interaction scores among cell sets (the default is clusters). 
+
+The interaction scores between all ligand-receptor pairs and all cell sets can be found in the table file 
+[InteractionScore.txt](./InteractionScore.txt). 
+
+Here is a plot showing the number of ligand-receptor paris with score larger than 0.1 among clusters. 
+The size of point means the number of ligand-receptor paris with scores larger than 0.1.
+The color of point means the sum of the ligand-receptor pairs scores.
+To compare conveniently, the bottom subplot shows the predicted cell type fraction of each cell set.
+
+```{r cellInteractionPlot, echo=F, message=F, warning=F, dpi=300, fig.width=7, fig.height=6.5, fig.align="center", out.width='80%'}
+grid::grid.draw(results$inter.plot)
+```
+
+<p align="right">(Hi-res image: <a href="./figures/interaction-score.png">view</a>)</p>
+
+
+Following are the top 10 scores ligand-receptor pairs.
+```{r interaction.summary, echo=F}
+format(head(results$interaction.score, 10), digits = 4)
+```
+
+
+```{r echo=F}
+h.ii <- h.ii + 1
+```

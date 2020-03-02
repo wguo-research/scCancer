@@ -58,7 +58,7 @@ getSingleSpecies <- function(expr.data,
 
 
 
-getGeneManifest <- function(data.path) {
+getGeneManifest <- function(data.path, only.expr = T) {
     gene.loc <- paste0(data.path, '/features.tsv.gz')
     if(!grepl("feature_bc_matrix", data.path)) {
         gene.loc <- paste0(data.path, '/genes.tsv')
@@ -66,8 +66,11 @@ getGeneManifest <- function(data.path) {
     gene.manifest <- read.delim(gene.loc, header = FALSE, stringsAsFactors = FALSE)
     colnames(gene.manifest) <-
         c("EnsemblID", "Symbol", "Type")[1:dim(gene.manifest)[2]]
-    gene.manifest$Symbol <- make.unique(gene.manifest$Symbol)
+    # gene.manifest$Symbol <- gsub("_", "-", make.unique(gene.manifest$Symbol))
 
+    if(only.expr){
+        gene.manifest <- subset(gene.manifest, Type == "Gene Expression")
+    }
     return(gene.manifest)
 }
 
@@ -107,7 +110,6 @@ addGeneAnno <- function (gene.manifest, species = "human"){
 #' @return A list of expr.data, cell.manifest, gene.manifest, raw.data, min.nUMI, cr.version and run.emptydrop
 #' @export
 #'
-#' @examples
 prepareData <- function(samplePath,
                         species = "human",
                         hg.mm.mix = F,
@@ -125,7 +127,8 @@ prepareData <- function(samplePath,
         }
     }
 
-    expr.data <- Read10Xdata(data.dir = data.path)
+    expr.data <- Read10Xdata(data.dir = data.path, only.expr = T)
+    # rownames(expr.data) <- gsub("_", "-", rownames(expr.data))
     cr.version <- getCRversion(data.path)
 
     run.emptydrop <- F
@@ -151,7 +154,8 @@ prepareData <- function(samplePath,
     }
 
     ## gene.manifest
-    gene.manifest <- getGeneManifest(data.path)
+    gene.manifest <- getGeneManifest(data.path, only.expr = T)
+    gene.manifest$Symbol <- make.unique(gene.manifest$Symbol)
 
     ## cell.manifest
     nGene = Matrix::colSums(expr.data > 0)
@@ -173,8 +177,7 @@ prepareData <- function(samplePath,
     )
     rm(nGene, nUMI, droplet.type)
 
-
-    cell.manifest = cell.manifest[cell.manifest$nUMI > 0,]
+    cell.manifest = cell.manifest[cell.manifest$nUMI > 0, ]
     expr.data <- expr.data[, cell.manifest$barcodes]
 
     ## hg.mm.mix : multi-species
@@ -208,6 +211,8 @@ prepareData <- function(samplePath,
         cur.name = paste0(substr(tt, 1, 4), ".percent")
         cell.manifest[[cur.name]] = cur.percent
     }
+
+    gene.manifest$Symbol <- gsub("_", "-", gene.manifest$Symbol)
 
     results <- list(expr.data = expr.data,
                     cell.manifest = cell.manifest,
@@ -298,10 +303,10 @@ marginPlot <- function(cell.manifest, value, color = "#a788ab", xlines = c(), yl
         labs(y = value) +
         ggplot_config(base.size = 7)
     for(x in xlines){
-        p <- p + geom_vline(aes(xintercept = x), colour = "red", linetype = "dashed")
+        p <- p + geom_vline(xintercept = x, colour = "red", linetype = "dashed")
     }
     for(y in ylines){
-        p <- p + geom_hline(aes(yintercept = y), colour = "red", linetype = "dashed")
+        p <- p + geom_hline(yintercept = y, colour = "red", linetype = "dashed")
     }
     p <- ggMarginal(p, bins = 200, type = "histogram", fill = color, color = color)
     return(p)
@@ -313,12 +318,15 @@ getBgPercent <- function(cell.manifest.all, expr.data, bg.low = 1, bg.up = 10){
     bg.bars <- subset(cell.manifest.all, nUMI >= bg.low & nUMI <= bg.up)$barcodes
 
     if(length(bg.bars) == 0){
-        bg.percent <- NULL
+        result <- NULL
     }else{
-        bg.percent <- Matrix::rowSums(expr.data[, bg.bars])
-        bg.percent <- bg.percent / sum(bg.percent)
+        bg.sum <- Matrix::rowSums(expr.data[, bg.bars])
+        bg.percent <- bg.sum / sum(bg.sum)
+        result <- data.frame(row.names = rownames(expr.data),
+                             est = bg.percent,
+                             counts = bg.sum)
     }
-    return(bg.percent)
+    return(result)
 }
 
 
@@ -387,7 +395,11 @@ updateGeneM <- function(gene.manifest,
 
 genePropPlot <- function(gene.manifest, expr.frac){
     show.num = 100
-    gene.manifest <- gene.manifest[order(gene.manifest$bg.percent, decreasing = T), ]
+    if("bg.percent" %in% colnames(gene.manifest)){
+        gene.manifest <- gene.manifest[order(gene.manifest$bg.percent, decreasing = T), ]
+    }else{
+        gene.manifest <- gene.manifest[order(gene.manifest$prop.median, decreasing = T), ]
+    }
     gene.show <- head(gene.manifest$Symbol, show.num)
 
     rownames(gene.manifest) <- gene.manifest$Symbol
@@ -529,17 +541,18 @@ bgDetScatter <- function(gene.manifest){
 #' @param hg.mm.mix A logical value indicating whether the sample is a mix of
 #' human cells and mouse cells(such as PDX sample).
 #' If TRUE, the arguments 'hg.mm.thres' and 'mix.anno' should be set to corresponding values.
-#' @param hg.mm.thres A float-point threshold to identify human and mouse cells.
+#' @param hg.mm.thres A float-point threshold within [0.5, 1] to identify human and mouse cells.
 #' Cells with UMI percentage of single species larger than the threshold are labeled human or mouse cells.
-#' The default is 0.9.
+#' The default is 0.6.
 #' @param mix.anno A vector to indicate the prefix of genes from different species.
 #' The default is c("human" = "hg19", "mouse" = "mm10").
+#' @param bg.spec.genes A list of backgroud specific genes, which are used to remove ambient genes' influence.
 #' @param genReport A logical value indicating whether to generate a .html/.md report (suggest to set TRUE).
 #'
 #' @return A results list with all useful objects used in the function.
 #' @export
 #'
-#' @import Matrix knitr ggplot2
+#' @import Matrix knitr ggplot2 SoupX
 #' @importFrom markdown markdownToHTML
 #' @importFrom ggExtra ggMarginal
 #' @importFrom reshape2 melt
@@ -551,25 +564,26 @@ bgDetScatter <- function(gene.manifest){
 #' @importFrom stats cor density filter median quantile sd
 #' @importFrom utils read.delim read.table write.csv write.table
 #'
-#' @examples
 runScStatistics <- function(dataPath, savePath,
                             authorName = NULL,
                             sampleName = "sc",
                             species = "human",
                             hg.mm.mix = F,
-                            hg.mm.thres = 0.9,
+                            hg.mm.thres = 0.6,
                             mix.anno = c("human" = "hg19", "mouse" = "mm10"),
+                            bg.spec.genes = NULL,
                             genReport = T){
 
     message("[", Sys.time(), "] START: RUN scStatistics")
     # results <- as.list(environment())
-
-    suppressWarnings( dataPath <- normalizePath(dataPath, "/") )
-    suppressWarnings( savePath <- normalizePath(savePath, "/") )
+    checkStatArguments(as.list(environment()))
 
     if(!dir.exists(file.path(savePath, "figures/"))){
         dir.create(file.path(savePath, "figures/"), recursive = T)
     }
+
+    suppressWarnings( dataPath <- normalizePath(dataPath, "/") )
+    suppressWarnings( savePath <- normalizePath(savePath, "/") )
 
     message("[", Sys.time(), "] -----: data preparation")
     all <- prepareData(samplePath = dataPath,
@@ -593,11 +607,11 @@ runScStatistics <- function(dataPath, savePath,
         p.cells.2 <- cellsPlot(cell.manifest, plot.type = "rankplot")
         suppressWarnings(
             ggsave(filename = file.path(savePath, "figures/cells-distr-hist.png"),
-                   p.cells.1, dpi = 800, height = 4, width = 6)
+                   p.cells.1, dpi = 500, height = 3, width = 4)
         )
         suppressWarnings(
             ggsave(filename = file.path(savePath, "figures/cells-distr-rank.png"),
-               p.cells.2, dpi = 800, height = 4, width = 6)
+               p.cells.2, dpi = 500, height = 3, width = 4)
         )
     }else{
         p.cells.1 <- NULL
@@ -613,9 +627,9 @@ runScStatistics <- function(dataPath, savePath,
     p.nUMI <- histPlot(cell.manifest, value = "nUMI", xlines = c(cell.threshold$nUMI))
     p.nGene <- histPlot(cell.manifest, value = "nGene", xlines = c(200, cell.threshold$nGene))
     ggsave(filename = file.path(savePath, "figures/nUMI-distr.png"),
-           p.nUMI, dpi = 800, height = 4, width = 6)
+           p.nUMI, dpi = 500, height = 2.5, width = 4)
     ggsave(filename = file.path(savePath, "figures/nGene-distr.png"),
-           p.nGene, dpi = 800, height = 4, width = 6)
+           p.nGene, dpi = 500, height = 2.5, width = 4)
 
 
     message("[", Sys.time(), "] -----: mito & ribo & diss distribution plot")
@@ -626,15 +640,16 @@ runScStatistics <- function(dataPath, savePath,
     p.diss <- marginPlot(cell.manifest, value = "diss.percent", color = "#94c08e",
                          xlines = c(cell.threshold$nUMI), ylines = c(cell.threshold$diss.percent))
     ggsave(filename = file.path(savePath, "figures/mito-distr.png"),
-           p.mito, dpi = 800, height = 4, width = 4)
+           p.mito, dpi = 500, height = 4, width = 4)
     ggsave(filename = file.path(savePath, "figures/ribo-distr.png"),
-           p.ribo, dpi = 800, height = 4, width = 4)
+           p.ribo, dpi = 500, height = 4, width = 4)
     ggsave(filename = file.path(savePath, "figures/diss-distr.png"),
-           p.diss, dpi = 800, height = 4, width = 4)
+           p.diss, dpi = 500, height = 4, width = 4)
 
 
     message("[", Sys.time(), "] -----: gene statistics")
-    bg.percent <- getBgPercent(cell.manifest.all, expr.data, bg.low = 1, bg.up = 10)
+    bg.result <- getBgPercent(cell.manifest.all, expr.data, bg.low = 1, bg.up = 10)
+    bg.percent <- bg.result$est
     nCell <- getNcell(cell.manifest, expr.data)
     detect.rate <- getDetectRate(nCell, n = dim(cell.manifest)[1])
     expr.frac <- getExprProp(cell.manifest, expr.data)
@@ -654,7 +669,7 @@ runScStatistics <- function(dataPath, savePath,
     )
     suppressWarnings(
         ggsave(filename = file.path(savePath, "figures/geneProp.png"),
-               p.geneProp, dpi = 800, height = 8, width = 8)
+               p.geneProp, dpi = 500, height = 8, width = 8)
     )
 
     if(!is.null(bg.percent) && raw.data){
@@ -662,16 +677,82 @@ runScStatistics <- function(dataPath, savePath,
         p.bg.detect <- bgDetScatter(gene.manifest)
         suppressWarnings(
             ggsave(filename = file.path(savePath, "figures/bg-cell-scatter.png"),
-                   p.bg.cell, dpi = 800, height = 4, width = 4)
+                   p.bg.cell, dpi = 500, height = 4, width = 4)
         )
         suppressWarnings(
             ggsave(filename = file.path(savePath, "figures/bg-detect-scatter.png"),
-                   p.bg.detect, dpi = 800, height = 4, width = 4)
+                   p.bg.detect, dpi = 500, height = 4, width = 4)
         )
     }else{
         p.bg.cell <- NULL
         p.bg.detect <- NULL
     }
+
+
+    message("[", Sys.time(), "] -----: ambinet genes (SoupX)")
+    sc <- list(toc = expr.data[, cell.manifest$barcodes],
+               metaData = data.frame(row.names = cell.manifest$barcodes,
+                                     nUMIs = cell.manifest$nUMI),
+               soupProfile = bg.result)
+    class(sc) = c("list", "SoupChannel")
+    suppressMessages(
+        p.bg.genes <- plotMarkerDistribution(sc) +
+            theme_light() +
+            theme(axis.text.x = element_text(angle = 90, hjust = 1),
+                  panel.border = element_rect(color = "black"))
+    )
+    suppressWarnings(
+        ggsave(filename = file.path(savePath, "figures/bg.genes.soupX.png"),
+               p.bg.genes, dpi = 500, height = 3, width = 6)
+    )
+    if(is.null(bg.spec.genes)){
+        bg.spec.genes <- list(
+            igGenes = c('IGHA1','IGHA2','IGHG1','IGHG2','IGHG3','IGHG4','IGHD','IGHE','IGHM',
+                        'IGLC1','IGLC2','IGLC3','IGLC4','IGLC5','IGLC6','IGLC7', 'IGKC',
+                        'IGLL5', 'IGLL1'),
+            HLAGenes = c('HLA-DRA', 'HLA-DRB5', 'HLA-DRB1', 'HLA-DQA1', 'HLA-DQB1',
+                         'HLA-DQB1', 'HLA-DQA2', 'HLA-DQB2', 'HLA-DPA1', 'HLA-DPB1'),
+            HBGenes = c("HBB","HBD","HBG1","HBG2", "HBE1","HBZ","HBM","HBA2", "HBA1","HBQ1")
+        )
+        if(species == "mouse"){
+            bg.spec.genes <- list(
+                HLAGenes = c("H2-Aa", "H2-Ab1", "H2-Eb1"),
+                HBGenes = c("Hbb-y", "Hbq1b", "Hba-x")
+            )
+        }
+    }
+
+    cand.genes <- intersect(subset(gene.manifest, nCell > 10)$Symbol,
+                            head(rownames(bg.result[order(bg.result, decreasing = T), ]), 20000))
+
+    cat("The genes used to estimate contamination fraction of ambient RNAs:\n",
+        file = file.path(savePath, "ambientRNA-SoupX.txt"), append = F)
+    for(g.type in names(bg.spec.genes)){
+        cur.genes <- intersect(bg.spec.genes[[g.type]], rownames(expr.data))
+        cur.genes <- intersect(cur.genes, cand.genes)
+        if(length(cur.genes) > 0){
+            bg.spec.genes[[g.type]] <- cur.genes
+            cat("\t* ", g.type, ": ", str_c(cur.genes, collapse = ", "), "\n",
+                sep = "", file = file.path(savePath, "ambientRNA-SoupX.txt"), append = T)
+        }else{
+            bg.spec.genes[[g.type]] <- NULL
+        }
+    }
+
+    suppressMessages(
+        useToEst <- estimateNonExpressingCells(sc, nonExpressedGeneList = bg.spec.genes)
+    )
+    suppressMessages(
+        sc <- calculateContaminationFraction(sc, bg.spec.genes,
+                                             useToEst = useToEst,
+                                             cellSpecificEstimates = F)
+    )
+    bg.rho <- round(sc$metaData$rho[1], 4)
+
+    cat("\nThe estimated contamination fraction is:\n",
+        file = file.path(savePath, "ambientRNA-SoupX.txt"), append = T)
+    cat(bg.rho, "\n",
+        file = file.path(savePath, "ambientRNA-SoupX.txt"), append = T)
 
     message("[", Sys.time(), "] -----: resutls saving")
     filter.thres <- list(
@@ -735,6 +816,10 @@ runScStatistics <- function(dataPath, savePath,
                     cr.version = cr.version,
                     raw.data = raw.data,
                     run.emptydrop = run.emptydrop,
+                    bg.spec.genes = bg.spec.genes,
+                    bg.rho = bg.rho,
+                    sc = sc,
+                    p.bg.genes = p.bg.genes,
                     nList = nList)
 
     ## generate report
@@ -755,6 +840,8 @@ runScStatistics <- function(dataPath, savePath,
         # results$cell.manifest <- cell.manifest.all
     }
 
+    message("[", Sys.time(), "] END: Finish scStatistics\n\n")
+
     return(results)
 }
 
@@ -768,9 +855,13 @@ runScStatistics <- function(dataPath, savePath,
 #' @return NULL
 #' @export
 #'
-#' @examples
 genStatReport <- function(results, savePath){
     message("[", Sys.time(), "] -----: report generating")
+
+    if(!dir.exists(savePath)){
+        dir.create(savePath, recursive = T)
+    }
+
     results[['savePath']] <- normalizePath(savePath, "/")
     savePath <- normalizePath(savePath, "/")
 
