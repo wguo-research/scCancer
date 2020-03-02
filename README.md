@@ -33,10 +33,7 @@ devtools::install_github("wguo-research/scCancer")
 ```
 
 Hint: A dependent package `NNLM` was removed from the CRAN repository recently, so an error about it may be reported during the installation. 
-If so, you can install a formerly available version manually from its [archive](https://cran.r-project.org/src/contrib/Archive/NNLM/).
-
-
-Besides, if you encounter errors saying package `SoupX` is unavalibale, you can refer to its [GitHub](https://github.com/constantAmateur/SoupX) and install it via
+If so, you can install a formerly available version manually from its [archive](https://cran.r-project.org/src/contrib/Archive/NNLM/). Besides, if you encounter errors saying package `SoupX` is unavalibale, you can refer to its [GitHub](https://github.com/constantAmateur/SoupX) and install it via
 ```R
 devtools::install_github("constantAmateur/SoupX")
 ```
@@ -53,7 +50,7 @@ We also provide an [example data](http://lifeome.net/software/sccancer/KC-exampl
 
 For multi-datasets, following is a generated report for three kidney cancer samples integration analysis.
 
-* [report-scAnnoComb.html](http://lifeome.net/software/sccancer/KC123-report-scAnnoComb.html)
+* [`report-scAnnoComb.html`](http://lifeome.net/software/sccancer/KC123-report-scAnnoComb.html)
 
 
 ## Citation
