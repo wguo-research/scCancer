@@ -13,7 +13,7 @@ After these analyses, user-friendly graphic reports will be generated.
 
 <img src="http://lifeome.net/software/sccancer/scCancer-workflow.png" width="70%" alt="scCancer-workflow" align=center>
 
-[Click for larger workflow picture](http://lifeome.net/software/sccancer/scCancer-workflow.png)
+([Click to view larger workflow picture](http://lifeome.net/software/sccancer/scCancer-workflow.png))
 
           
 ## System Requirements
