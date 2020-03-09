@@ -43,7 +43,7 @@ devtools::install_github("constantAmateur/SoupX")
 
 ## Usage
 
-The vignette of `scCancer` can be found in the project [wiki]( https://github.com/wguo-research/scCancer/wiki).
+The vignette of `scCancer` can be found in this [page](http://lifeome.net/software/sccancer/scCancer-vignette.html) or the project [wiki]( https://github.com/wguo-research/scCancer/wiki).
 
 We provide an [example data](http://lifeome.net/software/sccancer/KC-example.tar.gz) of kidney cancer from 10X Genomics, and following are the generated HTML reports:
 
