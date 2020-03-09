@@ -50,7 +50,7 @@ We provide an [example data](http://lifeome.net/software/sccancer/KC-example.tar
 * [`report-scStat.html`](http://lifeome.net/software/sccancer/KC-example-report-scStat.html)
 * [`report-scAnno.html`](http://lifeome.net/software/sccancer/KC-example-report-scAnno.html)
 
-For multi-datasets, following is a generated HTML report for three kidney cancer samples integration analysis.
+For multi-datasets, following is a generated HTML report for three kidney cancer samples integration analysis:
 
 * [`report-scAnnoComb.html`](http://lifeome.net/software/sccancer/KC123-report-scAnnoComb.html)
 

@@ -152,7 +152,7 @@ to understand the workflow of `scCancer`. And following are the generated HTML r
 * [report-scStat.html](http://lifeome.net/software/sccancer/KC-example-report-scStat.html)
 * [report-scAnno.html](http://lifeome.net/software/sccancer/KC-example-report-scAnno.html)
 
-For multi-samples, following is a generated HTML report for three kidney cancer samples integration analysis.
+For multi-samples, following is a generated HTML report for three kidney cancer samples integration analysis:
 
 * [report-scAnnoComb.html](http://lifeome.net/software/sccancer/KC123-report-scAnnoComb.html)
 
