@@ -89,7 +89,7 @@ If so, you can install a formerly available version manually from its [archive](
 
 
 Besides, if you encounter errors saying package `SoupX` is unavalibale, you can refer to its [GitHub](https://github.com/constantAmateur/SoupX) and install it via
-```R
+```{r eval=FALSE}
 devtools::install_github("constantAmateur/SoupX")
 ```
 
