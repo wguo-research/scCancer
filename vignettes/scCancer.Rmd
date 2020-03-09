@@ -1,5 +1,6 @@
 ---
 title: "scCancer"
+subtitle: "- a package for automated processing of single cell RNA-seq data in cancer"
 author: 
 - name: "Wenbo Guo"
   affiliation: &1 MOE Key Laboratory of Bioinformatics, BNRIST Bioinformatics Division, Department of Automation, Tsinghua University, Beijing 100084, China
@@ -50,7 +51,7 @@ Here, we develop an R package named `scCancer` which focuses on processing and
 analyzing scRNA-seq data for cancer research. Except basic data processing steps, 
 this package takes several special considerations for cancer-specific features. 
 
-The workflow of  `scCancer` mainly consists of three parts: `scStatistics`, `scAnnotation`, and `scCombination`.
+The workflow of  `scCancer` mainly consists of three modules: `scStatistics`, `scAnnotation`, and `scCombination`.
 
 * The `scStatistics` performs basic statistical analyses of raw data and quality control.
 
@@ -151,7 +152,7 @@ to understand the workflow of `scCancer`. And following are the generated HTML r
 * [report-scStat.html](http://lifeome.net/software/sccancer/KC-example-report-scStat.html)
 * [report-scAnno.html](http://lifeome.net/software/sccancer/KC-example-report-scAnno.html)
 
-For multi-datasets, following is a generated report for three kidney cancer samples integration analysis.
+For multi-samples, following is a generated HTML report for three kidney cancer samples integration analysis.
 
 * [report-scAnnoComb.html](http://lifeome.net/software/sccancer/KC123-report-scAnnoComb.html)
 
@@ -161,7 +162,7 @@ and returns some suggested thresholds to filter cells and genes.
 Meanwhile, to evaluate the influence of ambient RNAs from lysed cells better, 
 this step also estimates the contamination fraction by using the algorithm of [`SoupX`](https://github.com/constantAmateur/SoupX).
 
-Following is the example script to run the first part `scStatistics`.
+Following is the example script to run the first module `scStatistics`.
 And using `help(runScStatistics)` can get more details about its arguments to realize personalized setting.
 
 ```{r eval=FALSE}
@@ -190,7 +191,7 @@ Running the `scStatistics` script will generate some files/folders as below:
 
 1. **report-scStat.html** : A HTML report containing all results.
 2. **report-scStat.md** : A markdown report.
-3. **figures\/** : All figures generated during this part.
+3. **figures\/** : All figures generated during this module.
 4. **report-figures\/** : All figures presented in the HTML report.
 5. **cellManifest-all.txt** : The statistical results for all droplets.
 6. **cell.QC.thres.txt** : The suggested thresholds to filter poor-quality cells.
@@ -244,7 +245,7 @@ Besides, `scAnnotation` also performs some cancer-specific analyses:
 
 
 
-Following is the example script to run the second part `scAnnotation`. 
+Following is the example script to run the second module `scAnnotation`. 
 And using `help(runScAnnotation)` can get more details about its arguments to realize personalized setting.
 
 ```{r eval=FALSE}
@@ -277,7 +278,7 @@ Running the `scAnnotation` script will generate some files/folders as below:
 
 1. **report-scAnno.html** : A HTML report containing all results.
 2. **report-scAnno.md** : A markdown report.
-3. **figures\/** : All figures generated during this part.
+3. **figures\/** : All figures generated during this module.
 4. **report-figures\/** : All figures presented in the HTML report.
 5. **geneManifest.txt** : The annotation results of genes updated by filter information.
 6. **expr.RDS** : A Seurat object.
@@ -292,7 +293,7 @@ Running the `scAnnotation` script will generate some files/folders as below:
 ### scCombination
 The `scCombination` mainly performs multiple samples data integration, batch effect correction and analyses visualization based on the `scAnnotation` results of single sample. And four strategies (`NormalMNN` (default), `SeuratMNN`, `Raw` and `Regression`) to integrate data and correct batch effect are optional.
 
-Following is the example script to run the part `scCombination`.
+Following is the example script to run the module `scCombination`.
 And using `help(runScCombination)` can get more details about its arguments.
 
 ```{r eval=FALSE}
@@ -372,7 +373,7 @@ Users can modify the values of these arguments according to their needs.
 
 
 ## Perform ambient RNAs contamination correction
-In the `scStatistics` part, users can pass in the soup (background) specific gene lists by the argument `bg.spec.genes` or use the default setting: 
+In the `scStatistics` module, users can pass in the soup (background) specific gene lists by the argument `bg.spec.genes` or use the default setting: 
 
 ```{r eval=FALSE}
 bg.spec.genes <- list(
@@ -384,7 +385,7 @@ bg.spec.genes <- list(
 
 Then a contamination fraction will be estimated and saved in file `ambientRNA-SoupX.txt`. 
 
-In the `scAnnotation` part, if users want to correct the expression data according to the estimated ambient RNAs contamination fraction, they can set the argument `bool.rmContamination` as `TRUE` (the default is `FALSE`), and set the argument `contamination.fraction` as a number (between 0 and 1) or `NULL` (`NULL` means the result of `scStatistics` will be used).
+In the `scAnnotation` module, if users want to correct the expression data according to the estimated ambient RNAs contamination fraction, they can set the argument `bool.rmContamination` as `TRUE` (the default is `FALSE`), and set the argument `contamination.fraction` as a number (between 0 and 1) or `NULL` (`NULL` means the result of `scStatistics` will be used).
 
 
 ## Set species and genome used for the sample

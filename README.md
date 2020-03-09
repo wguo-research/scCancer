@@ -4,7 +4,7 @@
 
 The `scCancer` package focuses on processing and analyzing droplet-based scRNA-seq data for cancer research. Except basic data processing steps, this package takes several special considerations for cancer-specific features.
 
-The workflow of  `scCancer` mainly consists of three parts: `scStatistics`, `scAnnotation`, and `scCombination`.
+The workflow of  `scCancer` mainly consists of three modules: `scStatistics`, `scAnnotation`, and `scCombination`.
 * The `scStatistics` performs basic statistical analyses of raw data and quality control.
 * The `scAnnotation` performs functional data analyses and visualizations, such as low dimensional representation, clustering, cell type classification, cell malignancy estimation, cellular phenotype analyses, gene signature analyses, cell-cell interaction analyses, etc.
 * The `scCombination` perform multiple samples data integration, batch effect correction and analyses visualization.
@@ -45,12 +45,12 @@ devtools::install_github("constantAmateur/SoupX")
 
 The vignette of `scCancer` can be found in the project [wiki]( https://github.com/wguo-research/scCancer/wiki).
 
-We also provide an [example data](http://lifeome.net/software/sccancer/KC-example.tar.gz) of kidney cancer from 10X Genomics, and here are the generated reports: 
+We provide an [example data](http://lifeome.net/software/sccancer/KC-example.tar.gz) of kidney cancer from 10X Genomics, and following are the generated HTML reports:
 
 * [`report-scStat.html`](http://lifeome.net/software/sccancer/KC-example-report-scStat.html)
 * [`report-scAnno.html`](http://lifeome.net/software/sccancer/KC-example-report-scAnno.html)
 
-For multi-datasets, following is a generated report for three kidney cancer samples integration analysis.
+For multi-datasets, following is a generated HTML report for three kidney cancer samples integration analysis.
 
 * [`report-scAnnoComb.html`](http://lifeome.net/software/sccancer/KC123-report-scAnnoComb.html)
 
