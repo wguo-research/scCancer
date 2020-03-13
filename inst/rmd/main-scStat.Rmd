@@ -248,7 +248,13 @@ if("bg.percent" %in% colnames(results$gene.manifest)){
   plot_grid(results$p.bg.cell, results$p.bg.detect, ncol = 2)
 }
 ```
-<p align="right">(Hi-res image: <a href="./figures/bg-cell-scatter.png">left</a>, <a href="./figures/bg-detect-scatter.png">right</a>)</p>
+
+```{r echo=F, results='asis'}
+if("bg.percent" %in% colnames(results$gene.manifest)){
+  cat("<p align=\"right\">(Hi-res image: <a href=\"./figures/bg-cell-scatter.png\">left</a>, <a href=\"./figures/bg-detect-scatter.png\">right</a>)</p>\n")
+  # cat("(Hi-res image\n")
+}
+```
 
 ```{r echo=F}
 h.i <- h.i + 1
@@ -257,39 +263,8 @@ h.ii <- 1
 
 
 
-### `r h.i`.`r h.ii`.2 Ambient RNAs contamination fraction estimation
-
-We refer to the algorithm of [`SoupX`](https://github.com/constantAmateur/SoupX) 
-to estimate the contamination fraction of ambient RNAs from lysed cells.
-
-Here is the plot from `SoupX`, which visualises the log10 ratios of observed expression counts to expected 
-if the cell is pure background. The algorithm guesses which cells definitely express each gene and
-estimates the contamination fraction (read lines) using just each gene (i.e., assuming the same contamination for all cells).
-
-```{r soupX, echo=FALSE, message=F, dpi=300, fig.height=3, fig.width=6, fig.align="center"}
-results$p.bg.genes
+```{r soupx, child=system.file("rmd", "SoupX.Rmd", package = "scCancer"), eval = results$bool.runSoupx}
 ```
-<p align="right">(Hi-res image: <a href="./figures/bg.genes.soupX.png">view</a>)</p>
-
-
-<span style="color:red">**Note:**</span> The `SoupX` emphasize that the genes 
-in the plot are heuristic and are just used to help develop biological intuition. 
-It absolutely **must not** be used to automatically select the top *N* genes from the list,
-which may *over-estimate* the contamination fraction!
-
-By default, we set three default gene sets (immunoglobulin, haemoglobin, and MHC genes) 
-according to the characteristics of cancer microenvironment. 
-
-Using the users' input or the default gene sets, following genes are used to eatimate the contamination fraction. 
-```{r echo=F}
-print(results$bg.spec.genes)
-```
-
-The estimated contamination fraction is <span style="color:red">` `r results$bg.rho * 100`% `</span>. 
-Picking right genes which are specific to one of cell population is absolutely vital for
-the accuracy of the estimated contamination fraction. 
-So the fraction calculated here is **for reference only**, especially when 
-just the default gene sets are used, without considering the sample-specific features.
 
 
 
@@ -330,6 +305,10 @@ h.ii <- 1
 ### `r h.i`.`r h.ii` Output files
 Running this script generates following files:
 
+```{r echo=F}
+r.i <- 8
+```
+
 1. **Html report** :
 [report-scStat.html](./report-scStat.html).
 2. **Markdown report** :
@@ -344,8 +323,11 @@ Running this script generates following files:
 [cell.QC.thres.txt](./cell.QC.thres.txt).
 7. **Text file with gene manifest** :
 [geneManifest.txt](./geneManifest.txt).
-8. **Text file with the results of SoupX** :
-[ambientRNA-SoupX.txt](./ambientRNA-SoupX.txt).
+```{r echo=F, results='asis',  eval=results$bool.runSoupx}
+cat(r.i, ". **Text file with the results of SoupX** :[ambientRNA-SoupX.txt](./ambientRNA-SoupX.txt).", 
+    sep = "")
+r.i <- r.i + 1
+```
 ```{r echo=F, results='asis'}
 if(file.exists(file.path(results$dataPath, "web_summary.html"))){
   cat("9. **Cell ranger html report** (Copy from the source data folder):\n")

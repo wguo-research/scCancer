@@ -572,6 +572,7 @@ runScStatistics <- function(dataPath, savePath,
                             hg.mm.thres = 0.6,
                             mix.anno = c("human" = "hg19", "mouse" = "mm10"),
                             bg.spec.genes = NULL,
+                            bool.runSoupx = T,
                             genReport = T){
 
     message("[", Sys.time(), "] START: RUN scStatistics")
@@ -690,69 +691,81 @@ runScStatistics <- function(dataPath, savePath,
 
 
     message("[", Sys.time(), "] -----: ambinet genes (SoupX)")
-    sc <- list(toc = expr.data[, cell.manifest$barcodes],
-               metaData = data.frame(row.names = cell.manifest$barcodes,
-                                     nUMIs = cell.manifest$nUMI),
-               soupProfile = bg.result)
-    class(sc) = c("list", "SoupChannel")
-    suppressMessages(
-        p.bg.genes <- plotMarkerDistribution(sc) +
-            theme_light() +
-            theme(axis.text.x = element_text(angle = 90, hjust = 1),
-                  panel.border = element_rect(color = "black"))
-    )
-    suppressWarnings(
-        ggsave(filename = file.path(savePath, "figures/bg.genes.soupX.png"),
-               p.bg.genes, dpi = 500, height = 3, width = 6)
-    )
-    if(is.null(bg.spec.genes)){
-        bg.spec.genes <- list(
-            igGenes = c('IGHA1','IGHA2','IGHG1','IGHG2','IGHG3','IGHG4','IGHD','IGHE','IGHM',
-                        'IGLC1','IGLC2','IGLC3','IGLC4','IGLC5','IGLC6','IGLC7', 'IGKC',
-                        'IGLL5', 'IGLL1'),
-            HLAGenes = c('HLA-DRA', 'HLA-DRB5', 'HLA-DRB1', 'HLA-DQA1', 'HLA-DQB1',
-                         'HLA-DQB1', 'HLA-DQA2', 'HLA-DQB2', 'HLA-DPA1', 'HLA-DPB1'),
-            HBGenes = c("HBB","HBD","HBG1","HBG2", "HBE1","HBZ","HBM","HBA2", "HBA1","HBQ1")
+    if(is.null(bg.percent) | !raw.data){
+        bool.runSoupx <- F
+        cat("- Warning in 'SoupX': Cannot identify background distribution. So skip this step.\n")
+    }
+    if(bool.runSoupx){
+        sc <- list(toc = expr.data[, cell.manifest$barcodes],
+                   metaData = data.frame(row.names = cell.manifest$barcodes,
+                                         nUMIs = cell.manifest$nUMI),
+                   soupProfile = bg.result)
+        class(sc) = c("list", "SoupChannel")
+        suppressMessages(
+            p.bg.genes <- plotMarkerDistribution(sc) +
+                theme_light() +
+                theme(axis.text.x = element_text(angle = 90, hjust = 1),
+                      panel.border = element_rect(color = "black"))
         )
-        if(species == "mouse"){
+        suppressWarnings(
+            ggsave(filename = file.path(savePath, "figures/bg.genes.soupX.png"),
+                   p.bg.genes, dpi = 500, height = 3, width = 6)
+        )
+        if(is.null(bg.spec.genes)){
             bg.spec.genes <- list(
-                HLAGenes = c("H2-Aa", "H2-Ab1", "H2-Eb1"),
-                HBGenes = c("Hbb-y", "Hbq1b", "Hba-x")
+                igGenes = c('IGHA1','IGHA2','IGHG1','IGHG2','IGHG3','IGHG4','IGHD','IGHE','IGHM',
+                            'IGLC1','IGLC2','IGLC3','IGLC4','IGLC5','IGLC6','IGLC7', 'IGKC',
+                            'IGLL5', 'IGLL1'),
+                HLAGenes = c('HLA-DRA', 'HLA-DRB5', 'HLA-DRB1', 'HLA-DQA1', 'HLA-DQB1',
+                             'HLA-DQB1', 'HLA-DQA2', 'HLA-DQB2', 'HLA-DPA1', 'HLA-DPB1'),
+                HBGenes = c("HBB","HBD","HBG1","HBG2", "HBE1","HBZ","HBM","HBA2", "HBA1","HBQ1")
             )
+            if(species == "mouse"){
+                bg.spec.genes <- list(
+                    HLAGenes = c("H2-Aa", "H2-Ab1", "H2-Eb1"),
+                    HBGenes = c("Hbb-y", "Hbq1b", "Hba-x")
+                )
+            }
         }
+
+        cand.genes <- intersect(subset(gene.manifest, nCell > 10)$Symbol,
+                                head(rownames(bg.result[order(bg.result, decreasing = T), ]), 20000))
+
+        cat("The genes used to estimate contamination fraction of ambient RNAs:\n",
+            file = file.path(savePath, "ambientRNA-SoupX.txt"), append = F)
+        for(g.type in names(bg.spec.genes)){
+            cur.genes <- intersect(bg.spec.genes[[g.type]], rownames(expr.data))
+            cur.genes <- intersect(cur.genes, cand.genes)
+            if(length(cur.genes) > 0){
+                bg.spec.genes[[g.type]] <- cur.genes
+                cat("\t* ", g.type, ": ", str_c(cur.genes, collapse = ", "), "\n",
+                    sep = "", file = file.path(savePath, "ambientRNA-SoupX.txt"), append = T)
+            }else{
+                bg.spec.genes[[g.type]] <- NULL
+            }
+        }
+
+        suppressMessages(
+            useToEst <- estimateNonExpressingCells(sc, nonExpressedGeneList = bg.spec.genes)
+        )
+        suppressMessages(
+            sc <- calculateContaminationFraction(sc, bg.spec.genes,
+                                                 useToEst = useToEst,
+                                                 cellSpecificEstimates = F)
+        )
+        bg.rho <- round(sc$metaData$rho[1], 4)
+
+        cat("\nThe estimated contamination fraction is:\n",
+            file = file.path(savePath, "ambientRNA-SoupX.txt"), append = T)
+        cat(bg.rho, "\n",
+            file = file.path(savePath, "ambientRNA-SoupX.txt"), append = T)
+    }else{
+        bg.spec.genes = NULL
+        bg.rho = NULL
+        sc = NULL
+        p.bg.genes = NULL
     }
 
-    cand.genes <- intersect(subset(gene.manifest, nCell > 10)$Symbol,
-                            head(rownames(bg.result[order(bg.result, decreasing = T), ]), 20000))
-
-    cat("The genes used to estimate contamination fraction of ambient RNAs:\n",
-        file = file.path(savePath, "ambientRNA-SoupX.txt"), append = F)
-    for(g.type in names(bg.spec.genes)){
-        cur.genes <- intersect(bg.spec.genes[[g.type]], rownames(expr.data))
-        cur.genes <- intersect(cur.genes, cand.genes)
-        if(length(cur.genes) > 0){
-            bg.spec.genes[[g.type]] <- cur.genes
-            cat("\t* ", g.type, ": ", str_c(cur.genes, collapse = ", "), "\n",
-                sep = "", file = file.path(savePath, "ambientRNA-SoupX.txt"), append = T)
-        }else{
-            bg.spec.genes[[g.type]] <- NULL
-        }
-    }
-
-    suppressMessages(
-        useToEst <- estimateNonExpressingCells(sc, nonExpressedGeneList = bg.spec.genes)
-    )
-    suppressMessages(
-        sc <- calculateContaminationFraction(sc, bg.spec.genes,
-                                             useToEst = useToEst,
-                                             cellSpecificEstimates = F)
-    )
-    bg.rho <- round(sc$metaData$rho[1], 4)
-
-    cat("\nThe estimated contamination fraction is:\n",
-        file = file.path(savePath, "ambientRNA-SoupX.txt"), append = T)
-    cat(bg.rho, "\n",
-        file = file.path(savePath, "ambientRNA-SoupX.txt"), append = T)
 
     message("[", Sys.time(), "] -----: resutls saving")
     filter.thres <- list(
@@ -816,6 +829,7 @@ runScStatistics <- function(dataPath, savePath,
                     cr.version = cr.version,
                     raw.data = raw.data,
                     run.emptydrop = run.emptydrop,
+                    bool.runSoupx = bool.runSoupx,
                     bg.spec.genes = bg.spec.genes,
                     bg.rho = bg.rho,
                     sc = sc,
