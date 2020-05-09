@@ -16,7 +16,13 @@ runSurvival(
 \arguments{
 \item{features}{The names of marker genes or signatures to be analyzed.}
 
-\item{data}{The data used to perform survival analysis.}
+\item{data}{The data used to perform survival analysis.
+It should be an expression or signature matrix with gene or signature by patient.
+The row names are the features' anmes. The columns are patients' labels.}
+
+\item{surv.time}{The survival time of patients. It should be in accord with the columns of data.}
+
+\item{surv.event}{The status indicator of patients. 0=alive, 1=dead. It should be in accord with the columns of data.}
 
 \item{savePath}{}
 }

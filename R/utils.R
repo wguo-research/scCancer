@@ -491,8 +491,10 @@ getMouseGene <- function(hg.genes, bool.name = F, deduplicate = T){
 #'
 #' @param features The names of marker genes or signatures to be analyzed.
 #' @param data The data used to perform survival analysis.
-#' @param surv.time
-#' @param surv.event
+#' It should be an expression or signature matrix with gene or signature by patient.
+#' The row names are the features' anmes. The columns are patients' labels.
+#' @param surv.time The survival time of patients. It should be in accord with the columns of data.
+#' @param surv.event The status indicator of patients. 0=alive, 1=dead. It should be in accord with the columns of data.
 #' @param cut.off
 #' @param savePath
 #'
