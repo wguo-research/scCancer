@@ -489,8 +489,8 @@ getMouseGene <- function(hg.genes, bool.name = F, deduplicate = T){
 #' patient are divided into two groups and then survival analysis is performed.
 #' The survival curves can be plotted.
 #'
-#' @param runSurvival
-#' @param data
+#' @param features The names of marker genes or signatures to be analyzed.
+#' @param data The data used to perform survival analysis.
 #' @param surv.time
 #' @param surv.event
 #' @param cut.off

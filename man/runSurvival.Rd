@@ -14,6 +14,10 @@ runSurvival(
 )
 }
 \arguments{
+\item{features}{The names of marker genes or signatures to be analyzed.}
+
+\item{data}{The data used to perform survival analysis.}
+
 \item{savePath}{}
 }
 \value{
