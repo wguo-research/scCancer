@@ -482,6 +482,29 @@ getMouseGene <- function(hg.genes, bool.name = F, deduplicate = T){
 
 
 
+#' runSurvival
+#'
+#' According to the marker genes or signatures expression high/low levels,
+#' patient are divided into two groups and then survival analysis is performed.
+#' The survival curves can be plotted.
+#'
+#' @param features The names of marker genes or signatures to be analyzed
+#' @param data The data used to perform survival analysis.
+#' It should be an expression or signature matrix with gene or signature by patient.
+#' The row names are the features' anmes. The columns are patients' labels.
+#' @param surv.time The survival time of patients. It should be in accord with the columns of data.
+#' @param surv.event The status indicator of patients. 0=alive, 1=dead. t should be in accord with the columns of data.
+#' @param cut.off The percentage threshold to divide patients into two groups.
+#' The default is 0.5, which means the patients are divided by median.
+#' Other values, such as 0.4, means the first 40% patients are set "Low" group
+#' and the last 40% are set "High" group (the median 20% are discarded).
+#' @param savePath The path to save the survival plots of genes or signatures (the default is NULL and the plots will be return without saving).
+#'
+#' @return A list of survival curves plots.
+#' @export
+#'
+#' @import survival survminer
+#'
 runSurvival <- function(features, data, surv.time, surv.event, cut.off = 0.5, savePath = NULL){
     data <- as.matrix(data)
     cut.off <- min(cut.off, 1 - cut.off)
