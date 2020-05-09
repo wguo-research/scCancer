@@ -495,8 +495,11 @@ getMouseGene <- function(hg.genes, bool.name = F, deduplicate = T){
 #' The row names are the features' anmes. The columns are patients' labels.
 #' @param surv.time The survival time of patients. It should be in accord with the columns of data.
 #' @param surv.event The status indicator of patients. 0=alive, 1=dead. It should be in accord with the columns of data.
-#' @param cut.off
-#' @param savePath
+#' @param cut.off The percentage threshold to divide patients into two groups.
+#' The default is 0.5, which means the patients are divided by median.
+#' Other values, such as 0.4, means the first 40% patients are set "Low" group
+#' and the last 40% are set "High" group (the median 20% are discarded).
+#' @param savePath The path to save the survival plots of genes or signatures (the default is NULL and the plots will be return without saving).
 #'
 #'
 #' @return
