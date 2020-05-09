@@ -14,7 +14,6 @@
 #'
 #' @import harmony liger
 #'
-#' @examples
 runScCombination <- function(single.savePaths, sampleNames, savePath, combName,
                              authorName = NULL,
                              comb.method = "NormalMNN",

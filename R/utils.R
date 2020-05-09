@@ -498,10 +498,9 @@ getMouseGene <- function(hg.genes, bool.name = F, deduplicate = T){
 #' The default is 0.5, which means the patients are divided by median.
 #' Other values, such as 0.4, means the first 40% patients are set "Low" group
 #' and the last 40% are set "High" group (the median 20% are discarded).
-#' @param savePath The path to save the survival plots of genes/signatures
-#' (the default is NULL and the plots will be return without saving).
+#' @param savePath The path to save the survival plots of genes/signatures (the default is NULL and the plots will be return without saving).
 #'
-#' @return
+#' @return A list of survival curves plots.
 #' @export
 #'
 #' @import survival survminer

@@ -1427,7 +1427,6 @@ runCellInteraction <- function(expr, cellSetName = "default", species = "human",
 #'
 #' @importFrom gridExtra grid.arrange
 #'
-#' @examples
 plotCellInteraction <- function(stat.df, cell.annotation){
     p.inter <- ggplot(stat.df, aes(x = Ligand.CellSet, y = Receptor.CellSet,
                                              size = Num, color = Sum)) +
