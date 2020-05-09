@@ -24,7 +24,8 @@ The row names are the features' anmes. The columns are patients' labels.}
 
 \item{surv.event}{The status indicator of patients. 0=alive, 1=dead. It should be in accord with the columns of data.}
 
-\item{cut.off}{The percentage threshold to divide patients into two groups.}
+\item{cut.off}{The percentage threshold to divide patients into two groups.
+The default is 0.5, which means the patients are divided by median.}
 
 \item{savePath}{The path to save the survival plots of genes or signatures (the default is NULL and the plots will be return without saving).}
 }
