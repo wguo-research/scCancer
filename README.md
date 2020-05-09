@@ -21,29 +21,42 @@ After the computational analyses, detailed and graphical reports were generated 
 
 
 ## Installation
-
 Firstly, please install or update the package `devtools` by running 
-```R
+```
 install.packages("devtools")
 ```
 
 Then the `scCancer` can be installed via
-
-```R
+```
 library(devtools)
 devtools::install_github("wguo-research/scCancer")
 ```
 
-**Hint**: A dependent package `NNLM` was removed from the CRAN repository recently, so an error about it may be reported during the installation. 
-If so, you can install a formerly available version manually from its [archive](https://cran.r-project.org/src/contrib/Archive/NNLM/). Besides, if you encounter errors saying package `SoupX` is unavalibale, you can refer to its [GitHub](https://github.com/constantAmateur/SoupX) and install it via
-```R
-devtools::install_github("constantAmateur/SoupX")
-```
+<span style="color:red">**Hint**</span>: 
+
+1) A dependent package `NNLM` was removed from the CRAN repository recently, so an error about it may be reported during the installation. 
+If so, you can install a formerly available version manually from its [archive](https://cran.r-project.org/src/contrib/Archive/NNLM/).
+
+2) Some dependent packages on GitHub (as follows) may not be able to install automatically, if you encounter such errors, please refer to their GitHub and install them via corresponding commands.
+* `SoupX`: 
+    * Link: [GitHub](https://github.com/constantAmateur/SoupX)
+    * Installation: `devtools::install_github("constantAmateur/SoupX")`
+
+* `harmony`: 
+    * Link: [GitHub](https://github.com/immunogenomics/harmony)
+    * Installation: `devtools::install_github("immunogenomics/harmony")`
+
+* `liger`: 
+    * Link: [GitHub](https://github.com/MacoskoLab/liger)
+    * Installation: `devtools::install_github("MacoskoLab/liger")`
+
+
+
 
 
 ## Usage
 
-The vignette of `scCancer` can be found in this [page](http://lifeome.net/software/sccancer/scCancer-vignette.html) or the project [wiki]( https://github.com/wguo-research/scCancer/wiki).
+The vignette of `scCancer` can be found in the project [wiki]( https://github.com/wguo-research/scCancer/wiki).
 
 We provide an [example data](http://lifeome.net/software/sccancer/KC-example.tar.gz) of kidney cancer from 10X Genomics, and following are the generated HTML reports:
 
