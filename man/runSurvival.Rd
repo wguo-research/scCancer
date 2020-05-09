@@ -13,8 +13,11 @@ runSurvival(
   savePath = NULL
 )
 }
+\arguments{
+\item{savePath}{}
+}
 \value{
-A list of survival curves plots.
+
 }
 \description{
 According to the marker genes or signatures expression high/low levels,

@@ -482,13 +482,22 @@ getMouseGene <- function(hg.genes, bool.name = F, deduplicate = T){
 
 
 
+
 #' runSurvival
 #'
 #' According to the marker genes or signatures expression high/low levels,
 #' patient are divided into two groups and then survival analysis is performed.
 #' The survival curves can be plotted.
 #'
-#' @return A list of survival curves plots.
+#' @param runSurvival
+#' @param data
+#' @param surv.time
+#' @param surv.event
+#' @param cut.off
+#' @param savePath
+#'
+#'
+#' @return
 #' @export
 #'
 #' @import survival survminer
