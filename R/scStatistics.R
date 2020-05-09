@@ -579,6 +579,11 @@ runScStatistics <- function(dataPath, savePath,
     # results <- as.list(environment())
     checkStatArguments(as.list(environment()))
 
+    if(bool.runSoupx){
+        # message("Due to that the dependent package 'SoupX` updated recently, so ")
+        bool.runSoupx <- F
+    }
+
     if(!dir.exists(file.path(savePath, "figures/"))){
         dir.create(file.path(savePath, "figures/"), recursive = T)
     }
