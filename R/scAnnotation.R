@@ -74,7 +74,7 @@ prepareSeurat <- function(dataPath, statPath, savePath,
                           bool.rmContamination = T,
                           contamination.fraction = NULL,
                           vars.add.meta = c("mito.percent", "ribo.percent", "diss.percent"),
-                          vars.to.regress = c("nUMI", "mito.percent", "ribo.percent")){
+                          vars.to.regress = c("nCount_RNA", "mito.percent", "ribo.percent")){
     raw.data = T
     data.path <- get10Xpath(dataPath, raw.data = raw.data)
     if(is.null(data.path)){
@@ -196,6 +196,7 @@ prepareSeurat <- function(dataPath, statPath, savePath,
 #' Perform usual Seurat step and cell type prediction.
 #'
 #' @param expr A Seurat object return by prepareSeurat.
+#' @param comb.method The method used in combining samples. It worked only for multi-sample analysis.
 #' @inheritParams runScAnnotation
 #'
 #' @return A list containing a Seurat object, differential expressed genes and annotation information for cells.
@@ -205,26 +206,48 @@ runSeurat <- function(expr,
                       savePath,
                       pc.use = 30, resolution = 0.8,
                       clusterStashName = "default",
-                      bool.runDiffExpr = T){
+                      bool.runDiffExpr = T,
+                      comb.method = NULL){
 
     if(!dir.exists(file.path(savePath))){
         dir.create(file.path(savePath), recursive = T)
     }
 
-    message("[", Sys.time(), "] -----: PCA")
-    expr <- RunPCA(expr, verbose = F)
+    if(!is.null(comb.method)){
+        if(comb.method == "Harmony"){
+            reduction.type = "harmony"
+        }else if(comb.method == "LIGER"){
+            reduction.type = "inmf"
+            pc.use <- min(pc.use, ncol(expr@reductions$inmf@cell.embeddings))
+        }else{
+            message("[", Sys.time(), "] -----: PCA")
+            expr <- RunPCA(expr, verbose = F)
+            reduction.type <- "pca"
+        }
+    }else{
+        message("[", Sys.time(), "] -----: PCA")
+        expr <- RunPCA(expr, verbose = F)
+        reduction.type <- "pca"
+    }
 
     message("[", Sys.time(), "] -----: clustering")
-    expr <- FindNeighbors(expr, dims = 1:pc.use, verbose = F)
+    expr <- FindNeighbors(expr, reduction = reduction.type, dims = 1:pc.use, verbose = F)
     expr <- FindClusters(expr, resolution = resolution, verbose = F)
     expr[[clusterStashName]] <- as.numeric(Idents(object = expr))
 
-    message("[", Sys.time(), "] -----: tSNE")
-    expr <- RunTSNE(object = expr, dims = 1:pc.use)
+    if(is.null(comb.method)){
+        message("[", Sys.time(), "] -----: tSNE")
+        expr <- RunTSNE(object = expr, dims = 1:pc.use, reduction = reduction.type)
+    }else{
+        if(comb.method != "LIGER"){
+            message("[", Sys.time(), "] -----: tSNE")
+            expr <- RunTSNE(object = expr, dims = 1:pc.use, reduction = reduction.type)
+        }
+    }
 
     message("[", Sys.time(), "] -----: UMAP")
     suppressWarnings(
-        tryCatch(expr <- RunUMAP(expr, dims = 1:pc.use, verbose = F),
+        tryCatch(expr <- RunUMAP(expr, dims = 1:pc.use, reduction = reduction.type, verbose = F),
                  error = function(err) {
                      cat("Error in 'RunUMAP': Please use 'pip install umap-learn' to install UMAP firstly.\n")}
         )
@@ -297,7 +320,7 @@ singleGenePlot <- function(expr.data, gene,
 
     if(ju.zero){
         new.label <- paste0(gene, " (0/", dim(expr.data)[2], ")")
-        p <- ggplot(coor.df, aes(x = coor.df[, coor.names[1]], y = coor.df[, coor.names[2]])) +
+        p <- ggplot(coor.df, aes(x = .data[[coor.names[1]]], y = .data[[coor.names[2]]])) +
             geom_point(shape = 21, size = 0.8, stroke = 0.2, color = "grey", fill = "white") +
             annotate("text", x = minx, y = miny, label = new.label, hjust = 0, vjust = 0,
                      size = font.size, fontface = 'italic') +
@@ -305,7 +328,7 @@ singleGenePlot <- function(expr.data, gene,
     }else{
         coor.df$cur.value <- expr.data[gene, ]
         new.label <- paste0(gene, " (", sum(expr.data[gene, ] > 0), "/", dim(expr.data)[2], ")")
-        p <- ggplot(coor.df, aes(x = coor.df[, coor.names[1]], y = coor.df[, coor.names[2]],
+        p <- ggplot(coor.df, aes(x = .data[[coor.names[1]]], y = .data[[coor.names[2]]],
                                  fill = cur.value)) +
             geom_point(shape = 21, size = 0.8, stroke = 0.2, color = "grey") +
             scale_fill_gradientn(colors = c("white", color),
@@ -440,15 +463,15 @@ pointDRPlot <- function(cell.annotation, value,
         if(point.type == 1){
             p <- ggplot() +
                 geom_point(cell.annotation[!sel.cell, ],
-                           mapping = aes(x = cell.annotation[!sel.cell, coor.names[1]],
-                                         y = cell.annotation[!sel.cell, coor.names[2]]),
+                           mapping = aes(x = .data[[coor.names[1]]],
+                                         y = .data[[coor.names[2]]]),
                            fill = "white",
                            shape = 21, size = 0.8, stroke = 0.2, color = "white")
         }else if(point.type == 2){
             p <- ggplot() +
                 geom_point(cell.annotation[!sel.cell, ],
-                           mapping = aes(x = cell.annotation[sel.cell, coor.names[1]],
-                                         y = cell.annotation[sel.cell, coor.names[2]],
+                           mapping = aes(x = .data[[coor.names[1]]],
+                                         y = .data[[coor.names[2]]],
                                          color = "white"),
                            shape = 16, size = 0.3)
         }
@@ -460,8 +483,8 @@ pointDRPlot <- function(cell.annotation, value,
     if(point.type == 1){
         p <- p +
             geom_point(cell.annotation[sel.cell, ],
-                       mapping = aes(x = cell.annotation[sel.cell, coor.names[1]],
-                                     y = cell.annotation[sel.cell, coor.names[2]],
+                       mapping = aes(x = .data[[coor.names[1]]],
+                                     y = .data[[coor.names[2]]],
                                      fill = fill.value[sel.cell]),
                        shape = 21, size = 0.8, stroke = 0.2, color = "lightgrey") +
             coord_fixed(ratio = ratio) +
@@ -481,8 +504,8 @@ pointDRPlot <- function(cell.annotation, value,
         }
     }else if(point.type == 2){
         p <- p + geom_point(cell.annotation[sel.cell, ],
-                       mapping = aes(x = cell.annotation[sel.cell, coor.names[1]],
-                                     y = cell.annotation[sel.cell, coor.names[2]],
+                       mapping = aes(x = .data[[coor.names[1]]],
+                                     y = .data[[coor.names[2]]],
                                      color = fill.value[sel.cell]),
                        shape = 16, size = 0.3) +
             coord_fixed(ratio = ratio) +
@@ -535,7 +558,7 @@ clusterBarPlot <- function(cell.annotation, sel.col = "Cell.Type", cell.colors =
     if(legend.position == "bottom" & is.null(legend.ncol)){
         legend.ncol <- 3
     }
-    p <- ggplot(bar.df, aes(x = Cluster, y = value, fill = bar.df[[sel.col]])) +
+    p <- ggplot(bar.df, aes(x = Cluster, y = value, fill = .data[[sel.col]])) +
         geom_bar(stat = "identity") +
         ggplot_config(base.size = 6) +
         scale_fill_manual(values = cell.colors) +
@@ -793,16 +816,26 @@ predCellType <- function(X.test, ct.templates = NULL, species = "human"){
         }
     }
 
-    cor.df <- list()
-    for(i in 1:length(ct.templates)){
+    # cor.df <- list()
+    # for(i in 1:length(ct.templates)){
+    #     type <- names(ct.templates)[i]
+    #     common.gene <- intersect(rownames(X.test), names(ct.templates[[type]]))
+    #     s.cor <- cor(as.matrix(X.test[common.gene, ]),
+    #                  ct.templates[[type]][common.gene],
+    #                  method = "spearman")
+    #     s.cor[is.na(s.cor)] <- 0
+    #     cor.df[[type]] <- s.cor
+    # }
+    cor.df <- lapply(1:length(ct.templates), function(i){
         type <- names(ct.templates)[i]
         common.gene <- intersect(rownames(X.test), names(ct.templates[[type]]))
         s.cor <- cor(as.matrix(X.test[common.gene, ]),
                      ct.templates[[type]][common.gene],
                      method = "spearman")
         s.cor[is.na(s.cor)] <- 0
-        cor.df[[type]] <- s.cor
-    }
+        return(s.cor)
+    })
+    names(cor.df) <- names(ct.templates)
     cor.df <- as.data.frame(cor.df)
 
     type.pred <- colnames(cor.df)[unlist(apply(cor.df, 1, which.max))]
@@ -1419,7 +1452,7 @@ plotCellInteraction <- function(stat.df, cell.annotation){
     bar.df <- melt(bar.num)
     bar.df$Cluster = factor(bar.df$Cluster)
 
-    p.type <- ggplot(bar.df, aes(x = Cluster, y = value, fill = bar.df[[sel.col]])) +
+    p.type <- ggplot(bar.df, aes(x = Cluster, y = value, fill = .data[[sel.col]])) +
         geom_bar(stat = "identity") +
         coord_equal(length(unique(bar.df$Cluster)) / 5) +
         scale_fill_manual(values = cell.colors) +
@@ -1483,7 +1516,7 @@ plotCellInteraction <- function(stat.df, cell.annotation){
 #' @param vars.add.meta A vector indicating the variables to be added to Seurat object's meta.data.
 #' The default is c("mito.percent", "ribo.percent", "diss.percent").
 #' @param vars.to.regress A vector indicating the variables to regress out in R package Seurat.
-#' The default is c("nUMI", "mito.percent", "ribo.percent").
+#' The default is c("nCount_RNA", "mito.percent", "ribo.percent").
 #' @param pc.use An integer number indicating the number of PCs to use as input features. The default is 30.
 #' @param resolution A float number used in function 'FindClusters' in Seurat. The default is 0.8.
 #' @param clusterStashName A character string used as the name of cluster identies. The default is "default".
@@ -1500,7 +1533,7 @@ plotCellInteraction <- function(stat.df, cell.annotation){
 #' human cells and mouse cells(such as PDX sample).
 #' If TRUE, the arguments 'hg.mm.thres' and 'mix.anno' should be set to corresponding values.
 #' @param bool.runDoublet A logical value indicating whether to estimate doublet scores.
-#' @param doublet.method The method to estimate doublet score. The default is "cxds".
+#' @param doublet.method The method to estimate doublet score. The default is "bcds".
 #' "cxds"(co-expression based doublet scoring) and "bcds"(binary classification based doublet scoring) are allowed.
 #' These methods are from R package "scds".
 #' @param bool.runCellClassify A logical value indicating whether to predict the usual cell type. The default is TRUE.
@@ -1514,7 +1547,8 @@ plotCellInteraction <- function(stat.df, cell.annotation){
 #' The larger the value, the closer the cell pair is.
 #' The default is NULL, and a SNN matrix of the default ref.data will be used.
 #' @param cutoff A threshold used in the CNV inference.
-#' @param bool.intraTumor A logical value indicating whether to identify tumor clusters and perform following analyses.
+#' @param bool.intraTumor A logical value indicating whether to use the identified tumor clusters to
+#' perform following intra-tumor heterogeneity analyses.
 #' @param p.value.cutoff A threshold to decide weather the bimodality distribution of malignancy score is significant.
 #' @param bool.runCellCycle A logical value indicating whether to estimate cell cycle scores.
 #' @param bool.runStemness A logical value indicating whether to estimate stemness scores.
@@ -1543,7 +1577,7 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
                             bool.rmContamination = F,
                             contamination.fraction = NULL,
                             vars.add.meta = c("mito.percent", "ribo.percent", "diss.percent"),
-                            vars.to.regress = c("nUMI", "mito.percent", "ribo.percent"),
+                            vars.to.regress = c("nCount_RNA", "mito.percent", "ribo.percent"),
                             pc.use = 30,
                             resolution = 0.8,
                             clusterStashName = "default",

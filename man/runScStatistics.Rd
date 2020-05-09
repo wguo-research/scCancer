@@ -14,6 +14,7 @@ runScStatistics(
   hg.mm.thres = 0.6,
   mix.anno = c(human = "hg19", mouse = "mm10"),
   bg.spec.genes = NULL,
+  bool.runSoupx = T,
   genReport = T
 )
 }

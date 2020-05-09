@@ -6,17 +6,19 @@
 #' @param single.savePaths A vecotr of paths containing the results files of step 'runScAnnotation' for each sample.
 #' @param sampleNames A vector of labels for all samples.
 #' @param combName A label for the combined samples.
-#' @param comb.method The method to combine samples. The default is "NormalMNN". "NormalMNN", "SeuratMNN", "Raw" and "Regression" are optional.
+#' @param comb.method The method to combine samples. The default is "NormalMNN". "Harmony", "NormalMNN", "SeuratMNN", "Raw", "Regression" and "LIGER" are optional.
 #' @inheritParams runScAnnotation
 #'
 #' @return A results list with all useful objects used in the function.
 #' @export
 #'
+#' @import harmony liger
+#'
 #' @examples
 runScCombination <- function(single.savePaths, sampleNames, savePath, combName,
                              authorName = NULL,
                              comb.method = "NormalMNN",
-                             vars.to.regress = c("nUMI", "mito.percent", "ribo.percent"),
+                             vars.to.regress = c("nCount_RNA", "mito.percent", "ribo.percent"),
                              pc.use = 30,
                              resolution = 0.8,
                              clusterStashName = "comb.cluster",
@@ -102,6 +104,89 @@ runScCombination <- function(single.savePaths, sampleNames, savePath, combName,
                           vars.to.regress = c("sample.ident", vars.to.regress),
                           verbose = F)
 
+    }else if(comb.method == "Harmony"){
+        message("[", Sys.time(), "] -----: combine data by Harmony")
+
+        items <- unique(unlist(lapply(names(expr.list), function(x){
+            grep("^GS__", names(expr.list[[x]]@meta.data), value = T)
+        })))
+        items <- c("doublet.score", "Cell.Type", "Malign.score",
+                   "Malign.type", "CellCycle.score", "Stemness.score", items)
+
+        ju.mat <- sapply(names(expr.list), function(x){
+            !(items %in% names(expr.list[[x]]@meta.data))
+        })
+        comb.metadata <- lapply(items[rowSums(ju.mat) == 0], function(x){
+            tmp <- do.call(c, lapply(names(expr.list), function(y){
+                expr.list[[y]]@meta.data[[x]]
+            }))
+        })
+        names(comb.metadata) <- items[rowSums(ju.mat) == 0]
+        comb.metadata <- data.frame(comb.metadata)
+
+        share.genes <- Reduce(intersect,  lapply(expr.list, rownames))
+        for(s.name in names(expr.list)){
+            expr.list[[s.name]] <- GetAssayData(expr.list[[s.name]], slot = "counts")[share.genes, ]
+        }
+        comb.data <- do.call(cbind, expr.list)
+        rm(expr.list)
+
+        expr <- CreateSeuratObject(counts = comb.data,  min.cells = 5) %>%
+            Seurat::NormalizeData(verbose = FALSE) %>%
+            FindVariableFeatures(selection.method = "vst", nfeatures = 2000, verbose = F) %>%
+            ScaleData(verbose = FALSE) %>%
+            RunPCA(pc.genes = expr@var.genes, verbose = FALSE)
+        expr[["sample.ident"]] <- sample.ident
+        expr <- expr %>% RunHarmony("sample.ident", plot_convergence = TRUE, verbose = F)
+
+        expr@meta.data <- cbind(expr@meta.data, comb.metadata)
+
+        bool.plotHVG <- F
+
+    }else if(comb.method == "LIGER"){
+        message("[", Sys.time(), "] -----: combine data by LIGER")
+
+        items <- unique(unlist(lapply(names(expr.list), function(x){
+            grep("^GS__", names(expr.list[[x]]@meta.data), value = T)
+        })))
+        items <- c("doublet.score", "Cell.Type", "Malign.score",
+                   "Malign.type", "CellCycle.score", "Stemness.score", items)
+
+        ju.mat <- sapply(names(expr.list), function(x){
+            !(items %in% names(expr.list[[x]]@meta.data))
+        })
+        comb.metadata <- lapply(items[rowSums(ju.mat) == 0], function(x){
+            tmp <- do.call(c, lapply(names(expr.list), function(y){
+                expr.list[[y]]@meta.data[[x]]
+            }))
+        })
+        names(comb.metadata) <- items[rowSums(ju.mat) == 0]
+        comb.metadata <- data.frame(comb.metadata)
+
+        for(e.i in 1:length(expr.list)){
+            s.name <- names(expr.list)[e.i]
+            expr.list[[s.name]] <- RenameCells(expr.list[[s.name]],
+                                               new.names = paste0(colnames(expr.list[[s.name]]), "-", e.i))
+            expr.list[[s.name]] <- GetAssayData(expr.list[[s.name]], slot = "counts")
+        }
+        expr = createLiger(expr.list)
+        expr = normalize(expr)
+        expr = selectGenes(expr, var.thresh = 0.1)
+        expr = scaleNotCenter(expr)
+
+        expr = optimizeALS(expr, k = 20)
+        expr = quantileAlignSNF(expr)
+        expr = runTSNE(expr)
+        expr = ligerToSeurat(expr, use.liger.genes = T)
+
+        expr = ScaleData(expr, verbose = FALSE)
+        expr[["sample.ident"]] <- sample.ident
+        expr@reductions$inmf@assay.used <- "RNA"
+
+        expr@meta.data <- cbind(expr@meta.data, comb.metadata)
+
+        bool.plotHVG = F
+
     }else if(comb.method == "NormalMNN"){
         message("[", Sys.time(), "] -----: combine data by normal cell MNN")
         suppressWarnings( expr.anchors <- FindIntegrationAnchors(object.list = expr.list,
@@ -151,7 +236,8 @@ runScCombination <- function(single.savePaths, sampleNames, savePath, combName,
         pc.use = pc.use,
         resolution = resolution,
         clusterStashName = clusterStashName,
-        bool.runDiffExpr = bool.runDiffExpr
+        bool.runDiffExpr = bool.runDiffExpr,
+        comb.method = comb.method
     )
     expr = t.results$expr
     cell.annotation = t.results$cell.annotation
@@ -250,7 +336,8 @@ runScCombination <- function(single.savePaths, sampleNames, savePath, combName,
                     gene.manifest <- rbind(gene.manifest, new.genes)
                 }
             }
-            rownames(gene.manifest) <- gene.manifest$EnsemblID
+            # rownames(gene.manifest) <- gene.manifest$EnsemblID
+            rownames(gene.manifest) <- gene.manifest$Symbol
             t.results <- runMalignancy(expr = expr,
                                        gene.manifest = gene.manifest,
                                        cell.annotation = cell.annotation,

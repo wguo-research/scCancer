@@ -11,7 +11,7 @@ runScCombination(
   combName,
   authorName = NULL,
   comb.method = "NormalMNN",
-  vars.to.regress = c("nUMI", "mito.percent", "ribo.percent"),
+  vars.to.regress = c("nCount_RNA", "mito.percent", "ribo.percent"),
   pc.use = 30,
   resolution = 0.8,
   clusterStashName = "comb.cluster",
@@ -53,10 +53,10 @@ runScCombination(
 
 \item{authorName}{A character string for authors name and will be shown in the report.}
 
-\item{comb.method}{The method to combine samples. The default is "NormalMNN". "NormalMNN", "SeuratMNN", "Raw" and "Regression" are optional.}
+\item{comb.method}{The method to combine samples. The default is "NormalMNN". "Harmony", "NormalMNN", "SeuratMNN", "Raw", "Regression" and "LIGER" are optional.}
 
 \item{vars.to.regress}{A vector indicating the variables to regress out in R package Seurat.
-The default is c("nUMI", "mito.percent", "ribo.percent").}
+The default is c("nCount_RNA", "mito.percent", "ribo.percent").}
 
 \item{pc.use}{An integer number indicating the number of PCs to use as input features. The default is 30.}
 
@@ -103,7 +103,8 @@ The default is NULL, and a SNN matrix of the default ref.data will be used.}
 
 \item{p.value.cutoff}{A threshold to decide weather the bimodality distribution of malignancy score is significant.}
 
-\item{bool.intraTumor}{A logical value indicating whether to identify tumor clusters and perform following analyses.}
+\item{bool.intraTumor}{A logical value indicating whether to use the identified tumor clusters to
+perform following intra-tumor heterogeneity analyses.}
 
 \item{bool.runCellCycle}{A logical value indicating whether to estimate cell cycle scores.}
 

@@ -4,11 +4,11 @@
 
 ```{r echo=FALSE, results='asis'}
 if(results$doublet.method == "bcds"){
-    cat("* We estimate doublet score by using the binary classification based algorithm `bcds` in R package [scds](https://bioconductor.org/packages/release/bioc/html/scds.html).\n")
+    cat("We estimate doublet score by using the binary classification based algorithm `bcds` in R package [scds](https://bioconductor.org/packages/release/bioc/html/scds.html).\n")
 }else if(results$doublet.method == "cxds"){
-    cat("* We estimate doublet score by using the co-expression based algorithm `cxds` in R package [scds](https://bioconductor.org/packages/release/bioc/html/scds.html).\n")
+    cat("We estimate doublet score by using the co-expression based algorithm `cxds` in R package [scds](https://bioconductor.org/packages/release/bioc/html/scds.html).\n")
 }else if(results$doublet.method == "DoubletFinder"){
-    cat("* We estimate doublet score by using the algorithm in R package [DoubletFinder](https://github.com/chris-mcginnis-ucsf/DoubletFinder).\n")
+    cat("We estimate doublet score by using the algorithm in R package [DoubletFinder](https://github.com/chris-mcginnis-ucsf/DoubletFinder).\n")
 }
 ```
 

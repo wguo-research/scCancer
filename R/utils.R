@@ -481,6 +481,76 @@ getMouseGene <- function(hg.genes, bool.name = F, deduplicate = T){
 }
 
 
+
+#' runSurvival
+#'
+#' According to the marker genes or signatures expression high/low levels,
+#' patient are divided into two groups and then survival analysis is performed.
+#' The survival curves can be plotted.
+#'
+#' @param features The names of marker genes or signatures to be analyzed
+#' @param data The data used to perform survival analysis.
+#' It should be an expression or signature matrix with gene/signature by patient.
+#' The row names are the features' anmes. The columns are patients' labels.
+#' @param surv.time The survival time of patients. It should be in accord with the columns of data.
+#' @param surv.event The status indicator of patients. 0=alive, 1=dead. t should be in accord with the columns of data.
+#' @param cut.off The percentage threshold to divide patients into two groups.
+#' The default is 0.5, which means the patients are divided by median.
+#' Other values, such as 0.4, means the first 40% patients are set "Low" group
+#' and the last 40% are set "High" group (the median 20% are discarded).
+#' @param savePath The path to save the survival plots of genes/signatures
+#' (the default is NULL and the plots will be return without saving).
+#'
+#' @return
+#' @export
+#'
+#' @import survival survminer
+#'
+runSurvival <- function(features, data, surv.time, surv.event, cut.off = 0.5, savePath = NULL){
+    data <- as.matrix(data)
+    cut.off <- min(cut.off, 1 - cut.off)
+
+    ps <- list()
+    for(feat in features){
+        if(feat %in% rownames(data)){
+            dw.thres <- quantile(data[feat, ], cut.off)
+            up.thres <- quantile(data[feat, ], 1-cut.off)
+            p.df <- data.frame(sample = colnames(data),
+                               surv.time = surv.time,
+                               surv.event = surv.event)
+            p.df$expr <- sapply(data[feat, ], function(x){
+                if(x >= up.thres){
+                    return("High")
+                }else if(x < dw.thres){
+                    return("Low")
+                }else{
+                    return("Med")
+                }
+            })
+            surv.df <<- subset(p.df, expr != "Med")
+            surv_object <<- Surv(time = surv.df$surv.time, event = surv.df$surv.event)
+            fit <- survfit(surv_object ~ expr, data = surv.df)
+            p.surv <- ggsurvplot(fit, pval = TRUE,
+                                 palette = c("#f57e87", "#66d5a5"),
+                                 legend.title = paste0(feat, ":"))
+            if(!is.null(savePath)){
+                if(!dir.exists(savePath)){
+                    dir.create(savePath, recursive = T)
+                }
+                ggsave(filename = paste0(savePath, "surv-", feat, ".png"), p.surv$plot,
+                       width = 3.5, height = 3.5, dpi = 300)
+            }
+            ps[[feat]] <- p.surv$plot
+        }else{
+            cat("- Warning in 'runSurvival':", feat, "not found.\n")
+        }
+    }
+    return(ps)
+}
+
+
+
+
 #' extractFiles
 #'
 #' Extract files from each sample's folder and rename them with sample's name.
@@ -599,7 +669,7 @@ checkCombArguments <- function(argList){
     if(length(argList$single.savePaths) != length(argList$sampleNames)){
         stop("The length of parameter 'single.savePaths' and 'sampleNames' should be equal.\n")
     }
-    if(!(argList$comb.method %in% c("NormalMNN", "SeuratMNN", "Raw", "Regression"))){
-        stop("The parameter 'comb.method' should be one of the c(\"NormalMNN\", \"SeuratMNN\", \"Raw\", \"Regression\").\n")
+    if(!(argList$comb.method %in% c("Harmony", "NormalMNN", "SeuratMNN", "Raw", "Regression", "LIGER"))){
+        stop("The parameter 'comb.method' should be one of the c(\"Harmony\", \"NormalMNN\", \"SeuratMNN\", \"Raw\", \"Regression\", \"LIGER\").\n")
     }
 }

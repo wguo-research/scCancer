@@ -10,7 +10,8 @@ runSeurat(
   pc.use = 30,
   resolution = 0.8,
   clusterStashName = "default",
-  bool.runDiffExpr = T
+  bool.runDiffExpr = T,
+  comb.method = NULL
 )
 }
 \arguments{
@@ -25,6 +26,8 @@ runSeurat(
 \item{clusterStashName}{A character string used as the name of cluster identies. The default is "default".}
 
 \item{bool.runDiffExpr}{A logical value indicating whether to perform differential expressed analysis.}
+
+\item{comb.method}{The method used in combining samples. It worked only for multi-sample analysis.}
 }
 \value{
 A list containing a Seurat object, differential expressed genes and annotation information for cells.

@@ -68,7 +68,7 @@ getGeneManifest <- function(data.path, only.expr = T) {
         c("EnsemblID", "Symbol", "Type")[1:dim(gene.manifest)[2]]
     # gene.manifest$Symbol <- gsub("_", "-", make.unique(gene.manifest$Symbol))
 
-    if(only.expr){
+    if(only.expr & "Type" %in% colnames(gene.manifest)){
         gene.manifest <- subset(gene.manifest, Type == "Gene Expression")
     }
     return(gene.manifest)
@@ -285,7 +285,7 @@ calcThres <- function(cell.manifest, values = c("nUMI", "nGene")){
 
 
 histPlot <- function(cell.manifest, value, xlines = c()){
-    p <- ggplot(cell.manifest, aes(x = cell.manifest[[value]])) +
+    p <- ggplot(cell.manifest, aes(x = .data[[value]])) +
         geom_histogram(bins = 200, position = "stack", fill = "#a788ab") +
         labs(x = value, y = "Cell number") +
         ggplot_config(base.size = 6)
@@ -298,7 +298,7 @@ histPlot <- function(cell.manifest, value, xlines = c()){
 
 
 marginPlot <- function(cell.manifest, value, color = "#a788ab", xlines = c(), ylines = c()){
-    p <- ggplot(cell.manifest, aes(y = cell.manifest[[value]], x = nUMI)) +
+    p <- ggplot(cell.manifest, aes(y = .data[[value]], x = nUMI)) +
         geom_point(cex = 0.8, alpha = 0.1, color = color) +
         labs(y = value) +
         ggplot_config(base.size = 7)

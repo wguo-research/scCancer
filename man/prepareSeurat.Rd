@@ -18,7 +18,7 @@ prepareSeurat(
   bool.rmContamination = T,
   contamination.fraction = NULL,
   vars.add.meta = c("mito.percent", "ribo.percent", "diss.percent"),
-  vars.to.regress = c("nUMI", "mito.percent", "ribo.percent")
+  vars.to.regress = c("nCount_RNA", "mito.percent", "ribo.percent")
 )
 }
 \arguments{
@@ -59,7 +59,7 @@ The default is NULL and the result of scStatistics will be used.}
 The default is c("mito.percent", "ribo.percent", "diss.percent").}
 
 \item{vars.to.regress}{A vector indicating the variables to regress out in R package Seurat.
-The default is c("nUMI", "mito.percent", "ribo.percent").}
+The default is c("nCount_RNA", "mito.percent", "ribo.percent").}
 }
 \value{
 A list of Seurat object and gene.manifest.
