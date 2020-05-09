@@ -572,7 +572,7 @@ runScStatistics <- function(dataPath, savePath,
                             hg.mm.thres = 0.6,
                             mix.anno = c("human" = "hg19", "mouse" = "mm10"),
                             bg.spec.genes = NULL,
-                            bool.runSoupx = T,
+                            bool.runSoupx = F,
                             genReport = T){
 
     message("[", Sys.time(), "] START: RUN scStatistics")
