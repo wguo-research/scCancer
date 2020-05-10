@@ -34,9 +34,14 @@ devtools::install_github("wguo-research/scCancer")
 
 <font color=red>**Hint:**</font>
 
-1) <font color=red>A dependent package `NNLM` was removed from the CRAN repository recently, so an error about it may be reported during the installation. 
-If so, you can install a formerly available version manually from its [archive](https://cran.r-project.org/src/contrib/Archive/NNLM/).</font>
-
+1) <font color=red>A dependent package `NNLM` was removed from the CRAN repository recently, so an error about it may be reported during the installation. </font>
+If so, you can install its a formerly available version by 
+```
+install.packages("RcppArmadillo")
+install.packages("RcppProgress")
+install.packages('http://lifeome.net/software/sccancer/packages/NNLM_0.4.3.tar.gz', type='source')
+```
+or install manually from its [archive](https://cran.r-project.org/src/contrib/Archive/NNLM/).
 
 2) Some dependent packages on GitHub (as follows) may not be able to install automatically, if you encounter such errors, please refer to their GitHub and install them via corresponding commands.
 * `SoupX`: 

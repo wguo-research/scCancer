@@ -41,6 +41,7 @@ Imports:
     survival,
     survminer
 Remotes: 
+    github::constantAmateur/SoupX,
     github::immunogenomics/harmony,
     github::MacoskoLab/liger
 Depends: R (>= 3.5.0)
