@@ -31,17 +31,11 @@ Then the `scCancer` can be installed via
 library(devtools)
 devtools::install_github("wguo-research/scCancer")
 ```
-```diff
-- **Hint:**
-```
+
 <font color=red>**Hint:**</font>
 
 1) <font color=red>A dependent package `NNLM` was removed from the CRAN repository recently, so an error about it may be reported during the installation.</font> If so, you can install its a formerly available version by following codes or install manually from its [archive](https://cran.r-project.org/src/contrib/Archive/NNLM/).
-```diff
-- install.packages("RcppArmadillo")
-- install.packages("RcppProgress")
-- install.packages('http://lifeome.net/software/sccancer/packages/NNLM_0.4.3.tar.gz', type='source')
-```
+
 ```r
 install.packages("RcppArmadillo")
 install.packages("RcppProgress")
