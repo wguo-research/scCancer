@@ -32,7 +32,7 @@ library(devtools)
 devtools::install_github("wguo-research/scCancer")
 ```
 
-:exclamation: :exclamation: :exclamation: <font color=red>**！！！Hint:！！！**</font>
+<font color=red>**Hint:**</font>  :exclamation: :exclamation: :exclamation: :exclamation: :exclamation:  
 
 1) <font color=red>A dependent package `NNLM` was removed from the CRAN repository recently, so an error about it may be reported during the installation.</font> If so, you can install its a formerly available version by following codes or install manually from its [archive](https://cran.r-project.org/src/contrib/Archive/NNLM/).
 
