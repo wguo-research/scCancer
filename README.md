@@ -22,17 +22,18 @@ After the computational analyses, detailed and graphical reports were generated 
 
 ## Installation
 Firstly, please install or update the package `devtools` by running 
-```
+```r
 install.packages("devtools")
 ```
 
 Then the `scCancer` can be installed via
-```
+```r
 library(devtools)
 devtools::install_github("wguo-research/scCancer")
 ```
 
-<font color=red>**Hint:**</font>  :exclamation: :exclamation: :exclamation: :exclamation: :exclamation:  
+ 
+ ###  <font color=red>**Hint:**</font>  :exclamation: :exclamation: :exclamation: 
 
 1) <font color=red>A dependent package `NNLM` was removed from the CRAN repository recently, so an error about it may be reported during the installation.</font> If so, you can install its a formerly available version by following codes or install manually from its [archive](https://cran.r-project.org/src/contrib/Archive/NNLM/).
 
