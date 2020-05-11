@@ -32,10 +32,9 @@ library(devtools)
 devtools::install_github("wguo-research/scCancer")
 ```
 
-<font color=red>**Hint:**</font>
+$\color{red}{**Hint:**}$
 
-1) <font color=red>A dependent package `NNLM` was removed from the CRAN repository recently, so an error about it may be reported during the installation. </font>
-If so, you can install its a formerly available version by following codes or install manually from its [archive](https://cran.r-project.org/src/contrib/Archive/NNLM/).
+1) $\color{red}{A dependent package `NNLM` was removed from the CRAN repository recently, so an error about it may be reported during the installation.}$ If so, you can install its a formerly available version by following codes or install manually from its [archive](https://cran.r-project.org/src/contrib/Archive/NNLM/).
 ```
 install.packages("RcppArmadillo")
 install.packages("RcppProgress")
