@@ -44,17 +44,10 @@ install.packages('http://lifeome.net/software/sccancer/packages/NNLM_0.4.3.tar.g
 ```
 
 2) Some dependent packages on GitHub (as follows) may not be able to install automatically, if you encounter such errors, please refer to their GitHub and install them via corresponding commands.
-* `SoupX`: 
-    * Link: [GitHub](https://github.com/constantAmateur/SoupX)
-    * Installation: `devtools::install_github("constantAmateur/SoupX")`
+* [`SoupX`](https://github.com/constantAmateur/SoupX):  `devtools::install_github("constantAmateur/SoupX")`
+* [`harmony`](https://github.com/immunogenomics/harmony):  `devtools::install_github("immunogenomics/harmony")`
+* [`liger`](https://github.com/MacoskoLab/liger):  `devtools::install_github("MacoskoLab/liger")`
 
-* `harmony`: 
-    * Link: [GitHub](https://github.com/immunogenomics/harmony)
-    * Installation: `devtools::install_github("immunogenomics/harmony")`
-
-* `liger`: 
-    * Link: [GitHub](https://github.com/MacoskoLab/liger)
-    * Installation: `devtools::install_github("MacoskoLab/liger")`
 
 
 
