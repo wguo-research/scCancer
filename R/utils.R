@@ -401,6 +401,13 @@ getDefaultColors <- function(n = NULL, type = 1){
 }
 
 
+#' getCellTypeColor
+#'
+#' @param cell.types A vector of cell types.
+#'
+#' @return A vector of colors.
+#' @export
+#'
 getCellTypeColor <- function(cell.types){
     cell.colors <- c(
         "T.cells.CD4" = "#07a2a4",
