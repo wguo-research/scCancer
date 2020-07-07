@@ -70,7 +70,7 @@ For multi-datasets, following is a generated HTML report for three kidney cancer
 ## Citation
 Please use the following citation:
 
-Wenbo Guo, Dongfang Wang, Shicheng Wang, Yiran Shan, Jin Gu. 2019. bioRxiv doi: https://doi.org/10.1101/800490
+Wenbo Guo, Dongfang Wang, Shicheng Wang, Yiran Shan, Changyi Liu, Jin Gu, scCancer: a package for automated processing of single-cell RNA-seq data in cancer, _Briefings in Bioinformatics_,  bbaa127, [https://doi.org/10.1093/bib/bbaa127](https://doi.org/10.1093/bib/bbaa127)
 
 ## License
 GPL-3
