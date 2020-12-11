@@ -17,8 +17,8 @@ After the computational analyses, detailed and graphical reports were generated 
 
 
 ## System Requirements
-* R version: >= 3.5.0
-* **Hint: if your R version is >=4.0, you may need update your Rtools to 4.0 from https://cran.r-project.org/bin/windows/Rtools/.**
+* R version: >= 3.5.0 (**suggest** to use R 3.5 or 3.6, **not 4.0**)
+* **! ! ! Hint:  if your R version is >=4.0 under Windows system**, you may need update your Rtools to 4.0 from https://cran.r-project.org/bin/windows/Rtools/. So currently, we **don't** suggest to use R (>=4.0), if you are not familiar with R environment configuration.
 
 
 ## Installation
@@ -41,7 +41,7 @@ devtools::install_github("wguo-research/scCancer")
 ```r
 install.packages("RcppArmadillo")
 install.packages("RcppProgress")
-install.packages('http://lifeome.net/software/sccancer/packages/NNLM_0.4.3.tar.gz', type='source')
+install.packages('http://lifeome.net/software/sccancer/packages/NNLM_0.4.3.tar.gz', repos=NULL, type='source')
 ```
 
 2) Some dependent packages on GitHub (as follows) may not be able to install automatically, if you encounter such errors, please refer to their GitHub and install them via corresponding commands.
