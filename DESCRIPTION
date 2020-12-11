@@ -1,7 +1,7 @@
 Package: scCancer
 Type: Package
 Title: A package for automated processing of single cell RNA-seq data in cancer
-Version: 2.1.0
+Version: 2.2.0
 Author: G-Lab
 Maintainer: Wenbo Guo <gwb17@mails.tsinghua.edu.cn>
 Description: The package 'scCancer' is focuses on processing and analyzing 
