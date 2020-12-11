@@ -15,9 +15,10 @@ After the computational analyses, detailed and graphical reports were generated 
 
 ([Click to view larger workflow picture](http://lifeome.net/software/sccancer/scCancer-workflow.png))
 
-          
+
 ## System Requirements
 * R version: >= 3.5.0
+* **Hint: if your R version is >=4.0, you may need update your Rtools to 4.0 from https://cran.r-project.org/bin/windows/Rtools/.**
 
 
 ## Installation
@@ -32,7 +33,7 @@ library(devtools)
 devtools::install_github("wguo-research/scCancer")
 ```
 
- 
+
  ###  <font color=red>**Hint:**</font>  :exclamation: :exclamation: :exclamation: 
 
 1) <font color=red>A dependent package `NNLM` was removed from the CRAN repository recently, so an error about it may be reported during the installation.</font> If so, you can install its a formerly available version by following codes or install manually from its [archive](https://cran.r-project.org/src/contrib/Archive/NNLM/).
