@@ -17,8 +17,8 @@ After the computational analyses, detailed and graphical reports were generated 
 
 
 ## System Requirements
-* R version: >= 3.5.0 (**suggest** to use R 3.5 or 3.6, **not 4.0**)
-* **! ! ! Hint:  if your R version is >=4.0 under Windows system**, you may need update your Rtools to 4.0 from https://cran.r-project.org/bin/windows/Rtools/. So currently, we **don't** suggest to use R (>=4.0), if you are not familiar with R environment configuration.
+* R version: >= 3.5.0 (**suggest:** R 3.6, **not 4.0**)
+* **Hint:  For R (version>=4.0) under Windows system**, the Rtools needs to be updated to version 4.0 from https://cran.r-project.org/bin/windows/Rtools/. So, if you are not familiar with R environment configuration, we **don't** suggest to use R (>=4.0).
 
 ## Current version
 
