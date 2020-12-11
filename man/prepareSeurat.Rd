@@ -16,7 +16,6 @@ prepareSeurat(
   bgPercent.max = 1,
   hg.mm.mix = F,
   bool.rmContamination = T,
-  contamination.fraction = NULL,
   vars.add.meta = c("mito.percent", "ribo.percent", "diss.percent"),
   vars.to.regress = c("nCount_RNA", "mito.percent", "ribo.percent")
 )
@@ -51,9 +50,6 @@ human cells and mouse cells(such as PDX sample).
 If TRUE, the arguments 'hg.mm.thres' and 'mix.anno' should be set to corresponding values.}
 
 \item{bool.rmContamination}{A logical value indicating whether to remove ambient RNA contamination based on 'SoupX'.}
-
-\item{contamination.fraction}{A float number between 0 and 1 indicating the estimated contamination fraction.
-The default is NULL and the result of scStatistics will be used.}
 
 \item{vars.add.meta}{A vector indicating the variables to be added to Seurat object's meta.data.
 The default is c("mito.percent", "ribo.percent", "diss.percent").}

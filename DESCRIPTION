@@ -14,7 +14,7 @@ Description: The package 'scCancer' is focuses on processing and analyzing
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.1.0
+RoxygenNote: 7.1.1
 Suggests: 
     rmarkdown,
     DropletUtils
@@ -33,15 +33,16 @@ Imports:
     methods,
     NNLM,
     pheatmap,
+    R.utils,
     reshape2,
     scds,
     Seurat (>= 3.0),
     SingleCellExperiment,
+    SoupX,
     stringr,
     survival,
     survminer
 Remotes: 
-    github::constantAmateur/SoupX,
     github::immunogenomics/harmony,
     github::MacoskoLab/liger
 Depends: R (>= 3.5.0)

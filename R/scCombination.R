@@ -7,6 +7,9 @@
 #' @param sampleNames A vector of labels for all samples.
 #' @param combName A label for the combined samples.
 #' @param comb.method The method to combine samples. The default is "NormalMNN". "Harmony", "NormalMNN", "SeuratMNN", "Raw", "Regression" and "LIGER" are optional.
+#' @param harmony.theta The parameter 'theta' of function "RunHarmony" in the harmony package.
+#' @param harmony.lambda The parameter 'lambda' of function "RunHarmony" the in harmony package.
+#' @param harmony.sigma The parameter 'sigma' of function "RunHarmony" the in harmony package.
 #' @inheritParams runScAnnotation
 #'
 #' @return A results list with all useful objects used in the function.
@@ -17,6 +20,9 @@
 runScCombination <- function(single.savePaths, sampleNames, savePath, combName,
                              authorName = NULL,
                              comb.method = "NormalMNN",
+                             harmony.theta = NULL,
+                             harmony.lambda = NULL,
+                             harmony.sigma = 0.1,
                              vars.to.regress = c("nCount_RNA", "mito.percent", "ribo.percent"),
                              pc.use = 30,
                              resolution = 0.8,
@@ -136,7 +142,11 @@ runScCombination <- function(single.savePaths, sampleNames, savePath, combName,
             ScaleData(verbose = FALSE) %>%
             RunPCA(pc.genes = expr@var.genes, verbose = FALSE)
         expr[["sample.ident"]] <- sample.ident
-        expr <- expr %>% RunHarmony("sample.ident", plot_convergence = TRUE, verbose = F)
+        expr <- expr %>% RunHarmony("sample.ident", plot_convergence = TRUE,
+                                    theta = harmony.theta,
+                                    lambad = harmony.lambda,
+                                    sigma = harmony.sigma,
+                                    verbose = F)
 
         expr@meta.data <- cbind(expr@meta.data, comb.metadata)
 

@@ -16,7 +16,6 @@ runScAnnotation(
   nCell.min = 3,
   bgPercent.max = 1,
   bool.rmContamination = F,
-  contamination.fraction = NULL,
   vars.add.meta = c("mito.percent", "ribo.percent", "diss.percent"),
   vars.to.regress = c("nCount_RNA", "mito.percent", "ribo.percent"),
   pc.use = 30,
@@ -79,9 +78,6 @@ Genes with the number of expressed cells less than this threshold will be filter
 Genes with the background percentage larger than this threshold will be filtered.}
 
 \item{bool.rmContamination}{A logical value indicating whether to remove ambient RNA contamination based on 'SoupX'.}
-
-\item{contamination.fraction}{A float number between 0 and 1 indicating the estimated contamination fraction.
-The default is NULL and the result of scStatistics will be used.}
 
 \item{vars.add.meta}{A vector indicating the variables to be added to Seurat object's meta.data.
 The default is c("mito.percent", "ribo.percent", "diss.percent").}

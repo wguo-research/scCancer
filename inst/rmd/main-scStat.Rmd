@@ -257,13 +257,17 @@ if("bg.percent" %in% colnames(results$gene.manifest)){
 ```
 
 ```{r echo=F}
-h.i <- h.i + 1
-h.ii <- 1
+h.ii <- h.ii + 1
+```
+
+```{r soupx, child=system.file("rmd", "SoupX.Rmd", package = "scCancer"), eval = results$bool.runSoupx}
 ```
 
 
 
-```{r soupx, child=system.file("rmd", "SoupX.Rmd", package = "scCancer"), eval = results$bool.runSoupx}
+```{r echo=F}
+h.i <- h.i + 1
+h.ii <- 1
 ```
 
 
@@ -324,7 +328,7 @@ r.i <- 8
 7. **Text file with gene manifest** :
 [geneManifest.txt](./geneManifest.txt).
 ```{r echo=F, results='asis',  eval=results$bool.runSoupx}
-cat(r.i, ". **Text file with the results of SoupX** :[ambientRNA-SoupX.txt](./ambientRNA-SoupX.txt).", 
+cat(r.i, ". **RDS file with SoupX object** :[soupx-object.RDS](./).", 
     sep = "")
 r.i <- r.i + 1
 ```

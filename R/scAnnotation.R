@@ -31,23 +31,35 @@ filterGene <- function(gene.manifest,
 
 
 
-rmContamination <- function(expr.data, cell.manifest, contamination.fraction){
-    bg.bars <- subset(cell.manifest, nUMI >= 1 & nUMI <= 10)$barcodes
-    bg.sum <- Matrix::rowSums(expr.data[, bg.bars])
-    bg.percent <- bg.sum / sum(bg.sum)
-    soupProfile <- data.frame(row.names = rownames(expr.data),
-                         est = bg.percent,
-                         counts = bg.sum)
+# rmContamination <- function(expr.data, cell.manifest, contamination.fraction){
+#     bg.bars <- subset(cell.manifest, nUMI >= 1 & nUMI <= 10)$barcodes
+#     bg.sum <- Matrix::rowSums(expr.data[, bg.bars])
+#     bg.percent <- bg.sum / sum(bg.sum)
+#     soupProfile <- data.frame(row.names = rownames(expr.data),
+#                          est = bg.percent,
+#                          counts = bg.sum)
+#
+#     cell.manifest <- subset(cell.manifest, droplet.type == "cell")
+#     sc <- list(toc = expr.data[, cell.manifest$barcodes],
+#                metaData = data.frame(row.names = cell.manifest$barcodes,
+#                                      nUMIs = cell.manifest$nUMI,
+#                                      rho = contamination.fraction),
+#                soupProfile = soupProfile)
+#     class(sc) = c("list", "SoupChannel")
+#     out = adjustCounts(sc, roundToInt = TRUE)
+#
+#     return(out)
+# }
 
-    cell.manifest <- subset(cell.manifest, droplet.type == "cell")
-    sc <- list(toc = expr.data[, cell.manifest$barcodes],
-               metaData = data.frame(row.names = cell.manifest$barcodes,
-                                     nUMIs = cell.manifest$nUMI,
-                                     rho = contamination.fraction),
-               soupProfile = soupProfile)
-    class(sc) = c("list", "SoupChannel")
-    out = adjustCounts(sc, roundToInt = TRUE)
 
+rmContamination <- function(statPath){
+    if(file.exists(file.path(statPath, "soupx-object.RDS"))){
+        soupx.obj = readRDS(file.path(statPath, "soupx-object.RDS"))
+        out <- list(expr.data = adjustCounts(soupx.obj, roundToInt = FALSE, verbose = F),
+                    contamination.frac = soupx.obj$fit$rhoEst)
+    }else{
+        out = NULL
+    }
     return(out)
 }
 
@@ -72,7 +84,7 @@ prepareSeurat <- function(dataPath, statPath, savePath,
                           nCell.min = 3, bgPercent.max = 1,
                           hg.mm.mix = F,
                           bool.rmContamination = T,
-                          contamination.fraction = NULL,
+                          # contamination.fraction = NULL,
                           vars.add.meta = c("mito.percent", "ribo.percent", "diss.percent"),
                           vars.to.regress = c("nCount_RNA", "mito.percent", "ribo.percent")){
     raw.data = T
@@ -83,7 +95,7 @@ prepareSeurat <- function(dataPath, statPath, savePath,
         if(is.null(data.path)){
             stop("Cannot find the raw data or filtered data.\n")
         }else{
-            bool.rmContamination <- F
+            # bool.rmContamination <- F
             cat("- Warning in 'prepareSeurat': Cannot find the raw data, and use the filtered data instead.\n")
         }
     }
@@ -103,23 +115,32 @@ prepareSeurat <- function(dataPath, statPath, savePath,
     filter.thres <- read.table(file.path(statPath, 'cell.QC.thres.txt'),
                                header = T, stringsAsFactors = F)
 
-    if(hg.mm.mix){
-        rownames(expr.data) <- substr(rownames(expr.data), 6, 60)
-    }
-
-    if(bool.rmContamination & is.null(contamination.fraction)){
-        if(file.exists(file.path(statPath, 'ambientRNA-SoupX.txt'))){
-            soupX.file <- readLines(file.path(statPath, 'ambientRNA-SoupX.txt'))
-            contamination.fraction <- as.numeric(soupX.file[length(soupX.file)])
-        }else{
-            bool.rmContamination <- F
-            cat("- Warning in removing ambient RNAs contamination: Cannot find the estimated contamination fraction and skip this step.\n")
-        }
-    }
-
     if(bool.rmContamination){
         message("[", Sys.time(), "] -----: contamination removing")
-        expr.data <- rmContamination(expr.data, cell.manifest, contamination.fraction)
+        soupx.out <- rmContamination(statPath = statPath)
+        if(!is.null(soupx.out)){
+            expr.data <- soupx.out$expr.data
+            rownames(expr.data) <- gsub("_", "-", rownames(expr.data))
+
+            cell.names <- colnames(expr.data)
+            if (all(grepl(pattern = "\\-1$", x = cell.names))) {
+                cell.names <- as.vector(x = as.character(
+                    x = sapply(cell.names, FUN = ExtractField, field = 1, delim = "-")))
+            }
+            colnames(expr.data) <- cell.names
+
+            contamination.frac <- soupx.out$contamination.frac
+        }else{
+            bool.rmContamination <- F
+            contamination.frac <- NULL
+            cat("- Warning in removing ambient RNA contamination: Cannot find the SoupX result file 'soupx-object.RDS'.\n")
+        }
+    }else{
+        contamination.frac <- NULL
+    }
+
+    if(hg.mm.mix){
+        rownames(expr.data) <- substr(rownames(expr.data), 6, 60)
     }
 
     if(bool.filter.cell){
@@ -185,7 +206,7 @@ prepareSeurat <- function(dataPath, statPath, savePath,
     return(list(expr = expr,
                 gene.manifest = gene.manifest,
                 bool.rmContamination = bool.rmContamination,
-                contamination.fraction = contamination.fraction))
+                contamination.frac = contamination.frac))
 }
 
 
@@ -1510,8 +1531,6 @@ plotCellInteraction <- function(stat.df, cell.annotation){
 #' @param bgPercent.max A float number used to filter gene. The default is 1 (no filtering).
 #' Genes with the background percentage larger than this threshold will be filtered.
 #' @param bool.rmContamination A logical value indicating whether to remove ambient RNA contamination based on 'SoupX'.
-#' @param contamination.fraction A float number between 0 and 1 indicating the estimated contamination fraction.
-#' The default is NULL and the result of scStatistics will be used.
 #' @param vars.add.meta A vector indicating the variables to be added to Seurat object's meta.data.
 #' The default is c("mito.percent", "ribo.percent", "diss.percent").
 #' @param vars.to.regress A vector indicating the variables to regress out in R package Seurat.
@@ -1574,7 +1593,7 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
                             anno.filter = c("mitochondrial", "ribosome", "dissociation"),
                             nCell.min = 3, bgPercent.max = 1,
                             bool.rmContamination = F,
-                            contamination.fraction = NULL,
+                            # contamination.fraction = NULL,
                             vars.add.meta = c("mito.percent", "ribo.percent", "diss.percent"),
                             vars.to.regress = c("nCount_RNA", "mito.percent", "ribo.percent"),
                             pc.use = 30,
@@ -1644,14 +1663,14 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
         bgPercent.max = bgPercent.max,
         hg.mm.mix = hg.mm.mix,
         bool.rmContamination = bool.rmContamination,
-        contamination.fraction = contamination.fraction,
+        # contamination.fraction = contamination.fraction,
         vars.add.meta = vars.add.meta,
         vars.to.regress = vars.to.regress
     )
     expr <- t.results$expr
     gene.manifest <- t.results$gene.manifest
     results[["bool.rmContamination"]] = t.results$bool.rmContamination
-    results[["contamination.fraction"]] = t.results$contamination.fraction
+    results[["contamination.frac"]] = t.results$contamination.frac
     rm(t.results)
     gc()
 

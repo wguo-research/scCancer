@@ -44,6 +44,8 @@ The default is c("human" = "hg19", "mouse" = "mm10").}
 
 \item{bg.spec.genes}{A list of backgroud specific genes, which are used to remove ambient genes' influence.}
 
+\item{bool.runSoupx}{A logical value indicating whether to estimate contamination fraction by SoupX.}
+
 \item{genReport}{A logical value indicating whether to generate a .html/.md report (suggest to set TRUE).}
 }
 \value{

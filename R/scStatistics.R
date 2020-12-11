@@ -134,7 +134,7 @@ prepareData <- function(samplePath,
     run.emptydrop <- F
     if(raw.data){
         filter.path <- get10Xpath(samplePath, raw.data = F)
-        if(!is.null(filter.path) & cr.version == "Cell Ranger V3"){
+        if(!is.null(filter.path) & cr.version == "Cell Ranger (version >= 3)"){
             filtered.cell <- getBarcodes(filter.path)
         }else{
             if(requireNamespace("DropletUtils", quietly = TRUE)){
@@ -547,6 +547,7 @@ bgDetScatter <- function(gene.manifest){
 #' @param mix.anno A vector to indicate the prefix of genes from different species.
 #' The default is c("human" = "hg19", "mouse" = "mm10").
 #' @param bg.spec.genes A list of backgroud specific genes, which are used to remove ambient genes' influence.
+#' @param bool.runSoupx A logical value indicating whether to estimate contamination fraction by SoupX.
 #' @param genReport A logical value indicating whether to generate a .html/.md report (suggest to set TRUE).
 #'
 #' @return A results list with all useful objects used in the function.
@@ -579,10 +580,9 @@ runScStatistics <- function(dataPath, savePath,
     # results <- as.list(environment())
     checkStatArguments(as.list(environment()))
 
-    if(bool.runSoupx){
-        # message("Due to that the dependent package 'SoupX` updated recently, so ")
-        bool.runSoupx <- F
-    }
+    # if(bool.runSoupx){
+    #     bool.runSoupx <- F
+    # }
 
     if(!dir.exists(file.path(savePath, "figures/"))){
         dir.create(file.path(savePath, "figures/"), recursive = T)
@@ -695,80 +695,30 @@ runScStatistics <- function(dataPath, savePath,
     }
 
 
-    message("[", Sys.time(), "] -----: ambinet genes (SoupX)")
-    if(is.null(bg.percent) | !raw.data){
-        bool.runSoupx <- F
-        cat("- Warning in 'SoupX': Cannot identify background distribution. So skip this step.\n")
+    if(bool.runSoupx){
+        message("[", Sys.time(), "] -----: ambient genes (SoupX)")
+        suppressWarnings( cls.path <- file.path(dataPath, "analysis/clustering/graphclust/clusters.csv") )
+        bool.cls.info <- file.exists(cls.path)
+        if(is.null(bg.percent) | !raw.data){
+            bool.runSoupx <- F
+            cat("- Warning in 'SoupX': Cannot identify background distribution. So skip this step.\n")
+        }
+        if(!bool.cls.info){
+            bool.runSoupx <- F
+            cat("- Warning in 'SoupX': Cannot find clustering information file produced by cell ranger (`", normalizePath(cls.path),
+                "`). So skip this step.\n", sep = "")
+        }
     }
     if(bool.runSoupx){
-        sc <- list(toc = expr.data[, cell.manifest$barcodes],
-                   metaData = data.frame(row.names = cell.manifest$barcodes,
-                                         nUMIs = cell.manifest$nUMI),
-                   soupProfile = bg.result)
-        class(sc) = c("list", "SoupChannel")
-        suppressMessages(
-            p.bg.genes <- plotMarkerDistribution(sc) +
-                theme_light() +
-                theme(axis.text.x = element_text(angle = 90, hjust = 1),
-                      panel.border = element_rect(color = "black"))
-        )
-        suppressWarnings(
-            ggsave(filename = file.path(savePath, "figures/bg.genes.soupX.png"),
-                   p.bg.genes, dpi = 500, height = 3, width = 6)
-        )
-        if(is.null(bg.spec.genes)){
-            bg.spec.genes <- list(
-                igGenes = c('IGHA1','IGHA2','IGHG1','IGHG2','IGHG3','IGHG4','IGHD','IGHE','IGHM',
-                            'IGLC1','IGLC2','IGLC3','IGLC4','IGLC5','IGLC6','IGLC7', 'IGKC',
-                            'IGLL5', 'IGLL1'),
-                HLAGenes = c('HLA-DRA', 'HLA-DRB5', 'HLA-DRB1', 'HLA-DQA1', 'HLA-DQB1',
-                             'HLA-DQB1', 'HLA-DQA2', 'HLA-DQB2', 'HLA-DPA1', 'HLA-DPB1'),
-                HBGenes = c("HBB","HBD","HBG1","HBG2", "HBE1","HBZ","HBM","HBA2", "HBA1","HBQ1")
-            )
-            if(species == "mouse"){
-                bg.spec.genes <- list(
-                    HLAGenes = c("H2-Aa", "H2-Ab1", "H2-Eb1"),
-                    HBGenes = c("Hbb-y", "Hbq1b", "Hba-x")
-                )
-            }
-        }
-
-        cand.genes <- intersect(subset(gene.manifest, nCell > 10)$Symbol,
-                                head(rownames(bg.result[order(bg.result, decreasing = T), ]), 20000))
-
-        cat("The genes used to estimate contamination fraction of ambient RNAs:\n",
-            file = file.path(savePath, "ambientRNA-SoupX.txt"), append = F)
-        for(g.type in names(bg.spec.genes)){
-            cur.genes <- intersect(bg.spec.genes[[g.type]], rownames(expr.data))
-            cur.genes <- intersect(cur.genes, cand.genes)
-            if(length(cur.genes) > 0){
-                bg.spec.genes[[g.type]] <- cur.genes
-                cat("\t* ", g.type, ": ", str_c(cur.genes, collapse = ", "), "\n",
-                    sep = "", file = file.path(savePath, "ambientRNA-SoupX.txt"), append = T)
-            }else{
-                bg.spec.genes[[g.type]] <- NULL
-            }
-        }
-
-        suppressMessages(
-            useToEst <- estimateNonExpressingCells(sc, nonExpressedGeneList = bg.spec.genes)
-        )
-        suppressMessages(
-            sc <- calculateContaminationFraction(sc, bg.spec.genes,
-                                                 useToEst = useToEst,
-                                                 cellSpecificEstimates = F)
-        )
-        bg.rho <- round(sc$metaData$rho[1], 4)
-
-        cat("\nThe estimated contamination fraction is:\n",
-            file = file.path(savePath, "ambientRNA-SoupX.txt"), append = T)
-        cat(bg.rho, "\n",
-            file = file.path(savePath, "ambientRNA-SoupX.txt"), append = T)
+        soupx.obj = load10X(dataPath, verbose = F)
+        soupx.obj = autoEstCont(soupx.obj)
+        contamination.frac = soupx.obj$fit$rhoEst
+        saveRDS(soupx.obj, file.path(savePath, "soupx-object.RDS"))
     }else{
-        bg.spec.genes = NULL
-        bg.rho = NULL
-        sc = NULL
-        p.bg.genes = NULL
+        # bg.spec.genes = NULL
+        soupx.obj = NULL
+        contamination.frac = NULL
+        # p.bg.genes = NULL
     }
 
 
@@ -835,10 +785,9 @@ runScStatistics <- function(dataPath, savePath,
                     raw.data = raw.data,
                     run.emptydrop = run.emptydrop,
                     bool.runSoupx = bool.runSoupx,
-                    bg.spec.genes = bg.spec.genes,
-                    bg.rho = bg.rho,
-                    sc = sc,
-                    p.bg.genes = p.bg.genes,
+                    # bg.spec.genes = bg.spec.genes,
+                    soupx.obj = soupx.obj,
+                    contamination.frac = contamination.frac,
                     nList = nList)
 
     ## generate report

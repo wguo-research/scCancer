@@ -30,9 +30,9 @@ ExtractField <- function (string, field = 1, delim = "_"){
 
 
 getCRversion <- function(data.path){
-    version <- "Cell Ranger V2"
+    version <- "Cell Ranger (version 2)"
     if(grepl("feature_bc_matrix", data.path)){
-        version <- "Cell Ranger V3"
+        version <- "Cell Ranger (version >= 3)"
     }
     return(version)
 }
@@ -556,6 +556,41 @@ runSurvival <- function(features, data, surv.time, surv.event, cut.off = 0.5, sa
     return(ps)
 }
 
+
+#' generate10Xdata
+#' Generate a data folder based on the data matrix and gene information,
+#' which can be used directly to perform scCancer analysis.
+#'
+#' @param matrix A gene-cell matrix or data.frame.
+#' @param gene.info A data.frame of gene information. It should contain two columns,
+#' the first is gene Ensemble ID, and the second is gene symbol.
+#' The order of the genes should be consistant with the row order of 'matrix'.
+#' @param outPath A path to save the output files.
+#' @param overwrite If TRUE and the output file already exists, the file is
+#' silently overwritten, otherwise an exception is thrown. The default is "FALSE".
+#'
+#' @return NULL
+#' @export
+#'
+#' @import Matrix R.utils
+#'
+generate10Xdata <- function(matrix, gene.info, outPath, overwrite = F){
+    if(!dir.exists(paste0(outPath, "/filtered_feature_bc_matrix/"))){
+        dir.create(paste0(outPath, "/filtered_feature_bc_matrix/"), recursive = T)
+    }
+
+    barcode.gz <- gzfile(paste0(outPath, "/filtered_feature_bc_matrix/barcodes.tsv.gz"), "w")
+    write.table(colnames(matrix), barcode.gz, quote = F, col.names = F, row.names = F, sep = "\t")
+    close(barcode.gz)
+
+    gene.info[, 3] <- "Gene Expression"
+    feature.gz <- gzfile(paste0(outPath, "/filtered_feature_bc_matrix/features.tsv.gz"), "w")
+    write.table(gene.info, feature.gz, quote = F, col.names = F, row.names = F, sep = "\t")
+    close(feature.gz)
+
+    writeMM(matrix, file = paste0(outPath, "/filtered_feature_bc_matrix/matrix.mtx"))
+    gzip(paste0(outPath, "/filtered_feature_bc_matrix/matrix.mtx"), overwrite = overwrite)
+}
 
 
 
