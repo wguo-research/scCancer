@@ -8,8 +8,8 @@
 #' @param combName A label for the combined samples.
 #' @param comb.method The method to combine samples. The default is "NormalMNN". "Harmony", "NormalMNN", "SeuratMNN", "Raw", "Regression" and "LIGER" are optional.
 #' @param harmony.theta The parameter 'theta' of function "RunHarmony" in the harmony package.
-#' @param harmony.lambda The parameter 'lambda' of function "RunHarmony" the in harmony package.
-#' @param harmony.sigma The parameter 'sigma' of function "RunHarmony" the in harmony package.
+#' @param harmony.lambda The parameter 'lambda' of function "RunHarmony" in the harmony package.
+#' @param harmony.sigma The parameter 'sigma' of function "RunHarmony" in the harmony package.
 #' @inheritParams runScAnnotation
 #'
 #' @return A results list with all useful objects used in the function.
