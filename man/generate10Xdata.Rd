@@ -2,9 +2,7 @@
 % Please edit documentation in R/utils.R
 \name{generate10Xdata}
 \alias{generate10Xdata}
-\title{generate10Xdata
-Generate a data folder based on the data matrix and gene information,
-which can be used directly to perform scCancer analysis.}
+\title{generate10Xdata}
 \usage{
 generate10Xdata(matrix, gene.info, outPath, overwrite = F)
 }
@@ -21,7 +19,6 @@ The order of the genes should be consistant with the row order of 'matrix'.}
 silently overwritten, otherwise an exception is thrown. The default is "FALSE".}
 }
 \description{
-generate10Xdata
-Generate a data folder based on the data matrix and gene information,
+Generate a 10X-like data folder based on the data matrix and gene information,
 which can be used directly to perform scCancer analysis.
 }

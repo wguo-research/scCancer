@@ -11,6 +11,9 @@ runScCombination(
   combName,
   authorName = NULL,
   comb.method = "NormalMNN",
+  harmony.theta = NULL,
+  harmony.lambda = NULL,
+  harmony.sigma = 0.1,
   vars.to.regress = c("nCount_RNA", "mito.percent", "ribo.percent"),
   pc.use = 30,
   resolution = 0.8,
@@ -54,6 +57,12 @@ runScCombination(
 \item{authorName}{A character string for authors name and will be shown in the report.}
 
 \item{comb.method}{The method to combine samples. The default is "NormalMNN". "Harmony", "NormalMNN", "SeuratMNN", "Raw", "Regression" and "LIGER" are optional.}
+
+\item{harmony.theta}{The parameter 'theta' of function "RunHarmony" in the harmony package.}
+
+\item{harmony.lambda}{The parameter 'lambda' of function "RunHarmony" in the harmony package.}
+
+\item{harmony.sigma}{The parameter 'sigma' of function "RunHarmony" in the harmony package.}
 
 \item{vars.to.regress}{A vector indicating the variables to regress out in R package Seurat.
 The default is c("nCount_RNA", "mito.percent", "ribo.percent").}

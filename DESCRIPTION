@@ -41,7 +41,9 @@ Imports:
     SoupX,
     stringr,
     survival,
-    survminer
+    survminer,
+    harmony,
+    liger
 Remotes: 
     github::immunogenomics/harmony,
     github::MacoskoLab/liger

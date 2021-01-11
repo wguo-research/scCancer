@@ -558,7 +558,8 @@ runSurvival <- function(features, data, surv.time, surv.event, cut.off = 0.5, sa
 
 
 #' generate10Xdata
-#' Generate a data folder based on the data matrix and gene information,
+#'
+#' Generate a 10X-like data folder based on the data matrix and gene information,
 #' which can be used directly to perform scCancer analysis.
 #'
 #' @param matrix A gene-cell matrix or data.frame.
@@ -588,7 +589,7 @@ generate10Xdata <- function(matrix, gene.info, outPath, overwrite = F){
     write.table(gene.info, feature.gz, quote = F, col.names = F, row.names = F, sep = "\t")
     close(feature.gz)
 
-    writeMM(matrix, file = paste0(outPath, "/filtered_feature_bc_matrix/matrix.mtx"))
+    writeMM(as(as.matrix(matrix),"dgCMatrix"), file = paste0(outPath, "/filtered_feature_bc_matrix/matrix.mtx"))
     gzip(paste0(outPath, "/filtered_feature_bc_matrix/matrix.mtx"), overwrite = overwrite)
 }
 
