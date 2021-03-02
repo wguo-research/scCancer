@@ -10,6 +10,7 @@
 #' @param harmony.theta The parameter 'theta' of function "RunHarmony" in the harmony package.
 #' @param harmony.lambda The parameter 'lambda' of function "RunHarmony" in the harmony package.
 #' @param harmony.sigma The parameter 'sigma' of function "RunHarmony" in the harmony package.
+#' @param sample.colors The colors used for samples. The default is NULL, and the pre-set colors will be used.
 #' @inheritParams runScAnnotation
 #'
 #' @return A results list with all useful objects used in the function.

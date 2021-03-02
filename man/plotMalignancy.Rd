@@ -11,6 +11,9 @@ plotMalignancy(
 )
 }
 \arguments{
+\item{cell.annotation}{A data.frame of cells' annotation containing the cells'
+malignancy score (`Malign.score`) and type (`Malign.type`).}
+
 \item{coor.names}{A vector indicating the names of two-dimension coordinate used in visualization.}
 
 \item{savePath}{A path to save the results files. If NULL, the 'statPath' will be used instead.}

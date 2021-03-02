@@ -81,6 +81,8 @@ The default is c("nCount_RNA", "mito.percent", "ribo.percent").}
 
 \item{n.markers}{An integer indicating the number of differential expressed genes showed in the plot. The defalut is 5.}
 
+\item{sample.colors}{The colors used for samples. The default is NULL, and the pre-set colors will be used.}
+
 \item{species}{A character string indicating what species the sample belong to.
 Only "human"(default) or "mouse" are allowed.}
 

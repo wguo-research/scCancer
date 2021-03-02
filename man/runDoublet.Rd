@@ -7,7 +7,7 @@
 runDoublet(expr, method = "cxds", pc.use = 30)
 }
 \arguments{
-\item{expr}{A seurat object.}
+\item{expr}{A Seurat object.}
 
 \item{method}{The method to estimate doublet score. The default is "cxds".}
 

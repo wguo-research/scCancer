@@ -285,13 +285,19 @@ runSeurat <- function(expr,
                                           verbose = F)
         # write.table(diff.expr.genes[, c("cluster", "gene", "p_val", "avg_logFC", "pct.1", "pct.2", "p_val_adj")],
         #             file = file.path(savePath, "diff.expr.genes.txt"), quote = F, sep = "\t", row.names = F)
-
-        diff.expr.genes <- diff.expr.genes[, c("cluster", "gene", "p_val", "avg_logFC", "pct.1", "pct.2", "p_val_adj")]
+        if("avg_logFC" %in% colnames(diff.expr.genes)){
+            de.FC <- "avg_logFC"   # packageVersion("Seurat") < 4
+        }else if("avg_log2FC" %in% colnames(diff.expr.genes)){
+            de.FC <- "avg_log2FC"   # packageVersion("Seurat") >= 4
+        }else{
+            stop("Couldn't find the differential expression results.\n")
+        }
+        diff.expr.genes <- diff.expr.genes[, c("cluster", "gene", "p_val", de.FC, "pct.1", "pct.2", "p_val_adj")]
         diff.expr.genes$cluster <- as.numeric(diff.expr.genes$cluster)
         nCluster <- length(unique(diff.expr.genes$cluster))
         for(ci in 1:nCluster){
             cur.diff.genes <- subset(diff.expr.genes, cluster == ci)
-            cur.diff.genes <- cur.diff.genes[order(cur.diff.genes$avg_logFC, decreasing = T), ]
+            cur.diff.genes <- cur.diff.genes[order(cur.diff.genes[[de.FC]], decreasing = T), ]
             write.csv(cur.diff.genes,
                       file = file.path(savePath, "diff.expr.genes", paste0("cluster", ci ,".csv")),
                       quote = F, row.names = F)
@@ -715,8 +721,8 @@ plotSeurat <- function(expr,
 
     if(bool.runDiffExpr && !(is.null(diff.expr.genes))){
         # message(sprintf('------p.DE.heatmap------'))
-        top.genes <- diff.expr.genes %>% group_by(cluster) %>% top_n(n = n.markers, wt = avg_logFC)
-        top.genes <- top.genes[order(top.genes$cluster, top.genes$avg_logFC, decreasing = c(F, T)), ]
+        top.genes <- diff.expr.genes %>% group_by(cluster) %>% top_n(n = n.markers, wt = diff.expr.genes[[de.FC]])
+        top.genes <- top.genes[order(top.genes$cluster, top.genes[[de.FC]], decreasing = c(F, T)), ]
         de.pre <- preDEheatmap(expr = expr,
                                cell.annotation = cell.annotation,
                                genes = top.genes$gene,
@@ -777,7 +783,7 @@ plotSeurat <- function(expr,
 
 #' runDoublet
 #'
-#' @param expr A seurat object.
+#' @param expr A Seurat object.
 #' @param method The method to estimate doublet score. The default is "cxds".
 #' @param pc.use An integer number indicating the number of PCs to use as input features. The default is 30.
 #'
@@ -1343,9 +1349,11 @@ plotExprProgram <- function(H, cell.annotation, bool.limit = T, sel.clusters = N
 
 #' runCellInteraction
 #'
+#' @param expr A Seurat object.
+#' @param cellSetName The colunm name of `expr`'s `meta.data`, used to indicate the cell set annotation.
 #' @inheritParams runScAnnotation
 #'
-#' @return A data frame whicha contains the cell sets ligand-receptor pairs and their scores.
+#' @return A data frame which contains the cell sets ligand-receptor pairs and their scores.
 #' @export
 #'
 runCellInteraction <- function(expr, cellSetName = "default", species = "human", savePath = NULL){
@@ -1575,6 +1583,7 @@ plotCellInteraction <- function(stat.df, cell.annotation){
 #' @param geneSet.method The method to be used in calculate gene set scores. Currently, only "average" and "GSVA" are allowed.
 #' @param bool.runExprProgram A logical value indicating whether to run non-negative matrix factorization (NMF) to identify expression programs.
 #' @param nmf.rank 	An integer of decomposition rank used in NMF.
+#' @param bool.runInteraction A logical value indicating whether to run cell set ligand-receptor interaction analysis.
 #' @param genReport A logical value indicating whether to generate a .html/.md report (suggest to set TRUE).
 #'
 #' @return A results list with all useful objects used in the function.

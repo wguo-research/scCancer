@@ -426,6 +426,8 @@ getBimodalThres <- function(scores){
 
 #' plotMalignancy
 #'
+#' @param cell.annotation A data.frame of cells' annotation containing the cells'
+#' malignancy score (`Malign.score`) and type (`Malign.type`).
 #' @inheritParams runScAnnotation
 #'
 #' @return A plot list.

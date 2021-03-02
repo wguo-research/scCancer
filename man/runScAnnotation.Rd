@@ -153,6 +153,8 @@ perform following intra-tumor heterogeneity analyses.}
 
 \item{nmf.rank}{An integer of decomposition rank used in NMF.}
 
+\item{bool.runInteraction}{A logical value indicating whether to run cell set ligand-receptor interaction analysis.}
+
 \item{genReport}{A logical value indicating whether to generate a .html/.md report (suggest to set TRUE).}
 }
 \value{
