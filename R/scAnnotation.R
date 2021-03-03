@@ -721,6 +721,11 @@ plotSeurat <- function(expr,
 
     if(bool.runDiffExpr && !(is.null(diff.expr.genes))){
         # message(sprintf('------p.DE.heatmap------'))
+        if("avg_logFC" %in% colnames(diff.expr.genes)){
+            de.FC <- "avg_logFC"   # packageVersion("Seurat") < 4
+        }else if("avg_log2FC" %in% colnames(diff.expr.genes)){
+            de.FC <- "avg_log2FC"   # packageVersion("Seurat") >= 4
+        }
         top.genes <- diff.expr.genes %>% group_by(cluster) %>% top_n(n = n.markers, wt = diff.expr.genes[[de.FC]])
         top.genes <- top.genes[order(top.genes$cluster, top.genes[[de.FC]], decreasing = c(F, T)), ]
         de.pre <- preDEheatmap(expr = expr,
