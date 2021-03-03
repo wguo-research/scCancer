@@ -283,6 +283,7 @@ runSeurat <- function(expr,
                                           min.pct = 0.25,
                                           logfc.threshold = 0.25,
                                           verbose = F)
+        saveRDS(diff.expr.genes, file.path(savePath, "DE-Genes.RDS"))
         # write.table(diff.expr.genes[, c("cluster", "gene", "p_val", "avg_logFC", "pct.1", "pct.2", "p_val_adj")],
         #             file = file.path(savePath, "diff.expr.genes.txt"), quote = F, sep = "\t", row.names = F)
         if("avg_logFC" %in% colnames(diff.expr.genes)){
