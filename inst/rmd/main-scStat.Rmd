@@ -294,7 +294,7 @@ Using these thresholds, the number of cells vary as follows:
 
 ` `r paste0("Raw : ", results$nList[1])` ` ->
 ` `r paste0("cellranger3 : ", results$nList[2])` ` ->
-` `r paste0("nUMI<", results$cell.threshold$nUMI, 3, " : ", results$nList[3])` ` ->
+` `r paste0("nUMI<", results$cell.threshold$nUMI, " : ", results$nList[3])` ` ->
 ` `r paste0("nGene>=200 : ", results$nList[4])` ` ->
 ` `r paste0("nGene<", results$cell.threshold$nGene, " : ", results$nList[5])` ` ->
 ` `r paste0("mito.percent<", round(results$cell.threshold$mito.percent, 3), " : ", results$nList[6])` ` ->
