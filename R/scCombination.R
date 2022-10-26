@@ -311,9 +311,9 @@ runScCombination <- function(single.savePaths, sampleNames, savePath, combName,
                                    legend.title = "Sample")
 
     ggsave(filename = file.path(savePath, "figures/sampleSource-point.png"),
-           p.sample, width = 7, height = 5, dpi = 500)
+           p.sample, width = 7, height = 5, dpi = 300)
     ggsave(filename = file.path(savePath, "figures/sampleSource-bar.png"),
-           p.bar.sample, width = 6, height = 3, dpi = 500)
+           p.bar.sample, width = 6, height = 3, dpi = 300)
     results[["p.sample"]] <- p.sample
     results[["p.bar.sample"]] <- p.bar.sample
 
@@ -419,7 +419,7 @@ runScCombination <- function(single.savePaths, sampleNames, savePath, combName,
                         legend.position = "right",
                         legend.title = "Cell cycle score")
         ggsave(filename = file.path(savePath, "figures/cellCycle-point.png"),
-               results[["cellCycle.plot"]], width = 5, height = 4, dpi = 500)
+               results[["cellCycle.plot"]], width = 5, height = 4, dpi = 300)
     }
 
 
@@ -443,7 +443,7 @@ runScCombination <- function(single.savePaths, sampleNames, savePath, combName,
                         legend.position = "right",
                         legend.title = "Stemness")
         ggsave(filename = file.path(savePath, "figures/stemness-point.png"),
-               results[["stemness.plot"]], width = 5, height = 4, dpi = 500)
+               results[["stemness.plot"]], width = 5, height = 4, dpi = 300)
     }
 
 

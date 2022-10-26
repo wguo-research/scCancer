@@ -225,6 +225,7 @@ prepareSeurat <- function(dataPath, statPath, savePath,
 #'
 runSeurat <- function(expr,
                       savePath,
+                      npcs = 50,
                       pc.use = 30, resolution = 0.8,
                       clusterStashName = "default",
                       bool.runDiffExpr = T,
@@ -247,7 +248,7 @@ runSeurat <- function(expr,
         }
     }else{
         message("[", Sys.time(), "] -----: PCA")
-        expr <- RunPCA(expr, verbose = F)
+        expr <- RunPCA(expr, npcs = npcs, verbose = F)
         reduction.type <- "pca"
     }
 
@@ -676,7 +677,8 @@ plotSeurat <- function(expr,
             plot1 <- VariableFeaturePlot(expr, cols = c("grey", "#ec7d89"))
         )
         suppressWarnings(
-            p.results[["p.hvg"]] <- LabelPoints(plot = plot1, points = top10, repel = TRUE) + NoLegend()
+            p.results[["p.hvg"]] <- LabelPoints(plot = plot1, points = top10, repel = TRUE,
+                                                fontface = "italic") + NoLegend()
         )
     }
 
@@ -753,31 +755,31 @@ plotSeurat <- function(expr,
 
     # message(sprintf('------save images------'))
     ggsave(filename = file.path(savePath, "figures/hvg.png"), p.results[["p.hvg"]],
-           width = 8, height = 4, dpi = 500)
+           width = 8, height = 4, dpi = 300)
 
     for(gene in names(p.results[["ps.markers"]])){
         ggsave(filename = paste0(savePath, "/figures/singleMarkerPlot/", gene, ".png"),
-               p.results[["ps.markers"]][[gene]], width = 2, height = 2, dpi = 500)
+               p.results[["ps.markers"]][[gene]], width = 2, height = 2, dpi = 300)
     }
 
     if(length(p.results[["ps.markers"]]) > 0){
         markersPlot.height <- 2 * ceiling(length(p.results[["ps.markers"]]) / 4)
         ggsave(filename = file.path(savePath, "figures/markers-all.png"),
-               p.results[["p.markers.all"]], width = 8, height = markersPlot.height, dpi = 500)
+               p.results[["p.markers.all"]], width = 8, height = markersPlot.height, dpi = 300)
     }
 
     ggsave(filename = file.path(savePath, "figures/cluster-point-tsne.png"),
-           p.results[["p.cluster.tsne"]], width = 6, height = 5, dpi = 500)
+           p.results[["p.cluster.tsne"]], width = 6, height = 5, dpi = 300)
 
     if(!is.null(p.results[["p.cluster.umap"]])){
         ggsave(filename = file.path(savePath, "figures/cluster-point-umap.png"),
-               p.results[["p.cluster.umap"]], width = 6, height = 5, dpi = 500)
+               p.results[["p.cluster.umap"]], width = 6, height = 5, dpi = 300)
     }
 
     if(bool.runDiffExpr && !(is.null(diff.expr.genes))){
         DEplot.height <- 0.5 + 0.1 * n.markers * length(unique(cell.annotation$Cluster))
         ggsave(filename = file.path(savePath, "figures/DE-heatmap.png"),
-               p.results[["p.de.heatmap"]], width = 8, height = DEplot.height, dpi = 500)
+               p.results[["p.de.heatmap"]], width = 8, height = DEplot.height, dpi = 300)
     }
 
     # saveRDS(cell.annotation, file = file.path(savePath, "cell.annotation.RDS"))
@@ -952,9 +954,9 @@ runCellClassify <- function(expr, cell.annotation, coor.names = c("tSNE_1", "tSN
                             legend.title = "Cell type")
 
     ggsave(filename = file.path(savePath, "figures/cellType-point.png"),
-           p.type, width = 5.2, height = 4, dpi = 500)
+           p.type, width = 5.2, height = 4, dpi = 300)
     ggsave(filename = file.path(savePath, "figures/cellType-bar.png"),
-           p.bar, width = 6, height = 4, dpi = 500)
+           p.bar, width = 6, height = 4, dpi = 300)
 
     return(list(expr = expr,
                 cell.annotation = cell.annotation,
@@ -1186,7 +1188,7 @@ plotGeneSet <- function(cell.annotation, prefix = "GS__", bool.limit = T, savePa
     if(!is.null(savePath)){
         geneSetPlot.height <- 0.5 + 0.11 * length(gs.name)
         ggsave(filename = file.path(savePath, "figures/geneSet-heatmap.png"),
-               p, width = 10, height = geneSetPlot.height, dpi = 500)
+               p, width = 10, height = geneSetPlot.height, dpi = 300)
     }
 
     return(p)
@@ -1318,7 +1320,7 @@ plotExprProgram <- function(H, cell.annotation, bool.limit = T, sel.clusters = N
     if(!is.null(savePath)){
         exprProgPlot.height <- 0.5 + 0.11 * dim(H)[1]
         ggsave(filename = file.path(savePath, "figures/exprProgram-heatmap.png"),
-               p, width = 10, height = exprProgPlot.height, dpi = 500)
+               p, width = 10, height = exprProgPlot.height, dpi = 300)
     }
 
     # clusters <- unique(cell.annotation$Cluster)
@@ -1506,7 +1508,7 @@ plotCellInteraction <- function(stat.df, cell.annotation){
     p.iMain <- rbind(ggplotGrob(p.inter), ggplotGrob(p.type), size = "last")
     # p.ic <- plot_grid(p.iMain, p.inter.leg, p.type.leg, ncol = 3, rel_widths = c(6, 1, 1))
     # ggsave(filename = "../iii.png",
-    #        p.ic, width = 7, height = 6.5, dpi = 500)
+    #        p.ic, width = 7, height = 6.5, dpi = 300)
 
     p.ic <- grid.arrange(
         grobs = list(p.iMain, p.inter.leg, p.type.leg),
@@ -1611,6 +1613,7 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
                             # contamination.fraction = NULL,
                             vars.add.meta = c("mito.percent", "ribo.percent", "diss.percent"),
                             vars.to.regress = c("nCount_RNA", "mito.percent", "ribo.percent"),
+                            npcs = 50,
                             pc.use = 30,
                             resolution = 0.8,
                             clusterStashName = "default",
@@ -1696,6 +1699,7 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
     t.results <- runSeurat(
         expr = expr,
         savePath = savePath,
+        npcs = npcs,
         pc.use = pc.use,
         resolution = resolution,
         clusterStashName = clusterStashName,
@@ -1753,9 +1757,9 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
                         legend.title = "nUMI")
 
         ggsave(filename = file.path(savePath, "figures/doublet-point.png"),
-               results[["doublet.plot"]], width = 5, height = 4, dpi = 500)
+               results[["doublet.plot"]], width = 5, height = 4, dpi = 300)
         ggsave(filename = file.path(savePath, "figures/nUMI-point.png"),
-               results[["nUMI.plot"]], width = 5, height = 4, dpi = 500)
+               results[["nUMI.plot"]], width = 5, height = 4, dpi = 300)
     }
 
 
@@ -1838,7 +1842,7 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
                         legend.position = "right",
                         legend.title = "Cell cycle\n score")
         ggsave(filename = file.path(savePath, "figures/cellCycle-point.png"),
-               results[["cellCycle.plot"]], width = 5, height = 4, dpi = 500)
+               results[["cellCycle.plot"]], width = 5, height = 4, dpi = 300)
     }
 
 
@@ -1858,7 +1862,7 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
                         legend.position = "right",
                         legend.title = "Stemness\n score")
         ggsave(filename = file.path(savePath, "figures/stemness-point.png"),
-               results[["stemness.plot"]], width = 5, height = 4, dpi = 500)
+               results[["stemness.plot"]], width = 5, height = 4, dpi = 300)
     }
 
 
@@ -1924,7 +1928,7 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
         results[["inter.plot"]] <- plotCellInteraction(t.results$stat.df, cell.annotation)
 
         ggsave(filename = file.path(savePath, "figures/interaction-score.png"),
-               results[["inter.plot"]], width = 7, height = 6.5, dpi = 500)
+               results[["inter.plot"]], width = 7, height = 6.5, dpi = 300)
     }
 
     results[["expr"]] <- expr

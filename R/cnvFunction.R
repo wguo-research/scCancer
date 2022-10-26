@@ -459,11 +459,11 @@ plotMalignancy <- function(cell.annotation,
     ## save
     if(!is.null(savePath)){
         ggsave(filename = file.path(savePath, "figures/malignType-point.png"),
-               p.malignType.Point, width = 5, height = 3.8, dpi = 500)
+               p.malignType.Point, width = 5, height = 3.8, dpi = 300)
         ggsave(filename = file.path(savePath, "figures/malignScore-point.png"),
-               p.malignScore.Point, width = 5, height = 3.8, dpi = 500)
+               p.malignScore.Point, width = 5, height = 3.8, dpi = 300)
         ggsave(filename = file.path(savePath, "figures/malignType-bar.png"),
-               p.malignType.bar, width = 6, height = 3, dpi = 500)
+               p.malignType.bar, width = 6, height = 3, dpi = 300)
     }
 
     return(list(p.malignType.Point = p.malignType.Point,
@@ -570,7 +570,7 @@ runMalignancy <- function(expr,
                                 savePath = savePath)
     p.results[["p.malignScore"]] <- p.malignScore
     ggsave(filename = file.path(savePath, "figures/malignScore.png"),
-           p.malignScore, width = 5, height = 4, dpi = 500)
+           p.malignScore, width = 5, height = 4, dpi = 300)
 
     ## save results
     write.table(cnvList$expr.data[, names(obserScore.smooth)],

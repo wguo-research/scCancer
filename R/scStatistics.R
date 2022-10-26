@@ -613,11 +613,11 @@ runScStatistics <- function(dataPath, savePath,
         p.cells.2 <- cellsPlot(cell.manifest, plot.type = "rankplot")
         suppressWarnings(
             ggsave(filename = file.path(savePath, "figures/cells-distr-hist.png"),
-                   p.cells.1, dpi = 500, height = 3, width = 4)
+                   p.cells.1, dpi = 300, height = 3, width = 4)
         )
         suppressWarnings(
             ggsave(filename = file.path(savePath, "figures/cells-distr-rank.png"),
-               p.cells.2, dpi = 500, height = 3, width = 4)
+               p.cells.2, dpi = 300, height = 3, width = 4)
         )
     }else{
         p.cells.1 <- NULL
@@ -633,9 +633,9 @@ runScStatistics <- function(dataPath, savePath,
     p.nUMI <- histPlot(cell.manifest, value = "nUMI", xlines = c(cell.threshold$nUMI))
     p.nGene <- histPlot(cell.manifest, value = "nGene", xlines = c(200, cell.threshold$nGene))
     ggsave(filename = file.path(savePath, "figures/nUMI-distr.png"),
-           p.nUMI, dpi = 500, height = 2.5, width = 4)
+           p.nUMI, dpi = 300, height = 2.5, width = 4)
     ggsave(filename = file.path(savePath, "figures/nGene-distr.png"),
-           p.nGene, dpi = 500, height = 2.5, width = 4)
+           p.nGene, dpi = 300, height = 2.5, width = 4)
 
 
     message("[", Sys.time(), "] -----: mito & ribo & diss distribution plot")
@@ -646,11 +646,11 @@ runScStatistics <- function(dataPath, savePath,
     p.diss <- marginPlot(cell.manifest, value = "diss.percent", color = "#94c08e",
                          xlines = c(cell.threshold$nUMI), ylines = c(cell.threshold$diss.percent))
     ggsave(filename = file.path(savePath, "figures/mito-distr.png"),
-           p.mito, dpi = 500, height = 4, width = 4)
+           p.mito, dpi = 300, height = 4, width = 4)
     ggsave(filename = file.path(savePath, "figures/ribo-distr.png"),
-           p.ribo, dpi = 500, height = 4, width = 4)
+           p.ribo, dpi = 300, height = 4, width = 4)
     ggsave(filename = file.path(savePath, "figures/diss-distr.png"),
-           p.diss, dpi = 500, height = 4, width = 4)
+           p.diss, dpi = 300, height = 4, width = 4)
 
 
     message("[", Sys.time(), "] -----: gene statistics")
@@ -675,7 +675,7 @@ runScStatistics <- function(dataPath, savePath,
     )
     suppressWarnings(
         ggsave(filename = file.path(savePath, "figures/geneProp.png"),
-               p.geneProp, dpi = 500, height = 8, width = 8)
+               p.geneProp, dpi = 300, height = 8, width = 8)
     )
 
     if(!is.null(bg.percent) && raw.data){
@@ -683,11 +683,11 @@ runScStatistics <- function(dataPath, savePath,
         p.bg.detect <- bgDetScatter(gene.manifest)
         suppressWarnings(
             ggsave(filename = file.path(savePath, "figures/bg-cell-scatter.png"),
-                   p.bg.cell, dpi = 500, height = 4, width = 4)
+                   p.bg.cell, dpi = 300, height = 4, width = 4)
         )
         suppressWarnings(
             ggsave(filename = file.path(savePath, "figures/bg-detect-scatter.png"),
-                   p.bg.detect, dpi = 500, height = 4, width = 4)
+                   p.bg.detect, dpi = 300, height = 4, width = 4)
         )
     }else{
         p.bg.cell <- NULL

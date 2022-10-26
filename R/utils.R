@@ -193,7 +193,7 @@ Read10Xdata <- function (data.dir = NULL, gene.column = 2,
         list_of_data[[j]] <-
             do.call(cbind, lapply(X = full.data, FUN = `[[`, j))
         list_of_data[[j]] <-
-            as(object = list_of_data[[j]], Class = "dgCMatrix")
+            as(object = list_of_data[[j]], Class = "CsparseMatrix")
     }
     names(x = list_of_data) <- names(x = full.data[[1]])
 
@@ -589,7 +589,7 @@ generate10Xdata <- function(matrix, gene.info, outPath, overwrite = F){
     write.table(gene.info, feature.gz, quote = F, col.names = F, row.names = F, sep = "\t")
     close(feature.gz)
 
-    writeMM(as(as.matrix(matrix),"dgCMatrix"), file = paste0(outPath, "/filtered_feature_bc_matrix/matrix.mtx"))
+    writeMM(as(as.matrix(matrix),"CsparseMatrix"), file = paste0(outPath, "/filtered_feature_bc_matrix/matrix.mtx"))
     gzip(paste0(outPath, "/filtered_feature_bc_matrix/matrix.mtx"), overwrite = overwrite)
 }
 
