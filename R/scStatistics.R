@@ -229,7 +229,7 @@ prepareData <- function(samplePath,
 
 
 cellsPlot <- function(cell.manifest, plot.type = "histogram") {
-    cur.color <- c("empty" = '#aeacac', "cell" = '#825f87')
+    cur.color <- c("cell" = '#825f87', "empty" = '#aeacac')
 
     if(plot.type == "histogram"){
         p <- ggplot() +
@@ -242,12 +242,12 @@ cellsPlot <- function(cell.manifest, plot.type = "histogram") {
                 mapping = aes(x = nUMI, fill = "cell"),
                 bins = 200, alpha = 0.7) +
             geom_freqpoly(data = cell.manifest, mapping = aes(x = nUMI), bins = 200) +
-            labs(y = "Droplets number") +
+            labs(y = "Droplet number") +
             scale_fill_manual(
-                name = 'Droplets type',
+                name = 'Droplet type',
                 guide = 'legend',
-                values = cur.color,
-                labels = c("cell", "empty")) +
+                # labels = c("cell", "empty"),
+                values = cur.color) +
             scale_x_continuous(trans = 'log10') + scale_y_continuous(trans = 'log10') +
             guides(fill = guide_legend(override.aes = list(size = 1, alpha = 0.7))) +
             ggplot_config(base.size = 6) +
@@ -260,7 +260,7 @@ cellsPlot <- function(cell.manifest, plot.type = "histogram") {
         p <- ggplot(tmp.df, aes(x = xi, y = nUMI, color = droplet.type)) +
             geom_point(cex = 1, alpha = 0.5) +
             labs(x = "Droplets", y = "nUMI") +
-            scale_color_manual(values = cur.color, name = "Droplets type") +
+            scale_color_manual(values = cur.color, name = "Droplet type") +
             scale_x_continuous(trans = 'log10') + scale_y_continuous(trans = 'log10') +
             guides(color = guide_legend(override.aes = list(size = 5))) +
             ggplot_config(base.size = 6) +
