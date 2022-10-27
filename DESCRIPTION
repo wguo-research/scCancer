@@ -44,8 +44,5 @@ Imports:
     survminer,
     harmony,
     liger
-Remotes: 
-    github::immunogenomics/harmony,
-    github::MacoskoLab/liger
 Depends: R (>= 3.5.0)
 biocViews:
