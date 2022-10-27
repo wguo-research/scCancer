@@ -1214,7 +1214,7 @@ plotGeneSet <- function(cell.annotation, prefix = "GS__", bool.limit = T, savePa
 runExprProgram <- function(expr, rank = 50, sel.clusters = NULL, clusterStashName = "default", savePath = NULL){
     message("[", Sys.time(), "] -----: expression programs analysis")
 
-    data <- as(object = expr[["RNA"]]@data, Class = "dgTMatrix")
+    data <- as(object = expr[["RNA"]]@data, Class = "TsparseMatrix")
     if(!is.null(sel.clusters)){
         data <- data[, expr@meta.data[[clusterStashName]] %in% sel.clusters]
     }
