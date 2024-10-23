@@ -434,35 +434,42 @@ getBimodalThres <- function(scores){
 #' @export
 #'
 plotMalignancy <- function(cell.annotation,
+                           malignancy.method,
                            coor.names = c("tSNE_1", "tSNE_2"),
                            savePath = NULL){
     ## scatter plot of malignancy
     p.malignType.Point <- pointDRPlot(cell.annotation, value = "Malign.type",
                                       coor.names = coor.names,
-                                      colors = c("malignant" = "#f57e87", "nonMalignant" = "#66d5a5"),
+                                      # colors = c("malignant" = "#f57e87", "nonMalignant" = "#66d5a5"),
+                                      colors = c("malignant" = "#9467BD", "nonMalignant" = '#2CA02C'),
                                       legend.position = "right",
                                       legend.title = "Malignancy\n type")
 
     p.malignScore.Point <- pointDRPlot(cell.annotation, value = "Malign.score",
                                        coor.names = coor.names,
-                                       colors = c("white", "#f57e87"),
+                                       # colors = c("white", "#f57e87"),
+                                       colors = c("white", "#9467BD"),
                                        discrete = F,
                                        limit.quantile = 0.1,
                                        legend.position = "right",
                                        legend.title = "Malignancy\n score")
 
     p.malignType.bar <- clusterBarPlot(cell.annotation = cell.annotation,
-                                       cell.colors = c("malignant" = "#f57e87", "nonMalignant" = "#66d5a5"),
+                                       # cell.colors = c("malignant" = "#f57e87", "nonMalignant" = "#66d5a5"),
+                                       cell.colors = c("malignant" = "#9467BD", "nonMalignant" = '#2CA02C'),
                                        sel.col = "Malign.type",
                                        legend.title = "Malignancy type")
 
     ## save
     if(!is.null(savePath)){
-        ggsave(filename = file.path(savePath, "figures/malignType-point.png"),
+        ggsave(filename = file.path(savePath, "figures",
+                                    paste0(malignancy.method, "-malignType-point.png")),
                p.malignType.Point, width = 5, height = 3.8, dpi = 300)
-        ggsave(filename = file.path(savePath, "figures/malignScore-point.png"),
+        ggsave(filename = file.path(savePath, "figures",
+                                    paste0(malignancy.method, "-malignScore-point.png")),
                p.malignScore.Point, width = 5, height = 3.8, dpi = 300)
-        ggsave(filename = file.path(savePath, "figures/malignType-bar.png"),
+        ggsave(filename = file.path(savePath, "figures",
+                                    paste0(malignancy.method, "-malignType-bar.png")),
                p.malignType.bar, width = 6, height = 3, dpi = 300)
     }
 
@@ -507,8 +514,8 @@ runMalignancy <- function(expr,
                           species = "human",
                           genome = "hg19",
                           hg.mm.mix = F){
-    if(!dir.exists(file.path(savePath, 'malignancy/'))){
-        dir.create(file.path(savePath, 'malignancy/'), recursive = T)
+    if(!dir.exists(file.path(savePath, 'malignancy-inferCNV/'))){
+        dir.create(file.path(savePath, 'malignancy-inferCNV/'), recursive = T)
     }
 
     expr.data <- expr@assays$RNA@counts
@@ -566,21 +573,22 @@ runMalignancy <- function(expr,
 
     ## plot
     p.results <- plotMalignancy(cell.annotation = cell.annotation,
+                                malignancy.method = "inferCNV",
                                 coor.names = coor.names,
                                 savePath = savePath)
     p.results[["p.malignScore"]] <- p.malignScore
-    ggsave(filename = file.path(savePath, "figures/malignScore.png"),
+    ggsave(filename = file.path(savePath, "figures/inferCNV-malignScore.png"),
            p.malignScore, width = 5, height = 4, dpi = 300)
 
     ## save results
     write.table(cnvList$expr.data[, names(obserScore.smooth)],
-                file = file.path(savePath, "malignancy/inferCNV-observation.txt"),
+                file = file.path(savePath, "malignancy-inferCNV/inferCNV-observation.txt"),
                 quote = F, sep = "\t", row.names = T)
     write.table(cnvList$expr.data[, names(referScore.smooth)],
-                file = file.path(savePath, "malignancy/inferCNV-reference.txt"),
+                file = file.path(savePath, "malignancy-inferCNV/inferCNV-reference.txt"),
                 quote = F, sep = "\t", row.names = T)
     write.table(data.frame(referScore.smooth),
-                file = file.path(savePath, "malignancy/refer-malignScore.txt"),
+                file = file.path(savePath, "malignancy-inferCNV/refer-malignScore.txt"),
                 quote = F, sep = "\t", row.names = T)
 
     results <- list(

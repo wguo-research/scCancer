@@ -1,0 +1,26 @@
+>CD4.naiveT
+expressed: SELL, TCF7, CCR7
+
+>CD4.memoryT
+expressed: ANXA1
+
+>CD4.effectorT
+expressed: GNLY, GZMB, PRF1, GZMA
+
+>CD4.exhaustedT
+expressed: PDCD1, CTLA4, HAVCR2, TIGIT
+
+>CD4.regulatoryT
+expressed: FOXP3, CTLA4
+
+>CD8.naiveT
+expressed: LEF1, CCR7
+
+>CD8.effectorT
+expressed: CX3CR1, CD28, PRF1, GZMA, GZMB
+
+>CD8.exhaustedT
+expressed: GZMK, LAYN, PDCD1, HAVCR2, DUSP4
+
+>CD8.memoryT
+expressed: ZNF683, FCGR3A, FGFBP2

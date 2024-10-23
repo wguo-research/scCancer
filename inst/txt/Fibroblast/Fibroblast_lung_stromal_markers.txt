@@ -1,0 +1,17 @@
+>Fibroblasts1(COL10A1)
+expressed: COL10A1
+
+>Fibroblasts2(COL4A1)
+expressed: COL4A1
+
+>Fibroblasts3(PLA2G2A)
+expressed: PLA2G2A
+
+>Fibroblasts4(MMP3)
+expressed: MMP3
+
+>Fibroblasts5(CCL2)
+expressed: CCL2
+
+>normal lung fibroblasts
+expressed: FIGF

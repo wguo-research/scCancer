@@ -1,0 +1,8 @@
+>Blood EC(normal)
+expressed: MT2A, FLT1
+
+>Blood EC(tumour)
+expressed: HSPG2, FLT1
+
+>Lymphatic EC
+expressed: PDPN, PROX1

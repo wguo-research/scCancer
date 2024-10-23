@@ -8,7 +8,7 @@ pointDRPlot(
   cell.annotation,
   value,
   sel.clusters = NULL,
-  coor.names = c("tSNE_1", "tSNE_2"),
+  coor.names = c("UMAP_1", "UMAP_2"),
   colors = NULL,
   discrete = T,
   limit.quantile = 0,

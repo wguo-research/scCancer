@@ -1,0 +1,17 @@
+>Endo arterial
+expressed: LTC4S, PCSK5, BMX
+
+>Endo capillary
+expressed: SLC14A1, TMEM88, CD36
+
+>Endo lymphatic
+expressed: CCL21, LYVE1, MMRN1
+
+>Endo proif
+expressed: STMN1, HMGN2, HMGB2
+
+>Endo tip cells
+expressed: ANGPT2, ESM1, APLN
+
+>Endo venous
+expressed: CPE, ADGRG6, MADCAM1

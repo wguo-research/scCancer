@@ -1,0 +1,38 @@
+>Mast-TPSAB1
+expressed: TPSAB1, GATA2
+
+>pDC-LILRA4
+expressed: LILRA4, IRF4
+
+>cDC1-BATF3
+expressed: BATF3, XCR1
+
+>cDC2-CD1C
+expressed: CD1C, HMGA1
+
+>Mono-CD14
+expressed: CEBPD, CD36
+
+>Mono-CD16
+expressed: TCF7L2, FCGR3B
+
+>Mono-CD14CD16
+expressed: CD300E, ZFP36L2
+
+>Macro-NLRP3
+expressed: NLRP3, NFKB2
+
+>Macro-PLTP
+expressed: PLTP, KLF2
+
+>Macro-IL1B
+expressed: IL1B, HES1
+
+>Monolike-FCN1
+expressed: MAFB, HLA-DQA1
+
+>TAM-C1QC
+expressed: C1QC, ATF3
+
+>TAM-SPP1
+expressed: SPP1, CEBPB

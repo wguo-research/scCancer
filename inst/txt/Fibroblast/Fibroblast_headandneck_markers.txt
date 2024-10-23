@@ -1,0 +1,5 @@
+>Myofib
+expressed: ACTA2, MCAM, MYLK, PDGFA
+
+>CAFs
+expressed: MMP2, PDPN, FAP, THY1

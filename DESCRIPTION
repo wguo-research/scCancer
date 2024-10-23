@@ -1,9 +1,9 @@
 Package: scCancer
 Type: Package
-Title: A package for automated processing of single cell RNA-seq data in cancer
-Version: 2.2.1
+Title: Supervised and in-depth annotations of the tumor microenvironment
+Version: 2.3.0
 Author: G-Lab
-Maintainer: Wenbo Guo <gwb17@mails.tsinghua.edu.cn>
+Maintainer: Wenbo Guo <gwb17@tsinghua.org.cn>, Zeyu Chen <chenzy22@mails.tsinghua.edu.cn>
 Description: The package 'scCancer' is focuses on processing and analyzing 
     scRNA-seq data for cancer research. Except routine data processing steps, 
     it also integrates several cancer-specific analyses. For example, 
@@ -11,19 +11,21 @@ Description: The package 'scCancer' is focuses on processing and analyzing
     prediction, cell malignancy estimation, gene set signature scores calculation,
     and expression programs identification. After all steps, the package can
     generate a user-friendly graphic report. 
-License: GPL-3
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.1.1
+RoxygenNote: 7.2.3
 Suggests: 
     rmarkdown,
     DropletUtils
 VignetteBuilder: knitr
-Imports: 
+Imports:
+	Biobase,
     cowplot,
     dplyr,
     ggExtra,
     ggplot2,
+	ggpubr,
     grid,
     gridExtra,
     GSVA,
@@ -33,7 +35,11 @@ Imports:
     methods,
     NNLM,
     pheatmap,
+	ComplexHeatmap,
     R.utils,
+	hdf5r,
+	RcppArmadillo,
+	RcppProgress,
     reshape2,
     scds,
     Seurat (>= 3.0),
@@ -43,6 +49,15 @@ Imports:
     survival,
     survminer,
     harmony,
-    liger
+    rliger,
+	monocle,
+	edgeR,
+	DESeq2,
+	DelayedArray,
+	DelayedMatrixStats,
+	org.Hs.eg.db,
+	org.Mm.eg.db,
+	garnett,
+	xgboost
 Depends: R (>= 3.5.0)
 biocViews:

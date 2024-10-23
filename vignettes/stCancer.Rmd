@@ -1,0 +1,53 @@
+---
+title: "stCancer"
+author: "Zeyu Chen"
+date: '2023-07-07'
+output: html_document
+---
+
+```{r}
+suppressMessages(library(Seurat))
+suppressMessages(library(copykat))
+suppressMessages(library(GSVA))
+suppressMessages(library(pheatmap))
+suppressMessages(library(ComplexHeatmap))
+```
+
+```{r}
+devtools::install_github("navinlabcode/copykat")
+devtools::install_github("Miaoyx323/stCancer")
+```
+
+```{r}
+# library(devtools)
+# suppressWarnings(load_all())
+# suppressWarnings(document())
+library(stCancer)
+```
+
+```{r}
+sample.name <- "HCC1L"
+data.path <- "D:/scCancer-data/Spatial/HCC-1L/"  # including 'filtered_feature_bc_matrix' and 'spatial' folders
+save.path <- "D:/scCancer-data/Spatial/HCC1L-result/"
+
+results <- stStatistics(sample.name, 
+                        dataPath = data.path, 
+                        savePath = save.path, 
+                        species = "human")
+object <- results$object
+```
+
+```{r}
+results <- stAnnotation(object, 
+                        savePath = save.path, 
+                        species = "human", 
+                        bool.NMF = T, 
+                        bool.CellCycle = T, 
+                        bool.CellType = T, 
+                        bool.CNV = F, 
+                        bool.interaction = T, 
+                        bool.EMT = T, 
+                        bool.stem = T)
+object <- results$object
+```
+

@@ -1,0 +1,29 @@
+>Monocytes
+expressed: FCN1, MNDA, S100A12, FPR1, MS4A6A
+
+>Macrophages M0
+expressed: MMP9, CYP27A1, BHLHE41, CXCL5, ADAMDEC1
+
+>Macrophages M1
+expressed: CXCL9, CCL19, CXCL10, IDO1, EBI3
+
+>Macrophages M2
+expressed: CD4, CCL23, NPL, CCL14, HRH1
+
+>Dendritic cells resting
+expressed: CD1A, CD1C, HLA-DQA1, C1orf54, EGR2
+
+>Dendritic cells activated
+expressed: BIRC3, CD80, CD86, CHST7, ARHGAP22
+
+>Mast cells resting
+expressed: ADRB2, STAP1, BMP2K, CEACAM8, LTC4S
+
+>Mast cells activated
+expressed: CCL4, TPSAB1, CPA3, PRG2, IL1B
+
+>Eosinophils
+expressed: EMR1, BCL2A1, SAMSN1, C3AR1, GPR65
+
+>Neutrophils
+expressed: FCGR3B, CXCR2, TREM1, CXCR1, MGAM

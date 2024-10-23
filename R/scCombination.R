@@ -16,7 +16,7 @@
 #' @return A results list with all useful objects used in the function.
 #' @export
 #'
-#' @import harmony liger
+#' @import harmony rliger
 #'
 runScCombination <- function(single.savePaths, sampleNames, savePath, combName,
                              authorName = NULL,
@@ -335,7 +335,7 @@ runScCombination <- function(single.savePaths, sampleNames, savePath, combName,
     ## --------- malignancy ---------
     if(bool.runMalignancy){
         if(!(all(c("Malign.score", "Malign.type") %in% names(cell.annotation)))){
-            message("[", Sys.time(), "] -----: cells malignancy annotation")
+            message("[", Sys.time(), "] -----: cells malignancy annotation through inferCNV")
             for(i in 1:length(sampleNames)){
                 cur.manifest <- read.table(paste0(single.savePaths[i], "/geneManifest.txt"),
                                            header = T, sep = "\t", stringsAsFactors = F)
@@ -348,6 +348,7 @@ runScCombination <- function(single.savePaths, sampleNames, savePath, combName,
             }
             # rownames(gene.manifest) <- gene.manifest$EnsemblID
             rownames(gene.manifest) <- gene.manifest$Symbol
+            # Run inferCNV
             t.results <- runMalignancy(expr = expr,
                                        gene.manifest = gene.manifest,
                                        cell.annotation = cell.annotation,
@@ -372,6 +373,7 @@ runScCombination <- function(single.savePaths, sampleNames, savePath, combName,
         }else{
             message("[", Sys.time(), "] -----: cells malignancy combination")
             results[["malign.plot"]] <- plotMalignancy(cell.annotation = cell.annotation,
+                                                       malignancy.method = "",
                                                        coor.names = coor.names,
                                                        savePath = savePath)
         }

@@ -1,4 +1,3 @@
-
 get10Xpath <- function (samplePath, raw.data = F){
     prefix <- ifelse(raw.data, 'raw', 'filtered')
     cur.path <- paste0(samplePath, '/')
@@ -75,9 +74,9 @@ getBarcodes <- function(data.path){
 #' a list containing a sparse matrix of the data from each type will be returned.
 #'
 #' @export
-#'
-Read10Xdata <- function (data.dir = NULL, gene.column = 2,
-                         unique.features = TRUE, only.expr = TRUE)  {
+#' @import Matrix
+Read10Xdata <- function(data.dir = NULL, gene.column = 2,
+                        unique.features = TRUE, only.expr = TRUE){
     full.data <- list()
     for (i in seq_along(data.dir)) {
         run <- data.dir[i]
@@ -717,3 +716,342 @@ checkCombArguments <- function(argList){
         stop("The parameter 'comb.method' should be one of the c(\"Harmony\", \"NormalMNN\", \"SeuratMNN\", \"Raw\", \"Regression\", \"LIGER\").\n")
     }
 }
+
+
+# Update in scCancer2:
+# 1. visualization functions for training and similarity calculation
+# 2. similarity calculation functions
+
+# Part1. visualization
+# --------------------------------------------------------------------
+#' Construct a convenient Seurat pipeline
+#' @name visualization_pipeline
+#' @usage visualization_pipeline(dataset, label)
+#' @param dataset The expression dataframe,
+#' with rows being cells, and columns being genes.
+#' The last column should be "label".
+#' @param label groundtruth or output of scibet function Test.
+#'
+#' @import Seurat
+visualization_pipeline <- function(dataset,
+                                 label=NULL,
+                                 normalize=TRUE,
+                                 reduction="umap",
+                                 metacell=FALSE){
+  counts <- data.frame(t(dataset[, 1:dim(dataset)[2]-1]))
+  object <- CreateSeuratObject(counts = counts, min.cells = 3)
+  if(is.null(label)){
+    label <- rep("unknown cell", time=ncol(counts))
+  }
+  object$celltype <- label
+  if(normalize){
+    object <- NormalizeData(object, verbose = FALSE)
+  }
+  object <- FindVariableFeatures(object, selection.method = "vst", verbose = FALSE)
+  object <- ScaleData(object, verbose = FALSE)
+  # object <- ScaleData(object, do.scale = FALSE, do.center = TRUE, scale.max = 10)
+  object <- RunPCA(object, npcs = 30, verbose = FALSE)
+  if(reduction == "umap"){
+    object <- RunUMAP(object, reduction = "pca", dims = 1:30, verbose = FALSE)
+  }
+  else{
+    object <- RunTSNE(object, reduction = "pca", dims = 1:30, verbose = FALSE)
+  }
+  p <- DimPlot(object, reduction = reduction, group.by = "celltype", repel = TRUE)
+  if(metacell){
+    object <- FindNeighbors(object, dims = 1:30)
+    object <- FindClusters(object, resolution = 100)
+  }
+  return(list(object = object, plot = p))
+}
+
+
+#' Confusion matrix
+#' @export
+confusion <- function(name.reference, name.prediction,
+                      label, predict){
+
+    x <- matrix(nrow = length(name.prediction), ncol=length(name.reference))
+    x[is.na(x)] <- 0
+    colnames(x) <- name.reference
+    rownames(x) <- name.prediction
+    for (i in 1:length(predict)){
+        col <- which(name.reference == label[i])    # truth
+        row <- which(name.prediction == predict[i]) # predict
+        x[row, col] <- x[row, col] + 1
+    }
+
+    if(!is.numeric(x)){
+        stop('input should be numeric, not ',mode(x),
+             call. = F)
+    }
+
+    # matrix output
+    # [,1] [,2] [,3]
+    # [1,]    9    0    0
+    # [2,]    1    8    0
+    # [3,]    0    2   10
+
+    return(as.matrix(x))
+}
+
+
+#' Visualization of classification result.
+#' @name ConfusionMatrix
+#' @usage ConfusionMatrix(label.name, label, predict)
+#' @param label.name A vector of the sorted unique labels
+#' @param label A vector of the original labels for each cell in the test set.
+#' @param predict A vector of the predicted labels for each cell in the test set.
+#' @return A heatmap for the confusion matrix of the classification result.
+#' @export
+ConfusionMatrix <- function(name.reference, name.prediction,
+                            label, predict,
+                            title='Confusion Matrix',
+                            xlab='Predicted label',
+                            ylab='True label',
+                            normalize=F,
+                            font.size=20/.pt){
+
+
+    x <- confusion(name.reference, name.prediction, label, predict)
+    x <- as.table(x)
+
+    if(normalize){
+        # x = round(prop.table(x,1), 2)
+        x <- round(prop.table(x,2), 2)
+    }
+    mar <- as.data.frame(x)
+    mytheme <- theme(plot.title=element_text(
+        face="bold.italic", size=12, color="darkblue"),
+        axis.title=element_text(face="bold.italic", size=10, color="darkblue"),
+        axis.text=element_text(face="bold", size=8, color="darkblue"),
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        panel.background=element_rect(fill="white",color="darkblue"),
+        panel.grid.minor.x=element_blank(),
+        legend.position="right")
+    ggplot(mar, aes(mar[,2],mar[,1])) +
+        geom_tile(aes(fill=Freq),color='black') +
+        scale_fill_gradientn(colours = c('gray98','steelblue1','midnightblue'))+
+        geom_label(aes(label = Freq), size=font.size) +
+        labs(title = title, fill='',x=xlab,y=ylab) +
+        ylim(rev(levels(mar[,2]))) +
+        scale_y_discrete(expand=c(0,0)) +
+        scale_x_discrete(expand=c(0,0)) +
+        mytheme
+}
+
+
+#' Kappa index for multi-classification.
+#' @export
+Kappa <- function(confusion_matrix){
+
+    # input:
+    # [,1] [,2] [,3]
+    # [1,]    0    2   10
+    # [2,]    1    8    0
+    # [3,]    9    0    0
+
+    # confusion_matrix <- confusion_matrix[rev(seq(1,nrow(confusion_matrix))),]
+
+    # matrix used for kappa index
+    # [,1] [,2] [,3]
+    # [1,]    9    0    0
+    # [2,]    1    8    0
+    # [3,]    0    2   10
+
+    pe_rows <- rowSums(confusion_matrix)
+    pe_cols <- colSums(confusion_matrix)
+    sum_total <- sum(pe_cols)
+    pe <- (pe_rows %*% pe_cols) / sum_total^2
+    po <- sum(diag(confusion_matrix)) / sum_total
+    kappa.index <- (po - pe) / (1 - pe)
+
+    message("Kappa index: ", kappa.index[1,1])
+
+    return (kappa.index[1,1])
+}
+
+
+# stratified 5 fold cross-validation
+stratify_5fold <- function(all.barcodes, label, random.seed=0, nfold=5){
+    celltypes <- unique(label)
+    index.list <- vector(mode = "list", length = length(celltypes))
+    for (c in 1:length(celltypes)){
+        set.seed(c + random.seed)
+        # barcodes for every cell type
+        barcodes <- all.barcodes[which(label == celltypes[c])]
+        # group length = barcode / fold
+        group.length <- ceiling(length(barcodes) / nfold)
+        # barcodes remaining
+        remain <- seq(1, length(barcodes))
+        ID <- c()
+        # matrix
+        barcodes.select <- matrix(nrow = nfold, ncol = group.length)
+        index.select <- matrix(nrow = nfold, ncol = group.length)
+        # barcodes.select <- c(barcodes.select, sample(barcodes, group.length))
+
+        for (j in seq(1, nfold)) {
+            if(j < nfold){
+                ID <- sort(sample(length(remain), group.length))
+                barcodes.select[j,1:length(remain[ID])] <- barcodes[sort(remain[ID])]
+                index.select[j,1:length(remain[ID])] <- which(all.barcodes %in% barcodes[sort(remain[ID])])
+                remain <- sort(remain[-ID])
+            }
+            else{
+                barcodes.select[j,1:length(remain)] <- barcodes[sort(remain)]
+                index.select[j,1:length(remain)] <- which(all.barcodes %in% barcodes[sort(remain)])
+            }
+        }
+        index.list[[c]] <- index.select
+    }
+    names(index.list) <- celltypes
+    # return(index.list)
+
+    # Size enough for indexes
+    index <- matrix(nrow = nfold, ncol = floor(length(all.barcodes) / nfold) + length(celltypes))
+    for (j in seq(from = 1, to = nfold)){
+        barcodes.select <- c()
+        for (c in 1:length(celltypes)){
+            barcodes.select <- c(barcodes.select, index.list[[c]][j,])
+        }
+        index[j,1:length(barcodes.select)] <- barcodes.select
+    }
+    return(index)
+
+}
+
+
+
+#' @export
+SimilarityHeatmap <- function(similarity.mar,
+                              celltype,
+                              pdf.path){
+    if (celltype == "B.cells"){
+        p <- pheatmap(similarity.mar,
+                       angle_col = 45,
+                       cutree_rows = 3,
+                       cutree_cols = 3,
+                       clustering_method = "ward.D",
+                       color=colorRampPalette(c("#FFFFD4", "#FED98E", "#FE9929", "#D95F0E"))(50),
+                       main = paste0(celltype, " similarity map"),
+                       fontsize = 10,
+                       display_numbers = TRUE,
+                       number_format = "%.2f",
+                       filename = pdf.path)
+    }
+
+    else if (celltype == "T.cells"){
+        p <- pheatmap(similarity.mar,
+                       angle_col = 45,
+                       cutree_rows = min(nrow(similarity.mar)-1,11),
+                       cutree_cols = min(nrow(similarity.mar)-1,11),
+                       clustering_method = "ward.D",
+                       color=colorRampPalette(c("#FFFFD4", "#FED98E", "#FE9929", "#D95F0E"))(50),
+                       main = paste0(celltype, " similarity map"),
+                       fontsize = 4.5,
+                       display_numbers = FALSE,
+                       number_format = "%.1f",
+                       filename = pdf.path)
+    }
+
+    else if (celltype == "Myeloid.cells"){
+        p <- pheatmap(similarity.mar,
+                       angle_col = 45,
+                       cutree_rows = min(nrow(similarity.mar)-1,10),
+                       cutree_cols = min(nrow(similarity.mar)-1,10),
+                       clustering_method = "ward.D",
+                       color=colorRampPalette(c("#FFFFD4", "#FED98E", "#FE9929", "#D95F0E"))(50),
+                       main = paste0(celltype, " similarity map"),
+                       fontsize = 6,
+                       display_numbers = FALSE,
+                       number_format = "%.1f",
+                       filename = pdf.path)
+    }
+
+    else if (celltype == "Endothelial"){
+        p <- pheatmap(similarity.mar,
+                       angle_col = 45,
+                       cutree_rows = 5,
+                       cutree_cols = 5,
+                       clustering_method = "ward.D",
+                       color=colorRampPalette(c("#FFFFD4", "#FED98E", "#FE9929", "#D95F0E"))(50),
+                       main = paste0(celltype, " similarity map"),
+                       fontsize = 9.5,
+                       display_numbers = TRUE,
+                       number_format = "%.2f",
+                       filename = pdf.path)
+    }
+
+    # Fibroblast
+    else{
+        p <- pheatmap(similarity.mar,
+                       angle_col = 45,
+                       cutree_rows = 4,
+                       cutree_cols = 4,
+                       clustering_method = "ward.D",
+                       color=colorRampPalette(c("#FFFFD4", "#FED98E", "#FE9929", "#D95F0E"))(50),
+                       main = paste0(celltype, " similarity map"),
+                       fontsize = 8,
+                       display_numbers = TRUE,
+                       number_format = "%.2f",
+                       filename = pdf.path)
+    }
+    # print(p)
+    return(p)
+}
+# --------------------------------------------------------------------
+
+# Part2. similarity calculation
+# --------------------------------------------------------------------
+#' @export
+Jaccard <- function(cell.sets, p = 1){
+  similarity.mar <- matrix(nrow = length(cell.sets),
+                           ncol = length(cell.sets))
+  rownames(similarity.mar) <- names(cell.sets)
+  colnames(similarity.mar) <- names(cell.sets)
+
+  for(i in 1:length(cell.sets)){
+    for(j in i:length(cell.sets)){
+      m <- intersect(cell.sets[[i]], cell.sets[[j]])
+      n <- union(cell.sets[[i]], cell.sets[[j]])
+      similarity.mar[i, j] <- length(m)^p / length(n)
+      similarity.mar[j, i] <- similarity.mar[i, j]
+    }
+  }
+  return(similarity.mar)
+}
+
+#' @export
+Spearman <- function(mean.expr){
+  similarity.mar <- matrix(nrow = length(mean.expr),
+                           ncol = length(mean.expr))
+  rownames(similarity.mar) <- names(mean.expr)
+  colnames(similarity.mar) <- names(mean.expr)
+  for(i in 1:length(mean.expr)){
+    for(j in i:length(mean.expr)){
+      common.gene <- intersect(names(mean.expr[[i]]), names(mean.expr[[j]]))
+      similarity.mar[i, j] <- cor(unname(mean.expr[[i]][common.gene]),
+                                  unname(mean.expr[[j]][common.gene]),
+                                  method = "spearman")
+      similarity.mar[j, i] <- similarity.mar[i, j]
+    }
+  }
+  return(similarity.mar)
+}
+
+#' @export
+Intergration <- function(all.matrix){
+  similarity.mean <- all.matrix[[1]]
+  similarity.var <- all.matrix[[1]]
+  for(i in 1:nrow(similarity.mean)){
+    for(j in 1:ncol(similarity.mean)){
+      values <- lapply(all.matrix, function(matrix){
+        return(matrix[i, j])
+      })
+      similarity.mean[i, j] <- mean(unlist(values))
+      similarity.var[i, j] <- var(unlist(values))
+    }
+  }
+  return(list(mean = similarity.mean, var = similarity.var))
+}
+# --------------------------------------------------------------------

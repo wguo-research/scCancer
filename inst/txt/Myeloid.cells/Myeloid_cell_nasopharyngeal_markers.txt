@@ -1,0 +1,17 @@
+>pDC
+expressed: LILRA4, IL3RA, TCF4
+
+>DC1 (CLEC9A+)
+expressed: CLEC9A, XCR1, BATF3
+
+>DC2 (CD1C+)
+expressed: CD1A, FCER1A, CD1C
+
+>DC3 (CCR7+)
+expressed: CCR7, LAMP3, FSCN1
+
+>Monocyte
+expressed: VCAN, FCN1, S100A12
+
+>Macrophage
+expressed: CD14, CD163, APOE

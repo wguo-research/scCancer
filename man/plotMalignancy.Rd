@@ -6,6 +6,7 @@
 \usage{
 plotMalignancy(
   cell.annotation,
+  malignancy.method,
   coor.names = c("tSNE_1", "tSNE_2"),
   savePath = NULL
 )
@@ -13,6 +14,9 @@ plotMalignancy(
 \arguments{
 \item{cell.annotation}{A data.frame of cells' annotation containing the cells'
 malignancy score (`Malign.score`) and type (`Malign.type`).}
+
+\item{malignancy.method}{The method to be used in malignant cell identification.
+inferCNV and xgboost are allowed. Recommend "xgboost" for large dataset, "both" for small dataset.}
 
 \item{coor.names}{A vector indicating the names of two-dimension coordinate used in visualization.}
 

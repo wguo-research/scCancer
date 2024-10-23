@@ -7,7 +7,7 @@
 runCellClassify(
   expr,
   cell.annotation,
-  coor.names = c("tSNE_1", "tSNE_2"),
+  coor.names = c("UMAP_1", "UMAP_2"),
   savePath,
   ct.templates = NULL,
   species = "human"

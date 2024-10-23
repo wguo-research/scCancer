@@ -9,7 +9,7 @@ plotSeurat(
   cell.annotation = cell.annotation,
   show.features = NULL,
   bool.add.features = T,
-  coor.names = c("tSNE_1", "tSNE_2"),
+  coor.names = c("UMAP_1", "UMAP_2"),
   bool.plotHVG = T,
   bool.runDiffExpr = T,
   diff.expr.genes = NULL,

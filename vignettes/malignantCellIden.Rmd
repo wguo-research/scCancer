@@ -1,0 +1,70 @@
+---
+title: "Malignant cell identification"
+author: "Zeyu Chen"
+date: "2023-08-02"
+output: html_document
+---
+
+```{r}
+rm(list = ls())
+gc()
+options(stringsAsFactors = F)
+```
+
+```{r}
+suppressMessages(library(Seurat))
+suppressMessages(library(xgboost))
+suppressMessages(library(scCancer))
+```
+
+# Input data
+```{r}
+data <- Read10X(data.dir = "D:/scCancer-data/SubtypeAnno/Demo-pipeline/20181024-KC-P7-Tumor-vCR3/data/filtered_feature_bc_matrix/")
+object <- CreateSeuratObject(counts = data, min.genes = 200, min.cells = 3)
+object[["mito.percent"]] <- PercentageFeatureSet(object, pattern = "^MT-")
+object <- NormalizeData(object = object,
+                        normalization.method = "LogNormalize",
+                        scale.factor = 10000,
+                        verbose = F)
+object <- FindVariableFeatures(object, selection.method = "vst", nfeatures = min(5000, length(rownames(object))), verbose = FALSE)
+object <- ScaleData(object, vars.to.regress = c("nCount_RNA", "mito.percent"), verbose = FALSE)
+```
+
+# Load model and prepare data
+```{r}
+model.path <- paste0(system.file("txt", package = "scCancer"), "/sc_xgboost.model")
+genes.path <- paste0(system.file("txt", package = "scCancer"), "/genes-scRNA-tcga-sorted.txt")
+model.ref <- xgb.load(model.path)
+# features <- read.table(genes.path)$V1
+features <- as.list(read.table(genes.path))[[1]]
+testdata <- t(as.matrix(object@assays$RNA@scale.data))
+
+temp <- matrix(data = 0, nrow = nrow(testdata), ncol = length(features),
+               dimnames = list(rownames(testdata), features))
+current.features <- colnames(testdata)
+for(j in 1:length(features)){
+    if(features[j] %in% current.features){
+        temp[,j] <- testdata[, features[j]]
+    }
+}
+
+testdata <- temp
+```
+
+# Prediction
+```{r}
+testdata <- xgb.DMatrix(testdata)
+predict.label <- predict(model.ref, testdata)
+predict.label[which(predict.label > 0.5)] <- "malignant"
+predict.label[which(predict.label <= 0.5)] <- "nonMalignant"
+table(predict.label)
+```
+
+# Visualization
+```{r}
+object$malignant.label <- predict.label
+object <- RunPCA(object, npcs = 30, verbose = FALSE)
+object <- RunUMAP(object, reduction = "pca", dims = 1:30, verbose = FALSE)
+DimPlot(object, group.by = "malignant.label")
+```
+

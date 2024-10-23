@@ -547,6 +547,7 @@ bgDetScatter <- function(gene.manifest){
 #' @param mix.anno A vector to indicate the prefix of genes from different species.
 #' The default is c("human" = "hg19", "mouse" = "mm10").
 #' @param bg.spec.genes A list of backgroud specific genes, which are used to remove ambient genes' influence.
+#' @param bool.filterhighUMI A logical value indicating whether to filter cells with extremely high nUMI
 #' @param bool.runSoupx A logical value indicating whether to estimate contamination fraction by SoupX.
 #' @param genReport A logical value indicating whether to generate a .html/.md report (suggest to set TRUE).
 #'
@@ -573,10 +574,12 @@ runScStatistics <- function(dataPath, savePath,
                             hg.mm.thres = 0.6,
                             mix.anno = c("human" = "hg19", "mouse" = "mm10"),
                             bg.spec.genes = NULL,
+                            bool.filterhighUMI = T,
                             bool.runSoupx = F,
                             genReport = T){
 
-    message("[", Sys.time(), "] START: RUN scStatistics")
+    # message("[", Sys.time(), "] START: RUN scStatistics")
+    cat("[", paste0(Sys.time()), "] START: RUN scStatistics\n")
     # results <- as.list(environment())
     checkStatArguments(as.list(environment()))
 
@@ -591,7 +594,7 @@ runScStatistics <- function(dataPath, savePath,
     suppressWarnings( dataPath <- normalizePath(dataPath, "/") )
     suppressWarnings( savePath <- normalizePath(savePath, "/") )
 
-    message("[", Sys.time(), "] -----: data preparation")
+    cat("[", paste0(Sys.time()), "] -----: data preparation\n")
     all <- prepareData(samplePath = dataPath,
                        species = species,
                        hg.mm.mix = hg.mm.mix,
@@ -607,7 +610,7 @@ runScStatistics <- function(dataPath, savePath,
     run.emptydrop <- all$run.emptydrop
     rm(all)
 
-    message("[", Sys.time(), "] -----: cell calling")
+    cat("[", paste0(Sys.time()), "] -----: cell calling\n")
     if(raw.data){
         p.cells.1 <- cellsPlot(cell.manifest, plot.type = "histogram")
         p.cells.2 <- cellsPlot(cell.manifest, plot.type = "rankplot")
@@ -624,12 +627,14 @@ runScStatistics <- function(dataPath, savePath,
         p.cells.2 <- NULL
     }
 
-    message("[", Sys.time(), "] -----: nUMI & nGene distribution plot")
+    cat("[", paste0(Sys.time()), "] -----: nUMI & nGene distribution plot\n")
     cell.manifest.all <- cell.manifest
     cell.manifest <- subset(cell.manifest, droplet.type == "cell")
     cell.threshold <- calcThres(cell.manifest,
                                 values = c("nUMI", "nGene", "mito.percent", "ribo.percent", "diss.percent"))
-
+    if (bool.filterhighUMI == F){
+        cell.threshold$nUMI <- max(cell.manifest[["nUMI"]])
+    }
     p.nUMI <- histPlot(cell.manifest, value = "nUMI", xlines = c(cell.threshold$nUMI))
     p.nGene <- histPlot(cell.manifest, value = "nGene", xlines = c(200, cell.threshold$nGene))
     ggsave(filename = file.path(savePath, "figures/nUMI-distr.png"),
@@ -638,7 +643,7 @@ runScStatistics <- function(dataPath, savePath,
            p.nGene, dpi = 300, height = 2.5, width = 4)
 
 
-    message("[", Sys.time(), "] -----: mito & ribo & diss distribution plot")
+    cat("[", paste0(Sys.time()), "] -----: mito & ribo & diss distribution plot\n")
     p.mito <- marginPlot(cell.manifest, value = "mito.percent", color = "#6d9fd5",
                          xlines = c(cell.threshold$nUMI), ylines = c(cell.threshold$mito.percent))
     p.ribo <- marginPlot(cell.manifest, value = "ribo.percent", color = "#f6b969",
@@ -653,7 +658,7 @@ runScStatistics <- function(dataPath, savePath,
            p.diss, dpi = 300, height = 4, width = 4)
 
 
-    message("[", Sys.time(), "] -----: gene statistics")
+    cat("[", paste0(Sys.time()), "] -----: gene statistics\n")
     bg.result <- getBgPercent(cell.manifest.all, expr.data, bg.low = 1, bg.up = 10)
     bg.percent <- bg.result$est
     nCell <- getNcell(cell.manifest, expr.data)
@@ -669,7 +674,7 @@ runScStatistics <- function(dataPath, savePath,
                                  prop.median = prop.median,
                                  low.frac = NULL)
 
-    message("[", Sys.time(), "] -----: gene proportion plot")
+    cat("[", paste0(Sys.time()), "] -----: gene proportion plot\n")
     suppressWarnings(
         p.geneProp <- genePropPlot(gene.manifest, expr.frac)
     )
@@ -696,7 +701,7 @@ runScStatistics <- function(dataPath, savePath,
 
 
     if(bool.runSoupx){
-        message("[", Sys.time(), "] -----: ambient genes (SoupX)")
+        cat("[", paste0(Sys.time()), "] -----: ambient genes (SoupX)\n")
         suppressWarnings( cls.path <- file.path(dataPath, "analysis/clustering/graphclust/clusters.csv") )
         bool.cls.info <- file.exists(cls.path)
         if(is.null(bg.percent) | !raw.data){
@@ -722,7 +727,7 @@ runScStatistics <- function(dataPath, savePath,
     }
 
 
-    message("[", Sys.time(), "] -----: resutls saving")
+    cat("[", paste0(Sys.time()), "] -----: results saving\n")
     filter.thres <- list(
         Index = c("nUMI", "nGene", "mito.percent", "ribo.percent", "diss.percent"),
         Low.threshold = c(0, 200, -Inf, -Inf, -Inf),
@@ -792,7 +797,7 @@ runScStatistics <- function(dataPath, savePath,
 
     ## generate report
     if(genReport){
-        message("[", Sys.time(), "] -----: report generating")
+        cat("[", paste0(Sys.time()), "] -----: report generating\n")
         # results$cell.manifest <- subset(cell.manifest.all, droplet.type == "cell")
 
         if(!dir.exists(file.path(savePath, 'report-figures/'))){
@@ -808,8 +813,8 @@ runScStatistics <- function(dataPath, savePath,
         # results$cell.manifest <- cell.manifest.all
     }
 
-    message("[", Sys.time(), "] END: Finish scStatistics\n\n")
-
+    saveRDS(results, file = file.path(savePath, "scStatistics-results.RDS"))
+    cat("[", paste0(Sys.time()), "] END: Finish scStatistics\n\n")
     return(results)
 }
 
@@ -824,7 +829,7 @@ runScStatistics <- function(dataPath, savePath,
 #' @export
 #'
 genStatReport <- function(results, savePath){
-    message("[", Sys.time(), "] -----: report generating")
+    cat("[", paste0(Sys.time()), "] -----: report generating\n")
 
     if(!dir.exists(savePath)){
         dir.create(savePath, recursive = T)

@@ -14,6 +14,7 @@ runScStatistics(
   hg.mm.thres = 0.6,
   mix.anno = c(human = "hg19", mouse = "mm10"),
   bg.spec.genes = NULL,
+  bool.filterhighUMI = T,
   bool.runSoupx = F,
   genReport = T
 )
@@ -43,6 +44,8 @@ The default is 0.6.}
 The default is c("human" = "hg19", "mouse" = "mm10").}
 
 \item{bg.spec.genes}{A list of backgroud specific genes, which are used to remove ambient genes' influence.}
+
+\item{bool.filterhighUMI}{A logical value indicating whether to filter cells with extremely high nUMI}
 
 \item{bool.runSoupx}{A logical value indicating whether to estimate contamination fraction by SoupX.}
 

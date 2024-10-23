@@ -1,0 +1,14 @@
+>Tip-like ECs
+expressed: RGCC, RAMP3
+
+>Stalk-like ECs
+expressed: ACKR1, SELP
+
+>Lymphatic ECs
+expressed: LYVE1, PROX1
+
+>Tumor ECs
+expressed: INSR, HSPG2
+
+>EPCs
+expressed: TYROBP, C1QB

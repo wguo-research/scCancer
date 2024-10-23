@@ -1,0 +1,32 @@
+>Mast
+expressed: TPSAB1, CPA3, KIT
+
+>Monocyte
+expressed: FCN1, VCAN, CD300E
+
+>Macrophage-like
+expressed: APOC1, LIPA, C1QA
+
+>DC1
+expressed: CLEC9A, XCR1, BATF3
+
+>DC2
+expressed: FCER1A, CD1C, CLEC10A
+
+>DC2 C1Q+
+expressed: CLEC10A, C1QA, CSF1R
+
+>DC IL22RA2
+expressed: CD1E, PAK1, IL22RA2
+
+>pDC
+expressed: CLEC4C, IRF7, CXCR3
+
+>AS-DC
+expressed: SIGLEC6, PPP1R14A, AXL
+
+>mregDC
+expressed: LAMP3, CCL19, CCL22
+
+>Granulocyte
+expressed: FCGR3B, HCAR2, GPR109B

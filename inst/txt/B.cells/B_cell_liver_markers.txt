@@ -1,0 +1,5 @@
+>Lymphoid-B
+expressed: BLK, MS4A1, CD19, CD22
+
+>Lymphoid-B-Plasma
+expressed: TNFRSF17, AMPD1

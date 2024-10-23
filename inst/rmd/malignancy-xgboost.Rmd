@@ -1,0 +1,30 @@
+
+### `r h.i`.`r h.ii` Cell malignancy estimation: xgboost
+
+We apply XGBoost model to identify malignant cell as a complement of inferCNV method.
+
+Here is the t-SNE plot colored by malignancy score (left) and type (right).
+
+```{r malignPointPlot-xgboost, echo=F, message=F, warning=F, dpi=300, fig.width=10, fig.height=4, fig.align="center"}
+plot_grid(results$malign.plot.xgboost$p.malignScore.Point, 
+          results$malign.plot.xgboost$p.malignType.Point, ncol = 2)
+```
+<p align='right' style='margin-top:3px'>(Hi-res image: <a href='./figures/malignType-point.png'>left</a>, <a href='./figures/malignScore-point.png'>right</a>)</p>
+
+
+
+Here is a bar plot showing the relationship between cell cluster and cell malignancy type.
+
+```{r malignBarPlot-xgboost, echo=F, message=F, warning=F, dpi=300, fig.width=6, fig.height=3, fig.align="center", out.width='80%'}
+results$malign.plot.xgboost$p.malignType.bar
+```
+<p align="right">(Hi-res image: <a href="./figures/malignType-bar.png">view</a>)</p>
+
+
+
+The estimated cell malignancy scores and types can be found in the column `Malign.score` and `Malign.type` of the table file
+[cellAnnotation.txt](./cellAnnotation.txt). 
+
+```{r echo=F}
+h.ii <- h.ii + 1
+```

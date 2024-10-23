@@ -18,6 +18,7 @@ runScAnnotation(
   bool.rmContamination = F,
   vars.add.meta = c("mito.percent", "ribo.percent", "diss.percent"),
   vars.to.regress = c("nCount_RNA", "mito.percent", "ribo.percent"),
+  npcs = 50,
   pc.use = 30,
   resolution = 0.8,
   clusterStashName = "default",
@@ -31,9 +32,18 @@ runScAnnotation(
   bool.runDoublet = T,
   doublet.method = "bcds",
   bool.runCellClassify = T,
+  roughlabel.path = NULL,
+  bool.runCellSubtypeClassify = T,
+  subtypeClassifyMethod = "Scoring",
+  celltype.list = NULL,
   ct.templates = NULL,
-  coor.names = c("tSNE_1", "tSNE_2"),
+  submodel.path = NULL,
+  markers.path = NULL,
+  unknown.cutoff = 0.3,
+  subtype.umap = FALSE,
+  coor.names = c("UMAP_1", "UMAP_2"),
   bool.runMalignancy = T,
+  malignancy.method = "both",
   cnv.ref.data = NULL,
   cnv.referAdjMat = NULL,
   cutoff = 0.1,
@@ -118,12 +128,29 @@ These methods are from R package "scds".}
 
 \item{bool.runCellClassify}{A logical value indicating whether to predict the usual cell type. The default is TRUE.}
 
+\item{roughlabel.path}{Path for generated rough label, useful when bool.runCellClassify = FALSE.}
+
+\item{bool.runCellSubtypeClassify}{A logical value indicating whether to predict the usual cell subtype. The default is TRUE.}
+
+\item{celltype.list}{A list of cell types for subtype annotation, which depends on either rough annotation or user's input.}
+
 \item{ct.templates}{A list of vectors of several cell type templates.
 The default is NULL and the templates prepared in this package will be used.}
+
+\item{submodel.path}{A folder containing all models preset for cell subtype annotation(.csv file)
+The default is NULL and all models prepared in this package will be used.}
+
+\item{markers.path}{A folder containing all marker files preset for cell subtype annotation(.txt file)
+The default is NULL and all marker files prepared in this package will be used.}
+
+\item{subtype.umap}{A logical value indicating whether to generate umap plot group by cell subtypes. The default is FALSE.}
 
 \item{coor.names}{A vector indicating the names of two-dimension coordinate used in visualization.}
 
 \item{bool.runMalignancy}{A logical value indicating whether to estimate malignancy.}
+
+\item{malignancy.method}{The method to be used in malignant cell identification.
+inferCNV and xgboost are allowed. Recommend "xgboost" for large dataset, "both" for small dataset.}
 
 \item{cnv.ref.data}{An expression matrix of gene by cell, which is used as the normal reference during estimating malignancy.
 The default is NULL, and an immune cells or bone marrow cells expression matrix will be used for human or mouse species, respectively.}

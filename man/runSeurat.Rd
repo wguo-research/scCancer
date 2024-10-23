@@ -7,6 +7,7 @@
 runSeurat(
   expr,
   savePath,
+  npcs = 50,
   pc.use = 30,
   resolution = 0.8,
   clusterStashName = "default",

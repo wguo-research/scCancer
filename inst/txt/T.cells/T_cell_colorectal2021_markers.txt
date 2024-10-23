@@ -1,0 +1,32 @@
+>CD4+ IL17+
+expressed: IL17A, CCL5
+
+>CD4+ IL7R+
+expressed: LEF1, SELL
+
+>CD4+ Treg
+expressed: FOXP3, IL2RA
+
+>CD4+ TFH
+expressed: PASK, ICA1
+
+>CD4+ CXCL13+
+expressed: CXCL13, ZBED2
+
+>CD8+ IL17+
+expressed: RORA, KLRB1
+
+>CD8+ IL7R+
+expressed: IL7R, TCF7
+
+>CD8+ GZMK+
+expressed: GZMK, GZMH
+
+>CD8+ CXCL13+
+expressed: TIGIT, PDCD1
+
+>gd-like T
+expressed: TRGC1, KLRC2
+
+>PLZF+ T
+expressed: PLZF, ZBTB16

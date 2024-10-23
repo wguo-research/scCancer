@@ -1,5 +1,5 @@
 
-### `r h.i`.`r h.ii` Cell malignancy estimation
+### `r h.i`.`r h.ii` Cell malignancy estimation: inferCNV
 
 In order to distinguish malignant and non-malignant cells, we infer copy number alterations (CNV) from tumor single cell RNA-Seq data referring to the method of R package [`infercnv`](https://github.com/broadinstitute/inferCNV/wiki). Then we calculate a smoothed malignancy score based on the CNV profile. 
 
@@ -14,7 +14,7 @@ if(!is.null(results$malign.thres)){
 ```
 
 ```{r malignScorePlot, echo=F, message=F, warning=F, dpi=300, fig.width=5, fig.height=4, fig.align="center", out.width='50%'}
-results$malign.plot$p.malignScore
+results$malign.plot.cnv$p.malignScore
 ```
 <p align="right">(Hi-res image: <a href="./figures/malignScore.png">view</a>)</p>
 
@@ -23,8 +23,8 @@ results$malign.plot$p.malignScore
 Here is the t-SNE plot colored by malignancy score (left) and type (right).
 
 ```{r malignPointPlot, echo=F, message=F, warning=F, dpi=300, fig.width=10, fig.height=4, fig.align="center"}
-plot_grid(results$malign.plot$p.malignScore.Point, 
-          results$malign.plot$p.malignType.Point, ncol = 2)
+plot_grid(results$malign.plot.cnv$p.malignScore.Point, 
+          results$malign.plot.cnv$p.malignType.Point, ncol = 2)
 ```
 <p align='right' style='margin-top:3px'>(Hi-res image: <a href='./figures/malignType-point.png'>left</a>, <a href='./figures/malignScore-point.png'>right</a>)</p>
 
@@ -33,13 +33,13 @@ plot_grid(results$malign.plot$p.malignScore.Point,
 Here is a bar plot showing the relationship between cell cluster and cell malignancy type.
 
 ```{r malignBarPlot, echo=F, message=F, warning=F, dpi=300, fig.width=6, fig.height=3, fig.align="center", out.width='80%'}
-results$malign.plot$p.malignType.bar
+results$malign.plot.cnv$p.malignType.bar
 ```
 <p align="right">(Hi-res image: <a href="./figures/malignType-bar.png">view</a>)</p>
 
 
 
-The estimated cell malignancy scores and types can be found in the column `Malign.score` and `Malign.type` of the table file 
+The estimated cell malignancy scores and types can be found in the column `Malign.score` and `Malign.type` of the table file
 [cellAnnotation.txt](./cellAnnotation.txt). 
 
 

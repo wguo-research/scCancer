@@ -1,0 +1,32 @@
+>Mast_KIT
+expressed: KIT, TPSAB1, CPA3
+
+>pDC_LILRA4
+expressed: LILRA4, GZMB, IL3RA
+
+>cDC1_CLEC9A
+expressed: CLEC9A, FLT3, IDO1
+
+>cDC2_CD1C
+expressed: CD1C, FCER1A, HLA-DQA1
+
+>cDC3_LAMP3
+expressed: LAMP3, CCR7, FSCN1
+
+>Mono_CD14
+expressed: FCN1, S100A9, S100A8
+
+>Mono_CD16
+expressed: FCGR3A, LST1, LILRB2
+
+>Macro_INHBA
+expressed: INHBA, IL1RN, CCL4
+
+>Macro_NLRP3
+expressed: NLRP3, EREG, IL1B
+
+>Macro_LYVE1
+expressed: LYVE1, PLTP, SEPP1
+
+>Macro_C1QC
+expressed: C1QC, C1QA, APOE

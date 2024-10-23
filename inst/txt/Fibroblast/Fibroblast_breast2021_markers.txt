@@ -1,0 +1,5 @@
+>myCAF-like
+expressed: ACTA2, TAGLN, FAP
+
+>iCAF-like
+expressed: ALDH1A1, KLF4, LEPR

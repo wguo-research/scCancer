@@ -100,7 +100,7 @@ prepareSeurat <- function(dataPath, statPath, savePath,
         }
     }
 
-    message("[", Sys.time(), "] -----: data preparation")
+    cat("[", paste0(Sys.time()), "] -----: data preparation\n")
     expr.data <- Read10Xdata(data.dir = data.path, only.expr = T)
     rownames(expr.data) <- gsub("_", "-", rownames(expr.data))
 
@@ -116,7 +116,7 @@ prepareSeurat <- function(dataPath, statPath, savePath,
                                header = T, stringsAsFactors = F)
 
     if(bool.rmContamination){
-        message("[", Sys.time(), "] -----: contamination removing")
+        cat("[", paste0(Sys.time()), "] -----: contamination removing\n")
         soupx.out <- rmContamination(statPath = statPath)
         if(!is.null(soupx.out)){
             expr.data <- soupx.out$expr.data
@@ -149,6 +149,11 @@ prepareSeurat <- function(dataPath, statPath, savePath,
     }else{
         cells.select <- subset(cell.manifest, droplet.type == "cell")$barcodes
     }
+
+    # manifest.sub <- cell.manifest[cells.select,]
+    # cells.select <- manifest.sub$barcodes[order(manifest.sub$nUMI, decreasing=T)[1:10000]]
+    # print(length(cells.select))
+
     if(bool.filter.gene){
         genes.select <- filterGene(gene.manifest,
                                    anno.filter = anno.filter,
@@ -160,7 +165,7 @@ prepareSeurat <- function(dataPath, statPath, savePath,
     expr.data <- expr.data[genes.select, cells.select]
 
 
-    message("[", Sys.time(), "] -----: Seurat object creation")
+    cat("[", paste0(Sys.time()), "] -----: Seurat object creation\n")
     expr = CreateSeuratObject(counts = expr.data,
                               min.cells = 0,
                               min.features = 0,
@@ -183,11 +188,17 @@ prepareSeurat <- function(dataPath, statPath, savePath,
                           scale.factor = 10000,
                           verbose = F)
 
-    message("[", Sys.time(), "] -----: highly variable genes")
-    expr <- FindVariableFeatures(expr, selection.method = "vst", nfeatures = 2000, verbose = F)
+    cat("[", paste0(Sys.time()), "] -----: highly variable genes\n")
+    # expr <- FindVariableFeatures(expr, selection.method = "vst", nfeatures = 2000, verbose = F)
+    # expr <- FindVariableFeatures(expr, selection.method = "vst",
+    #                              nfeatures = min(10000, length(rownames(expr))), verbose = F)
+    expr <- FindVariableFeatures(expr, selection.method = "vst",
+                                 nfeatures = min(5000, length(rownames(expr))), verbose = F)
 
-    message("[", Sys.time(), "] -----: data scaling")
+    cat("[", paste0(Sys.time()), "] -----: data scaling\n")
+    # print(length(rownames(expr)))
     expr <- ScaleData(object = expr,
+                      # features =  rownames(expr),
                       vars.to.regress = vars.to.regress,
                       verbose = F)
 
@@ -242,32 +253,32 @@ runSeurat <- function(expr,
             reduction.type = "inmf"
             pc.use <- min(pc.use, ncol(expr@reductions$inmf@cell.embeddings))
         }else{
-            message("[", Sys.time(), "] -----: PCA")
+            cat("[", paste0(Sys.time()), "] -----: PCA\n")
             expr <- RunPCA(expr, verbose = F)
             reduction.type <- "pca"
         }
     }else{
-        message("[", Sys.time(), "] -----: PCA")
+        cat("[", paste0(Sys.time()), "] -----: PCA\n")
         expr <- RunPCA(expr, npcs = npcs, verbose = F)
         reduction.type <- "pca"
     }
 
-    message("[", Sys.time(), "] -----: clustering")
+    cat("[", paste0(Sys.time()), "] -----: clustering\n")
     expr <- FindNeighbors(expr, reduction = reduction.type, dims = 1:pc.use, verbose = F)
     expr <- FindClusters(expr, resolution = resolution, verbose = F)
     expr[[clusterStashName]] <- as.numeric(Idents(object = expr))
 
     if(is.null(comb.method)){
-        message("[", Sys.time(), "] -----: tSNE")
+        cat("[", paste0(Sys.time()), "] -----: tSNE\n")
         expr <- RunTSNE(object = expr, dims = 1:pc.use, reduction = reduction.type)
     }else{
         if(comb.method != "LIGER"){
-            message("[", Sys.time(), "] -----: tSNE")
+            cat("[", paste0(Sys.time()), "] -----: tSNE\n")
             expr <- RunTSNE(object = expr, dims = 1:pc.use, reduction = reduction.type)
         }
     }
 
-    message("[", Sys.time(), "] -----: UMAP")
+    cat("[", paste0(Sys.time()), "] -----: UMAP\n")
     suppressWarnings(
         tryCatch(expr <- RunUMAP(expr, dims = 1:pc.use, reduction = reduction.type, verbose = F),
                  error = function(err) {
@@ -276,7 +287,7 @@ runSeurat <- function(expr,
     )
 
     if(bool.runDiffExpr){
-        message("[", Sys.time(), "] -----: differential expression analysis")
+        cat("[", paste0(Sys.time()), "] -----: differential expression analysis\n")
         if(!dir.exists(file.path(savePath, "diff.expr.genes"))){
             dir.create(file.path(savePath, "diff.expr.genes"), recursive = T)
         }
@@ -334,7 +345,7 @@ runSeurat <- function(expr,
 
 
 singleGenePlot <- function(expr.data, gene,
-                           coor.df, coor.names = c("tSNE_1", "tSNE_2"),
+                           coor.df, coor.names = c("UMAP_1", "UMAP_2"),
                            color = "blue", font.size = 8,
                            legend = F, axis = F){
     minx <- min(coor.df[, coor.names[1]])
@@ -399,7 +410,7 @@ singleGenePlot <- function(expr.data, gene,
 #' @return A list of ggplot obejects for each maker genes.
 #' @export
 #'
-markerPlot <- function(expr.data, coor.df, coor.names = c("tSNE_1", "tSNE_2"),
+markerPlot <- function(expr.data, coor.df, coor.names = c("UMAP_1", "UMAP_2"),
                        features = NULL, add = T,
                        species = "human",
                        font.size = 4, color = "blue"){
@@ -443,7 +454,7 @@ markerPlot <- function(expr.data, coor.df, coor.names = c("tSNE_1", "tSNE_2"),
 #'
 pointDRPlot <- function(cell.annotation, value,
                         sel.clusters = NULL,
-                        coor.names = c("tSNE_1", "tSNE_2"),
+                        coor.names = c("UMAP_1", "UMAP_2"),
                         colors = NULL,
                         discrete = T,
                         limit.quantile = 0,
@@ -510,6 +521,7 @@ pointDRPlot <- function(cell.annotation, value,
     }
 
     if(point.type == 1){
+        # color = "lightgrey"
         p <- p +
             geom_point(cell.annotation[sel.cell, ],
                        mapping = aes(x = .data[[coor.names[1]]],
@@ -655,14 +667,14 @@ preDEheatmap <- function(expr, cell.annotation, genes = NULL, cells = NULL,
 plotSeurat <- function(expr,
                        cell.annotation = cell.annotation,
                        show.features = NULL, bool.add.features = T,
-                       coor.names = c("tSNE_1", "tSNE_2"),
+                       coor.names = c("UMAP_1", "UMAP_2"),
                        bool.plotHVG = T,
                        bool.runDiffExpr = T,
                        diff.expr.genes = NULL, n.markers = 5,
                        species = "human",
                        savePath){
 
-    message("[", Sys.time(), "] -----: Seurat plotting and saving")
+    cat("[", paste0(Sys.time()), "] -----: Seurat plotting and saving\n")
 
     if(!dir.exists(file.path(savePath, "figures/singleMarkerPlot/"))){
         dir.create(file.path(savePath, "figures/singleMarkerPlot/"), recursive = T)
@@ -904,10 +916,11 @@ predCellType <- function(X.test, ct.templates = NULL, species = "human"){
 #' @return A list of updated Seurat object, cell.annotation, and the plots for cell type annotation.
 #' @export
 #'
-runCellClassify <- function(expr, cell.annotation, coor.names = c("tSNE_1", "tSNE_2"),
+runCellClassify <- function(expr, cell.annotation, coor.names = c("UMAP_1", "UMAP_2"),
                             savePath, ct.templates = NULL, species = "human"){
     if(!("Cell.Type" %in% names(cell.annotation))){
-        message("[", Sys.time(), "] -----: TME cell types annotation")
+        # message("[", Sys.time(), "] -----: TME cell types annotation")
+        cat("[", paste0(Sys.time()), "] -----: TME cell types annotation\n")
         t.results <- predCellType(X.test = expr@assays$RNA@data,
                                   ct.templates = ct.templates, species = species)
 
@@ -919,7 +932,7 @@ runCellClassify <- function(expr, cell.annotation, coor.names = c("tSNE_1", "tSN
         cell.annotation$Cell.Type <- t.results$type.pred
         cell.annotation <- cbind(cell.annotation, t.results$cor.df)
     }else{
-        message("[", Sys.time(), "] -----: TME cell types combination")
+        cat("[", paste0(Sys.time()), "] -----: TME cell types combination\n")
     }
 
     # cell.colors <- c(
@@ -1029,7 +1042,7 @@ getTumorCluster <- function(cell.annotation, epi.thres = 0.6, malign.thres = 0.8
 #' @export
 #'
 runCellCycle <- function(expr, species = "human"){
-    message("[", Sys.time(), "] -----: cell cycle score estimation")
+    cat("[", paste0(Sys.time()), "] -----: cell cycle score estimation\n")
     cellCycle.genes <- read.table(system.file("txt", "cellCycle-genes.txt", package = "scCancer"),
                                   header = F, stringsAsFactors = F)$V1
     if(species == "mouse"){
@@ -1056,7 +1069,7 @@ runCellCycle <- function(expr, species = "human"){
 #' @export
 #'
 runStemness <- function(X, stem.sig = NULL, species = "human"){
-    message("[", Sys.time(), "] -----: stemness score calculation")
+    cat("[", paste0(Sys.time()), "] -----: stemness score calculation\n")
     if(is.null(stem.sig)){
         stem.sig.file <- system.file("txt", "pcbc-stemsig.tsv", package = "scCancer")
         stem.sig <- read.delim(stem.sig.file, header = FALSE, row.names = 1)
@@ -1120,7 +1133,7 @@ getDefaultGeneSets <- function(species = "human"){
 #' @importFrom GSVA gsva
 #'
 runGeneSets <- function(expr, geneSets, method = "average"){
-    message("[", Sys.time(), "] -----: gene set signatures analysis")
+    cat("[", paste0(Sys.time()), "] -----: gene set signatures analysis\n")
     if(class(geneSets) != "list"){
         cat("- Warning in 'runGeneSets': The 'geneSets' should be a list of several gene sets.\n")
         return(NULL)
@@ -1212,7 +1225,7 @@ plotGeneSet <- function(cell.annotation, prefix = "GS__", bool.limit = T, savePa
 #' @importFrom methods as
 #'
 runExprProgram <- function(expr, rank = 50, sel.clusters = NULL, clusterStashName = "default", savePath = NULL){
-    message("[", Sys.time(), "] -----: expression programs analysis")
+    cat("[", paste0(Sys.time()), "] -----: expression programs analysis\n")
 
     data <- as(object = expr[["RNA"]]@data, Class = "TsparseMatrix")
     if(!is.null(sel.clusters)){
@@ -1365,7 +1378,7 @@ plotExprProgram <- function(H, cell.annotation, bool.limit = T, sel.clusters = N
 #' @export
 #'
 runCellInteraction <- function(expr, cellSetName = "default", species = "human", savePath = NULL){
-    message("[", Sys.time(), "] -----: cell interaction analysis")
+    cat("[", paste0(Sys.time()), "] -----: cell interaction analysis\n")
 
     pairsLigRec <- read.table(system.file("txt", "PairsLigRec.txt", package = "scCancer"),
                               sep = "\t", header = T,stringsAsFactors = F)
@@ -1571,10 +1584,20 @@ plotCellInteraction <- function(stat.df, cell.annotation){
 #' "cxds"(co-expression based doublet scoring) and "bcds"(binary classification based doublet scoring) are allowed.
 #' These methods are from R package "scds".
 #' @param bool.runCellClassify A logical value indicating whether to predict the usual cell type. The default is TRUE.
+#' @param roughlabel.path Path for generated rough label, useful when bool.runCellClassify = FALSE.
+#' @param bool.runCellSubtypeClassify A logical value indicating whether to predict the usual cell subtype. The default is TRUE.
+#' @param celltype.list A list of cell types for subtype annotation, which depends on either rough annotation or user's input.
 #' @param ct.templates A list of vectors of several cell type templates.
 #' The default is NULL and the templates prepared in this package will be used.
+#' @param submodel.path A folder containing all models preset for cell subtype annotation(.csv file)
+#' The default is NULL and all models prepared in this package will be used.
+#' @param markers.path A folder containing all marker files preset for cell subtype annotation(.txt file)
+#' The default is NULL and all marker files prepared in this package will be used.
+#' @param subtype.umap A logical value indicating whether to generate umap plot group by cell subtypes. The default is FALSE.
 #' @param coor.names A vector indicating the names of two-dimension coordinate used in visualization.
 #' @param bool.runMalignancy A logical value indicating whether to estimate malignancy.
+#' @param malignancy.method The method to be used in malignant cell identification.
+#' inferCNV and xgboost are allowed. Recommend "xgboost" for large dataset, "both" for small dataset.
 #' @param cnv.ref.data An expression matrix of gene by cell, which is used as the normal reference during estimating malignancy.
 #' The default is NULL, and an immune cells or bone marrow cells expression matrix will be used for human or mouse species, respectively.
 #' @param cnv.referAdjMat An adjacent matrix for the normal reference data.
@@ -1601,8 +1624,10 @@ plotCellInteraction <- function(stat.df, cell.annotation){
 #' @importFrom markdown markdownToHTML
 #' @importFrom pheatmap pheatmap
 #' @importFrom stringr str_c
-#'
-runScAnnotation <- function(dataPath, statPath, savePath = NULL,
+#' @importFrom dplyr "%>%"
+runScAnnotation <- function(dataPath,
+                            statPath,
+                            savePath = NULL,
                             authorName = NULL,
                             sampleName = "sc",
                             bool.filter.cell = T,
@@ -1626,9 +1651,18 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
                             bool.runDoublet = T,
                             doublet.method = "bcds",
                             bool.runCellClassify = T,
+                            roughlabel.path = NULL,
+                            bool.runCellSubtypeClassify = T,
+                            subtypeClassifyMethod = "Scoring",
+                            celltype.list = NULL,
                             ct.templates = NULL,
-                            coor.names = c("tSNE_1", "tSNE_2"),
+                            submodel.path = NULL,
+                            markers.path = NULL,
+                            unknown.cutoff = 0.3,
+                            subtype.umap = FALSE,
+                            coor.names = c("UMAP_1", "UMAP_2"),
                             bool.runMalignancy = T,
+                            malignancy.method = "both",
                             cnv.ref.data = NULL,
                             cnv.referAdjMat = NULL,
                             cutoff = 0.1,
@@ -1644,7 +1678,7 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
                             bool.runInteraction = T,
                             genReport = T){
 
-    message("[", Sys.time(), "] START: RUN scAnnotation")
+    cat("[", paste0(Sys.time()), "] START: RUN scAnnotation\n")
     results <- as.list(environment())
     checkAnnoArguments(results)
 
@@ -1733,7 +1767,7 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
 
     ## --------- doublet ---------
     if(bool.runDoublet){
-        message("[", Sys.time(), "] -----: Doublet score estimation")
+        cat("[", paste0(Sys.time()), "] -----: Doublet score estimation\n")
         doubletScore <- runDoublet(expr, method = doublet.method, pc.use = pc.use)
         expr[["doublet.score"]] <- doubletScore
         cell.annotation$doublet.score <- doubletScore
@@ -1774,39 +1808,104 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
         cell.annotation <- t.results$cell.annotation
         results[["cellType.plot"]] <- t.results$p.results
         rm(t.results)
+        expr$Cell.Type %>%
+            gsub("T.cells.CD4", "T.cells", .) %>%
+            gsub("T.cells.CD8", "T.cells", .) -> expr$Cell.Type
+        # saveRDS(expr, file = file.path(savePath, "expr-rough.RDS"))
+        saveRDS(cell.annotation, file = file.path(savePath, "rough-cell-annotation.RDS"))
+        saveRDS(expr$Cell.Type, file = file.path(savePath, "rough-labels.RDS"))
+    }
+    else{
+        expr$Cell.Type <- readRDS(roughlabel.path)
+    }
+    ## --------- cell subtype ---------
+    if(bool.runCellSubtypeClassify){
+        if(is.null(celltype.list)){
+            default.list <- c("T.cells", "Myeloid.cells", "B.cells", "Fibroblast", "Endothelial")
+            celltype.list <- intersect(unique(expr$Cell.Type), default.list)
+        }
+        folder.name <- "cellSubtypeAnno"
+        if(is.null(submodel.path)){
+            # if(subtypeClassifyMethod == "Scoring"){
+            #     submodel.path <- system.file("csv", package = "scCancer")
+            # }
+            # else{
+            #     submodel.path <- file.path(system.file("rds", package = "scCancer"),
+            #                                "cellSubtypeTemplates-XGBoost.rds")
+            #     folder.name <- "cellSubtypeAnno-XGBoost"
+            # }
+
+            # submodel.path <- system.file("csv", package = "scCancer")
+            submodel.path <- file.path(system.file("rds", package = "scCancer"), "cellSubtypeTemplates.rds")
+        }
+        if(is.null(markers.path)){
+            markers.path <- system.file("txt", package = "scCancer")
+        }
+        if(!dir.exists(file.path(savePath, folder.name))){
+            dir.create(file.path(savePath, folder.name), recursive = T)
+        }
+        t.results <- runCellSubtypeClassify(expr = expr,
+                                            submodel.path = submodel.path,
+                                            markers.path = markers.path,
+                                            savePath = file.path(savePath, folder.name),
+                                            celltype.list = celltype.list,
+                                            dropout.modeling = FALSE,
+                                            unknown.cutoff = unknown.cutoff,
+                                            umap.plot = subtype.umap)
+        results[["fine.labels"]] <- t.results[["fine.labels"]]
+        results[["similarity.matrix"]] <- t.results[["similarity.matrix"]]
+        rm(t.results)
+        saveRDS(results[["fine.labels"]], file = file.path(savePath, folder.name, "fine-labels.RDS"))
+        saveRDS(results[["similarity.matrix"]], file = file.path(savePath, folder.name, "similarity-matrix.RDS"))
     }
 
-
     ## --------- malignancy ---------
+    results[["cnv.anno"]] <- FALSE
+    results[["xgboost.anno"]] <- FALSE
     if(bool.runMalignancy){
-        message("[", Sys.time(), "] -----: cells malignancy annotation")
         # if(species != "human"){
         #     cat("- Warning in 'runScAnnotation': To perform 'runMalignancy', the argument 'species' needs to be 'human'.\n")
         #     results[["bool.runMalignancy"]] = FALSE
         # }else{
         #
         # }
-        t.results <- runMalignancy(expr = expr,
-                                   gene.manifest = gene.manifest,
-                                   cell.annotation = cell.annotation,
-                                   savePath = savePath,
-                                   cutoff = cutoff, minCell = 3,
-                                   p.value.cutoff = p.value.cutoff,
-                                   coor.names = coor.names,
-                                   ref.data = cnv.ref.data,
-                                   referAdjMat = cnv.referAdjMat,
-                                   species = species,
-                                   genome = genome,
-                                   hg.mm.mix = hg.mm.mix)
-        expr <- t.results$expr
-        cell.annotation <- t.results$cell.annotation
-        results[["cnvList"]] <- t.results$cnvList
-        results[["referScore"]] <- t.results$referScore
-        results[["ju.exist.malign"]] <- t.results$ju.exist.malign
-        results[["malign.thres"]] <- t.results$malign.thres
-        # results[["bimodal.pvalue"]] <- t.results$bimodal.pvalue
-        results[["malign.plot"]] <- t.results$p.results
-        rm(t.results)
+        if(malignancy.method == "inferCNV" | malignancy.method == "both"){
+            cat("[", paste0(Sys.time()), "] -----: malignant cells identification with inferCNV\n")
+            t.results <- runMalignancy(expr = expr,
+                                       gene.manifest = gene.manifest,
+                                       cell.annotation = cell.annotation,
+                                       savePath = savePath,
+                                       cutoff = cutoff, minCell = 3,
+                                       p.value.cutoff = p.value.cutoff,
+                                       coor.names = coor.names,
+                                       ref.data = cnv.ref.data,
+                                       referAdjMat = cnv.referAdjMat,
+                                       species = species,
+                                       genome = genome,
+                                       hg.mm.mix = hg.mm.mix)
+            expr <- t.results$expr
+            cell.annotation <- t.results$cell.annotation
+            results[["cnvList"]] <- t.results$cnvList
+            results[["referScore"]] <- t.results$referScore
+            results[["ju.exist.malign"]] <- t.results$ju.exist.malign
+            results[["malign.thres"]] <- t.results$malign.thres
+            # results[["bimodal.pvalue"]] <- t.results$bimodal.pvalue
+            results[["malign.plot.cnv"]] <- t.results$p.results
+            results[["cnv.anno"]] <- TRUE
+            rm(t.results)
+        }
+        if(malignancy.method == "xgboost" | malignancy.method == "both"){
+            cat("[", paste0(Sys.time()), "] -----: malignant cells identification with XGBoost model\n")
+            t.results <- predMalignantCell(expr = expr,
+                                           cell.annotation = cell.annotation,
+                                           malignancy.method = "xgboost",
+                                           savePath = savePath,
+                                           MALIGNANT.THRES = 0.5)
+            cell.annotation <- t.results$cell.annotation
+            results[["malign.plot.xgboost"]] <- t.results$plot
+            rm(t.results)
+            results[["xgboost.anno"]] <- TRUE
+        }
     }
 
 
@@ -1940,19 +2039,20 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
                 quote = F, sep = "\t", row.names = F)
 
     if(genReport){
-        message("[", Sys.time(), "] -----: report generating")
+        cat("[", paste0(Sys.time()), "] -----: report generating\n")
         if(!dir.exists(file.path(savePath, 'report-figures/'))){
             dir.create(file.path(savePath, 'report-figures/'), recursive = T)
         }
         suppressWarnings(
             knit(system.file("rmd", "main-scAnno.Rmd", package = "scCancer"),
                  file.path(savePath,'report-scAnno.md'), quiet = T)
+            # knit(system.file("rmd", "main-scAnno.Rmd", package = "scCancer2"), file.path(savePath,'report-scAnno.md'), quiet = T)
         )
         markdownToHTML(file.path(savePath,'report-scAnno.md'),
                        file.path(savePath, 'report-scAnno.html'))
     }
 
-    message("[", Sys.time(), "] END: Finish scAnnotation\n\n")
+    cat("[", paste0(Sys.time()), "] END: Finish scAnnotation\n\n")
 
     return(results)
 }
@@ -1969,7 +2069,7 @@ runScAnnotation <- function(dataPath, statPath, savePath = NULL,
 #' @export
 #'
 genAnnoReport <- function(results, savePath){
-    message("[", Sys.time(), "] -----: report generating")
+    cat("[", paste0(Sys.time()), "] -----: report generating\n")
 
     if(!dir.exists(savePath)){
         dir.create(savePath, recursive = T)

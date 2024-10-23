@@ -239,7 +239,19 @@ h.ii <- h.ii + 1
 
 
 
-```{r malignancy, child=system.file("rmd", "malignancy.Rmd", package = "scCancer"), eval = results$bool.runMalignancy}
+```{r cellSubType, child=system.file("rmd", "cellSubType.Rmd", package = "scCancer"), eval = results$bool.runCellSubtypeClassify}
+```
+
+
+
+
+```{r malignancy, child=system.file("rmd", "malignancy.Rmd", package = "scCancer"), eval = results$cnv.anno}
+```
+
+
+
+
+```{r malignancy-xgboost, child=system.file("rmd", "malignancy-xgboost.Rmd", package = "scCancer"), eval = results$xgboost.anno}
 ```
 
 
@@ -323,6 +335,8 @@ Running this script generates following files:
 [expr.RDS](./).
 6. **Annotation of cells** :
 [cellAnnotation.txt](./cellAnnotation.txt).
+7. **Cell subtype annotation and similarity map**:
+[cellSubtypeAnno/](./cellSubtypeAnno/)
 ```{r echo=FALSE, results='asis', eval=results$bool.runDiffExpr}
 cat(r.i, ". **Differentially expressed genes' information for all clusters** : ", sep = "")
 cat("[diff.expr.genes/](./diff.expr.genes/).\n", sep = "")

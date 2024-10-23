@@ -1,0 +1,8 @@
+>B cells Naive
+expressed: CXCR5, CAPN3, BMP3
+
+>B cells Memory
+expressed: BLK, CD79B
+
+>Plasmablasts
+expressed: TNFRSF17, AMPD1

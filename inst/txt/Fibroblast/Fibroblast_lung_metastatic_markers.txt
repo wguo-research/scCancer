@@ -1,0 +1,20 @@
+>COL14A1+ matrix FBs
+expressed: COL14A1, GSN
+
+>COL13A1+ matrix FBs
+expressed: COL13A1, TCF21
+
+>Myofibroblasts
+expressed: TAGLN, ACTA2
+
+>Smooth muscle cells
+expressed: CNN1, DES
+
+>Mesothelial cells
+expressed: UPK3B, MSLN
+
+>FB-like cells
+expressed: CYP1B1, APOD
+
+>Pericytes
+expressed: RGS5, CSPG4

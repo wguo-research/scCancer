@@ -1,0 +1,26 @@
+>T_cells_c0_CD4+_CCR7
+expressed: CCR7
+
+>T_cells_c1_CD4+_IL7R
+expressed: IL7R
+
+>T_cells_c2_CD4+_T-regs_FOXP3
+expressed: FOXP3
+
+>T_cells_c3_CD4+_Tfh_CXCL13
+expressed: CXCL13
+
+>T_cells_c4_CD8+_ZFP36
+expressed: ZFP36
+
+>T_cells_c5_CD8+_GZMK
+expressed: GZMK
+
+>T_cells_c7_CD8+_IFNG
+expressed: IFNG
+
+>T_cells_c8_CD8+_LAG3
+expressed: LAG3
+
+>T_cells_c10_NKT_cells_FCGR3A
+expressed: FCGR3A

@@ -1,0 +1,286 @@
+---
+title: "scCancer2-TMEIdentification"
+author: "Zeyu Chen"
+date: '2024-6-23'
+output: html_document
+---
+
+```{r}
+rm(list = ls())
+gc()
+options(stringsAsFactors = F)
+```
+
+# Temporary installation: Import dependencies and R functions
+```{r}
+suppressMessages(library(Seurat))
+suppressMessages(library(org.Hs.eg.db))
+suppressMessages(library(garnett))
+suppressMessages(library(xgboost))
+suppressMessages(library(ggplot2))
+suppressMessages(library(ggsci))
+suppressMessages(library(ggpubr))
+suppressMessages(library(cowplot))
+suppressMessages(library(viridis))
+suppressMessages(library(magrittr))
+suppressMessages(library(dplyr))
+suppressMessages(library(edgeR))
+library(devtools)
+suppressWarnings(load_all())
+suppressWarnings(document())
+# usethis::use_mit_license()
+library(scCancer)
+```
+
+# Install scCancer directly
+```{r}
+devtools::install_github("czythu/scCancer")
+```
+
+```{r}
+library(scCancer)
+```
+
+
+# Data processing for filtered_bc_matrix/
+## GSE140228:.mtx, .tsv.gz file
+```{r}
+path <- "D:/scCancer-data/SubtypeAnno/Demo-pipeline/GSE140228/"
+matrix <- readMM(paste0(path, "data/ori/matrix.mtx"))
+gene.info <- read.table(paste0(path, "data/ori/features.tsv"))[-1,1:2]
+generate10Xdata(matrix = matrix,
+                gene.info = gene.info, 
+                outPath = paste0(path, "data/"))
+# add file "barcode.tsv.gz"  manually
+```
+
+## DEMO1(Immune cell), GSE146771: .txt file
+```{r}
+path <- "D:/scCancer-data/SubtypeAnno/Demo-pipeline/GSE146771/"
+# matrix <- read.table(gzfile(paste0(path, "data/ori/GSE146771_CRC.Leukocyte.10x.TPM.txt.gz")))
+# saveRDS(matrix, paste0(path, "data/ori/GSE146771_CRC_data.rds"))
+matrix <- readRDS(paste0(path, "data/ori/GSE146771_CRC_data.rds"))
+gene.list <- read.table(paste0(system.file("txt", package = "scCancer"), "/single_cell_features.tsv"))[,1:2]
+index <- which(rownames(matrix) %in% gene.list$V2)
+matrix.sub <- matrix[index,]
+geneset <- gene.list[match(rownames(matrix.sub), gene.list$V2),]
+generate10Xdata(matrix = matrix.sub,
+                gene.info = geneset, 
+                outPath = paste0(path, "data/"))
+```
+
+## DEMO2(Stromal cell), CRA001160
+```{r}
+path <- "D:/scCancer-data/SubtypeAnno/Demo-pipeline/CRA001160/"
+matrix <- readRDS(paste0(path, "data/ori/CRA001160_expression_sparse.rds"))
+gene.list <- read.table(paste0(system.file("txt", package = "scCancer"), "/single_cell_features.tsv"))[,1:2]
+index <- which(rownames(matrix) %in% gene.list$V2)
+matrix.sub <- matrix[index,]
+geneset <- gene.list[match(rownames(matrix.sub), gene.list$V2),]
+generate10Xdata(matrix = matrix.sub,
+                gene.info = geneset, 
+                outPath = paste0(path, "data/"))
+```
+
+# scStatistics
+```{r}
+# path <- "D:/scCancer-data/SubtypeAnno/Demo-pipeline/GSE146771/"
+# path <- "D:/scCancer-data/SubtypeAnno/Demo-pipeline/GSE140228/"
+# path <- "D:/scCancer-data/SubtypeAnno/Demo-pipeline/CRA001160/"
+# path <- "D:/scCancer-data/SubtypeAnno/Demo-pipeline/STAD-example/"
+path <- "D:/scCancer-data/SubtypeAnno/Demo-pipeline/KC-example/"
+dataPath <- file.path(path, "data")
+# A path containing the scStatistics results
+statPath <- file.path(path, "result")
+# The sample name
+# sampleName <- "CRC-example"
+sampleName <- "KC-example"
+# sampleName <- "PDAC-example"
+# sampleName <- "STAD-example"
+# The author name or a string used to mark the report.
+authorName <- "G-Lab@THU"
+# A path used to save the results files
+savePath <- file.path(path, "result")
+
+# Run scStatistics
+stat.results <- runScStatistics(
+    dataPath = dataPath,
+    savePath = savePath,
+    sampleName = sampleName,
+    authorName = authorName,
+    bool.runSoupx = F,
+    genReport = T
+)
+```
+
+# scAnnotation
+
+```{r}
+# Run scAnnotation
+anno.results <- runScAnnotation(
+    dataPath = dataPath,
+    statPath = statPath,
+    savePath = savePath,
+    authorName = authorName,
+    sampleName = sampleName,
+    geneSet.method = "average",
+    # vars.to.regress = c("nCount_RNA", "mito.percent"),
+    bool.runDiffExpr = T,
+    bool.runCellClassify = T,
+    bool.runCellSubtypeClassify = T,
+    subtypeClassifyMethod = "Scoring",
+    celltype.list = NULL,
+    ct.templates = NULL,
+    submodel.path = NULL,
+    markers.path = NULL,
+    unknown.cutoff = 0.3,
+    subtype.umap = T,
+    bool.runMalignancy = T,
+    malignancy.method = "both", # "xgboost", "inferCNV", "both", recommend "both" for sample < 10000 cells
+    bool.intraTumor = T,
+    bool.runCellCycle = T,
+    bool.runStemness = T,
+    bool.runGeneSets = T,
+    bool.runExprProgram = T,
+    bool.runInteraction = T,
+    genReport = T
+)
+```
+
+# Loop for multi-samples
+```{r}
+# samples <- c('CRA001160', 'GSE146771',
+#              '20200208-PAC-CRR034523-N4-Normal', '20200208-PAC-CRR034524-N5-Normal',
+#              '20200215-HCC-Pt14d-Tumor', '20200208-PAC-CRR034517-T22-Tumor',
+#              '20180625-HCC-P4-Tumor-New', '20181024-KC-P7-Tumor-vCR3',
+#              'YS2306057_AV_230615', 'YS2306057_BD_230615', 'YS2306057_NL_230615',
+#              'YS2306060_AV_230615', 'YS2306060_NL_230615',
+#              'cc001', 'cc002', 'cc003', 'cc006', 'CC009', 'icc010',
+#              "STAD-ascites-1", "STAD-ascites-2", "STAD-example")
+# samples <- c('20181024-KC-P7-Tumor-vCR3', '20200208-PAC-CRR034517-T22-Tumor',
+#              'YS2306057_BD_230615', 'cc001', 'cc002',
+#              '20200208-PAC-CRR034524-N5-Normal',
+#              '20200208-PAC-CRR034523-N4-Normal', '20180625-HCC-P4-Tumor-New',
+#              '20190913-HCC-P6-Normal', '20190913-HCC-P7-Normal',
+#              'YS2306057_AV_230615')
+# samples <- c('GSE146771', 'CRA001160')
+
+samples <- c('cc001', 'cc002', 'cc003', 'cc006', 'CC009', 'icc010', 
+             '20200208-PAC-CRR034530-N11-Normal', '20200208-PAC-CRR034524-N5-Normal',
+             '20200208-PAC-CRR034523-N4-Normal','20190913-HCC-P8-Normal',
+              '20190913-HCC-P6-Normal', '20190913-HCC-P7-Normal',
+             '20200215-HCC-Pt13c-Tumor', '20200217-LUAD-LX684-Tumor',
+              "STAD-ascites-1", "STAD-ascites-2", "STAD-example")
+samples <- c('20200208-PAC-CRR034523-N4-Normal','20200208-PAC-CRR034524-N5-Normal',
+             '20200215-HCC-Pt13c-Tumor', '20200217-LUAD-LX684-Tumor',
+             'cc001', 'cc002', 'cc003', "STAD-ascites-1", "STAD-ascites-2", "STAD-example")
+samples <- c('20190913-HCC-P8-Normal', '20190913-HCC-P6-Normal', '20190913-HCC-P7-Normal')
+for (sample in samples){
+    gc()
+    print(sample)
+    path <- paste0("D:/scCancer-data/SubtypeAnno/Demo-pipeline/", sample)
+    dataPath <- file.path(path, "data")
+    
+    statPath <- file.path(path, "result")
+    sampleName <- sample
+    authorName <- "G-Lab@THU"
+    savePath <- file.path(path, "result")
+    
+    stat.results <- runScStatistics(
+        dataPath = dataPath,
+        savePath = savePath,
+        sampleName = sampleName,
+        authorName = authorName)
+
+    anno.results <- runScAnnotation(
+        dataPath = dataPath,
+        statPath = statPath,
+        savePath = savePath,
+        authorName = authorName,
+        sampleName = sampleName,
+        geneSet.method = "average",
+        vars.to.regress = c("nCount_RNA", "mito.percent"),
+        bool.runDiffExpr = F, # False to save time
+        bool.runCellClassify = T,
+        bool.runCellSubtypeClassify = T,
+        subtypeClassifyMethod = "Scoring",
+        celltype.list = NULL,
+        ct.templates = NULL,
+        submodel.path = NULL,
+        markers.path = NULL,
+        unknown.cutoff = 0.3,
+        subtype.umap = T,
+        bool.runMalignancy = T,
+        # "xgboost", or "inferCNV", "both", recommend "both" for human sample < 10000 cells
+        malignancy.method = "both", 
+        bool.intraTumor = T,
+        bool.runCellCycle = T,
+        bool.runStemness = T,
+        bool.runGeneSets = T,
+        bool.runExprProgram = T, # False to save time
+        bool.runInteraction = T,
+        genReport = T
+    )
+}
+```
+
+# Mouse scRNA-seq
+```{r}
+samples <- c('240171A_17_14D_W0',
+             '240171B_17_14C_W1',
+             # '240171C_17_14A_W2',
+             '240171D_17_14B_W3')
+
+for (sample in samples){
+  gc()
+  print(sample)
+  path <- file.path("D:/KPC/data/processed", sample)
+  dataPath <- file.path(path, "outs")
+  
+  statPath <- file.path(path, "results")
+  sampleName <- sample
+  authorName <- "G-Lab@THU"
+  savePath <- file.path(path, "results")
+  
+  # stat.results <- runScStatistics(
+  #   dataPath = dataPath,
+  #   savePath = savePath,
+  #   species = "mouse",
+  #   sampleName = sampleName,
+  #   authorName = authorName,
+  #   bool.filterhighUMI = F)
+
+  anno.results <- runScAnnotation(
+    dataPath = dataPath,
+    statPath = statPath,
+    savePath = savePath,
+    authorName = authorName,
+    sampleName = sampleName,
+    geneSet.method = "average",
+    vars.to.regress = c("nCount_RNA", "mito.percent", "ribo.percent"),
+    bool.runDiffExpr = T,
+    species = "mouse",
+    genome = "mm10",
+    bool.runCellClassify = T,
+    bool.runCellSubtypeClassify = F,
+    subtypeClassifyMethod = "Scoring",
+    celltype.list = NULL,
+    ct.templates = NULL,
+    submodel.path = NULL,
+    markers.path = NULL,
+    unknown.cutoff = 0.3,
+    subtype.umap = F,
+    bool.runMalignancy = T,
+    malignancy.method = "inferCNV",
+    bool.intraTumor = T,
+    bool.runCellCycle = T,
+    bool.runStemness = T,
+    bool.runGeneSets = T,
+    bool.runExprProgram = T, # False to save time
+    bool.runInteraction = T,
+    genReport = T
+  )
+}
+
+```
+
