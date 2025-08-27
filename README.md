@@ -137,15 +137,15 @@ We have uploaded 5 recommended data sets, including 3 unpublished data (single-s
 The first 3 data sets are recommended for reproducing the whole pipeline because there are fewer samples for faster operation. 
 The last 2 data sets are recommended for cell subtype annotation task because there are more cell types and richer cell numbers.
 
-[`KC-example-tumor`](https://cloud.tsinghua.edu.cn/f/6b29aab86fc94340832e/?dl=1)
+[`KC-example-tumor`](https://cloud.tsinghua.edu.cn/f/6b29aab86fc94340832e/?dl=1) OR [`KC-example-tumor-backup`](http://lifeome.net/software/sccancer2/scCancer2_demo/KC-example-tumor.zip)
 
-[`PAC-example-normal`](https://cloud.tsinghua.edu.cn/f/3f4715952407477b8b3a/?dl=1)
+[`PAC-example-normal`](https://cloud.tsinghua.edu.cn/f/3f4715952407477b8b3a/?dl=1) OR [`PAC-example-normal-backup`](http://lifeome.net/software/sccancer2/scCancer2_demo/PAC-example-normal.zip)
 
-[`Organoid-example-epithelial`](https://cloud.tsinghua.edu.cn/f/5519909386244a058255/?dl=1)
+[`Organoid-example-epithelial`](https://cloud.tsinghua.edu.cn/f/5519909386244a058255/?dl=1) OR [`Organoid-example-epithelial-backup`](http://lifeome.net/software/sccancer2/scCancer2_demo/Organoid-example-epithelial.zip)
 
-[`CRC-example-immune (Source: GSE146771)`](https://cloud.tsinghua.edu.cn/f/dc6178e9a37746cf9f11/?dl=1)
+[`CRC-example-immune (Source: GSE146771)`](https://cloud.tsinghua.edu.cn/f/dc6178e9a37746cf9f11/?dl=1) OR [`CRC-example-immune-backup`](http://lifeome.net/software/sccancer2/scCancer2_demo/CRC-example-immune.zip)
 
-[`PAC-example-tumor (Source: CRA001160)`](https://cloud.tsinghua.edu.cn/f/a7b70953a42048ccb231/?dl=1)
+[`PAC-example-tumor (Source: CRA001160)`](https://cloud.tsinghua.edu.cn/f/a7b70953a42048ccb231/?dl=1) OR [`PAC-example-tumor-backup`](http://lifeome.net/software/sccancer2/scCancer2_demo/PAC-example-tumor.zip)
 
 ### R module for newly implemented scRNA-seq analysis modules
 
@@ -191,6 +191,6 @@ See [stCancer.rmd](https://github.com/czythu/scCancer/blob/master/vignettes/) fo
 
 ## Citation
 
-[1] Zeyu Chen, Yuxin Miao, Zhiyuan Tan, Qifan Hu, Yanhong Wu, Xinqi Li, Wenbo Guo, Jin Gu, scCancer2: data-driven in-depth annotations of the tumor microenvironment at single-level resolution, Bioinformatics, Volume 40, Issue 2, February 2024, btae028, https://doi.org/10.1093/bioinformatics/btae028
+[1] Zeyu Chen#, Yuxin Miao#, Zhiyuan Tan, Qifan Hu, Yanhong Wu, Xinqi Li, Wenbo Guo, Jin Gu, scCancer2: data-driven in-depth annotations of the tumor microenvironment at single-level resolution, Bioinformatics, Volume 40, Issue 2, February 2024, btae028, https://doi.org/10.1093/bioinformatics/btae028
 
 [2] Wenbo Guo, Dongfang Wang, Shicheng Wang, Yiran Shan, Changyi Liu, Jin Gu, scCancer: a package for automated processing of single-cell RNA-seq data in cancer, Briefings in Bioinformatics, Volume 22, Issue 3, May 2021, bbaa127, https://doi.org/10.1093/bib/bbaa127
